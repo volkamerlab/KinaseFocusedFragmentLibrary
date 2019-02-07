@@ -297,7 +297,9 @@ def FindBRICSBonds(mol, randomizeOrder=False, silent=True):
     random.shuffle(indices, random=random.random)
 
   envMatches = {}
+  # iterate over BRICS environments
   for env, patt in iteritems(environMatchers):
+    # check if environment is present in given molecule
     envMatches[env] = mol.HasSubstructMatch(patt)
   for gpIdx in indices:
     if randomizeOrder:
@@ -305,15 +307,19 @@ def FindBRICSBonds(mol, randomizeOrder=False, silent=True):
       random.shuffle(compats, random=random.random)
     else:
       compats = bondMatchers[gpIdx]
+    # iterate over BRICS bonds
     for i1, i2, bType, patt in compats:
+      # check if bond is present in given molecule
       if not envMatches['L' + i1] or not envMatches['L' + i2]:
         continue
+      # find index of bond if present
       matches = mol.GetSubstructMatches(patt)
       i1 = letter.sub('', i1)
       i2 = letter.sub('', i2)
       for match in matches:
         if match not in bondsDone and (match[1], match[0]) not in bondsDone:
           bondsDone.add(match)
+          # get atom indices and environment types of broken bond
           yield (((match[0], match[1]), (i1, i2)))
 
 
