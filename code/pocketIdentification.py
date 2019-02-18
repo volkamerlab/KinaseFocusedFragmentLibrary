@@ -1,26 +1,10 @@
 import numpy as np
-import time
+import sys
 
-from functions import removeDuplicates
-
-
-# calculate 3D distance between two atoms
-def calculate3DDistance(conformer1, conformer2, atom1, atom2):
-
-    start = time.time()
-    pos1 = conformer1.GetAtomPosition(atom1)
-    pos2 = conformer2.GetAtomPosition(atom2)
-    end = time.time()
-    # print("conformer:", end - start)
-    start = time.time()
-    result = np.linalg.norm(pos1 - pos2)
-    end = time.time()
-    # print("distance:", end - start)
-
-    return result
+from functions import removeDuplicates, calculate3DDistance
 
 
-# given an atom of the ligand, find the three nearest protein residues
+# given an atom (atom number) of a ligand, find the three nearest protein residues
 # pocketMol2: mol2 string of the binding pocket atoms including residue information
 #             (all other information in the mol2 string has to be removed)
 # ligandAtom: number of the atom of interest in the ligand
@@ -48,6 +32,8 @@ def getRegion(res):
         return 'g.l'  # glycine rich loop
     elif 10 <= res <= 13:
         return 'beta2'
+    elif res == 17:
+        return 'K17'
     elif 14 <= res <= 19:
         return 'beta3'
     elif 20 <= res <= 30:
@@ -84,15 +70,34 @@ def getRegion(res):
         sys.exit('ERROR: Given residue number not between 1 and 85!')
 
 
-# given a list of kinase binding pocket regions, get the corresponding subpocket
+# given a list of binding pocket regions, return subpocket
 # subpockets: AP, FP, SE, GA, BP
-# ----------------- TO DO ? ---------------------
-def getSubpocket(regions):
+def getSubpocketFromRegions(regions):
 
-    if 'hinge' and 'linker' in regions:
+    if 'hinge' in regions[:1]:
         return 'AP'
-    elif 'GK' in regions:
+    elif 'GK' and 'K17' in regions:
         return 'GA'
+    elif 'linker' and 'DFG' in regions:
+        return 'FP'
+    elif 'DFG' and 'b.l' and 'alphaC' in regions:
+        return 'BP'
     else:
         return 'other'
-# -----------------------------------------------
+
+
+# given an atom number of the ligand, get the subpocket that atom lies in
+# subpockets: AP, FP, SE, GA, BP
+def getSubpocketFromAtom(ligandAtom, ligandConf, pocketConf, pocketMol2):
+
+    # atom = ligand.GetAtomWithIdx(ligandAtom)
+    # get nearest pocket residues
+    nearestResidues = getNearestResidues(ligandAtom, ligandConf, pocketConf, pocketMol2)
+    # atom.SetProp('nearestResidues', str(nearestResidues))
+    # print(atom.GetProp('nearestResidues'))
+
+    # get corresponding pocket regions
+    regions = [getRegion(res) for res in nearestResidues]
+    # atom.SetProp('nearestRegions', str(nearestRegions))
+
+    return getSubpocketFromRegions(regions)
