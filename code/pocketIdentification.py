@@ -90,14 +90,10 @@ def getSubpocketFromRegions(regions):
 # subpockets: AP, FP, SE, GA, BP
 def getSubpocketFromAtom(ligandAtom, ligandConf, pocketConf, pocketMol2):
 
-    # atom = ligand.GetAtomWithIdx(ligandAtom)
     # get nearest pocket residues
     nearestResidues = getNearestResidues(ligandAtom, ligandConf, pocketConf, pocketMol2)
-    # atom.SetProp('nearestResidues', str(nearestResidues))
-    # print(atom.GetProp('nearestResidues'))
 
     # get corresponding pocket regions
     regions = [getRegion(res) for res in nearestResidues]
-    # atom.SetProp('nearestRegions', str(nearestRegions))
 
     return getSubpocketFromRegions(regions)
