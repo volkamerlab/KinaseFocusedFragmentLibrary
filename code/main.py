@@ -1,10 +1,12 @@
 from rdkit import Chem
-# from rdkit.Chem import Draw
+from rdkit.Chem import Draw
 import time
+import sys
 
-from pocketIdentification import getSubpocketFromAtom
+from pocketIdentification import getSubpocketFromAtom, checkSubpockets
 from functions import loadAtomInfoFromMol2, mostCommon
-from fragmentation import FindBRICSFragments
+from fragmentation import FindBRICSFragments, GetFragmentsFromAtomTuples
+from classes import Fragment
 
 # load ligand and binding pocket to rdkit molecules
 ligand = Chem.MolFromMol2File('../../data/KLIFS_download/HUMAN/EGFR/3w2s_altA_chainA/ligand.mol2', removeHs=False)
@@ -19,72 +21,76 @@ lenLigand = ligand.GetNumAtoms()
 # read atom information from binding pocket mol2 file (necessary for residue information)
 pocketMol2 = loadAtomInfoFromMol2('../../data/KLIFS_download/HUMAN/EGFR/3w2s_altA_chainA/pocket.mol2')
 
-start1 = time.time()
+start = time.time()
 
-# find BRICS fragments
-BRICSFragmentsAtoms, BRICSFragments = FindBRICSFragments(ligand, asMols=True)
+# get subpocket for each ligand atom
+for a, atom in enumerate(ligand.GetAtoms()):
 
-# get subpocket for each BRICS fragment
-for fragIdx, fragment in enumerate(BRICSFragments):
+    subpocket = getSubpocketFromAtom(a, ligandConf, pocketConf, pocketMol2)
+    atom.SetProp('subpocket', subpocket)
 
-    fragmentAtoms = BRICSFragmentsAtoms[fragIdx]
-
-    # setting atom numbers of fragment as property
-    fragment.SetProp('atomNumbers', str(fragmentAtoms))
-
-    subpockets = []
-
-    # get subpocket for each fragment atom
-    for i, a in enumerate(fragmentAtoms):
-
-        # the same atom once in the ligand and once in the fragment
-        ligandAtom = ligand.GetAtomWithIdx(a)
-        fragmentAtom = fragment.GetAtomWithIdx(i)
-
-        # set atom number within the entire molecule as property of the fragment atom
-        fragmentAtom.SetProp('atomNumber', str(a))
-        # get kinase subpocket that the given atom lies in
-        subpocket = getSubpocketFromAtom(a, ligandConf, pocketConf, pocketMol2)
-        # ligandAtom.SetProp('subpocket', subpocket)
-        subpockets.append(subpocket)
-
-    # get most common subpocket of all atoms in the fragment
-    subpocket = mostCommon(subpockets)
-    fragment.SetProp('subpocket', subpocket)
-
-    print(fragmentAtoms)
-    for bond in fragment.GetBonds():
-
-        endAtom = bond.GetEndAtom()
-        beginAtom = bond.GetBeginAtom()
-
-        # if this bond was cleaved
-        if endAtom.GetSymbol() == '*':
-            print(bond.GetBeginAtom().GetSymbol(), bond.GetEndAtom().GetSymbol())
-
-            # find bond in ligand
-            beginAtomIdx = beginAtom.GetProp('atomNumber')
-            #endAtomIdx = endAtom.GetProp('atomNumber')
-            #ligandBond = ligand.GetBondBetweenAtoms(beginAtomIdx, )
-
-       # try:
-        #    print(bond.GetBeginAtom().GetProp('atomNumber'), bond.GetEndAtom().GetProp('atomNumber'))
-       # except:
-       #     print(bond.GetBeginAtom().GetProp('atomNumber'), bond.GetEndAtom().GetSymbol())
+end = time.time()
+print("Subpocket identification:", end - start)
+start = time.time()
 
 
+# find BRICS fragments and bonds
+BRICSFragmentsAtoms, BRICSBonds = FindBRICSFragments(ligand)
 
-    # NEXT:
-    # - assign subpockets to fragments
-    #       - Do I need fragment + fragmentAtoms?
-    #       - fragments as class (extending rdkit molecule class) or just setting properties?
-    # - check validity of neighboring fragments
+# list to store the bonds where we will cleave
+bonds = []
+# BRICS fragments as Fragment objects
+BRICSFragments = [Fragment(atomNumbers=BRICSFragmentsAtoms[f]) for f in range(len(BRICSFragmentsAtoms))]
 
-    #       - how to know which fragments are next to each other?
-    #       --- store information when finding fragments already?
+# iterate over BRICS bonds
+for beginAtom, endAtom in BRICSBonds:
 
-    # - fragment at certain positions
-    #       - which fragmentation function to use?? or recombine fragments?
+    # find corresponding fragments
+    firstFragment = [fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
+    secondFragment = [fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers][0]
 
-end1 = time.time()
-print("loop:", end1 - start1)
+    # add subpocket to fragment objects (if not yet defined for this fragment)
+    if firstFragment.subpocket is None:
+        firstSubpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in firstFragment.atomNumbers])
+        firstFragment.subpocket = firstSubpocket
+    else:
+        firstSubpocket = firstFragment.subpocket
+    if secondFragment.subpocket is None:
+        secondSubpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in secondFragment.atomNumbers])
+        secondFragment.subpocket = secondSubpocket
+    else:
+        secondSubpocket = secondFragment.subpocket
+
+    # check validity of subpockets
+    if not checkSubpockets(firstSubpocket, secondSubpocket):
+
+        print("ERROR: Subpockets "+firstSubpocket+" and "+secondSubpocket+" can not be connected. "
+                                                                          "Molecule is skipped.")
+        # skip this molecule
+        sys.exit()  # change this line when we work with more molecules -> continue with for loop
+
+    # if subpockets of the 2 fragments differ (and they are valid)
+    if firstSubpocket != secondSubpocket:
+
+        # store this bond as a bond where we will cleave
+        bonds.append((beginAtom, endAtom))
+
+
+# actual fragmentation
+fragments = GetFragmentsFromAtomTuples(bonds, BRICSFragments, ligand)
+
+img = Draw.MolsToGridImage([fragment.mol for fragment in fragments],
+                           legends=[fragment.subpocket for fragment in fragments])
+img.save('test/3w2s_subpocket-fragmentation.png')
+
+
+end = time.time()
+print("Fragmentation:", end - start)
+
+
+# TO DO:
+# - store bond information (neighboring subpocket, rule?)
+#
+# - implement correct subpocket definition (e.g. subpocket centers)
+#
+# - iteration over multiple molecules

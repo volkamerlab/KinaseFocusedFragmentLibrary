@@ -97,3 +97,25 @@ def getSubpocketFromAtom(ligandAtom, ligandConf, pocketConf, pocketMol2):
     regions = [getRegion(res) for res in nearestResidues]
 
     return getSubpocketFromRegions(regions)
+
+
+# function that checks validity of neighboring fragments
+def checkSubpockets(sb1, sb2):
+
+    subpockets = [sb1, sb2]
+    if sb1 == sb2:
+        return True
+    elif "AP" in subpockets:
+        if "FP" or "SE" or "GA" in subpockets:
+            return True
+        else:
+            return False
+    elif "GA" in subpockets:
+        if "FP" or "AP" or "BP" in subpockets:
+            return True
+        else:
+            return False
+    elif "other" in subpockets:
+        return True
+    else:
+        return False
