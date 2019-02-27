@@ -23,10 +23,20 @@ def FindBRICSFragments(mol):
 # ligand is fragmented at the bonds corresponding to the atom tuples
 def GetFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
 
-    # get rdkit bonds
+    # get rdkit bonds (NOT BRICS bonds but custom bonds already)
     bonds = [ligand.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atomTuples]
+    # get subpocket labels for dummy atoms
+    labels = []
+    for i, bond in enumerate(bonds):
+        beginAtom = atomTuples[i][0]
+        endAtom = atomTuples[i][1]
+        # set neighboring subpockets as labels for dummy atoms
+        firstSubpocket = [fragment.subpocket for fragment in BRICSFragments if endAtom in fragment.atomNumbers][0]
+        secondSubpocket = [fragment.subpocket for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
+        labels.append((int(firstSubpocket), int(secondSubpocket)))
+
     # fragment ligand at bonds
-    fragmentedLigand = Chem.FragmentOnBonds(ligand, bonds)
+    fragmentedLigand = Chem.FragmentOnBonds(ligand, bonds, dummyLabels=labels)
     # get smiles of fragments
     fragmentSmiles = Chem.MolToSmiles(fragmentedLigand).split('.')
     # get rdkit molecules of fragments
@@ -40,7 +50,7 @@ def GetFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
     for i, atomNumbers in enumerate(fragmentAtoms):
 
         # get subpocket corresponding to fragment (Is there a better way?)
-        subpocket = [fragment.subpocket for fragment in BRICSFragments if fragment.atomNumbers[0] in atomNumbers][0]
+        subpocket = [BRICSFragment.subpocket for BRICSFragment in BRICSFragments if atomNumbers[0] in BRICSFragment.atomNumbers][0]
         mol = fragmentMols[i]
         smiles = fragmentSmiles[i]
         # create Fragment object

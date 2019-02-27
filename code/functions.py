@@ -1,5 +1,4 @@
 import numpy as np
-from collections import Counter
 
 
 # calculate 3D distance between two atoms

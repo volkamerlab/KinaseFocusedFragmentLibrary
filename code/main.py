@@ -1,5 +1,6 @@
 from rdkit import Chem
 from rdkit.Chem import Draw
+from rdkit.Chem import AllChem
 import time
 import sys
 
@@ -7,6 +8,7 @@ from pocketIdentification import getSubpocketFromAtom, checkSubpockets
 from functions import loadAtomInfoFromMol2, mostCommon
 from fragmentation import FindBRICSFragments, GetFragmentsFromAtomTuples
 from classes import Fragment
+
 
 # load ligand and binding pocket to rdkit molecules
 ligand = Chem.MolFromMol2File('../../data/KLIFS_download/HUMAN/EGFR/3w2s_altA_chainA/ligand.mol2', removeHs=False)
@@ -34,13 +36,14 @@ print("Subpocket identification:", end - start)
 start = time.time()
 
 
-# find BRICS fragments and bonds
+# find BRICS fragments and bonds (as atom numbers)
 BRICSFragmentsAtoms, BRICSBonds = FindBRICSFragments(ligand)
 
 # list to store the bonds where we will cleave
 bonds = []
 # BRICS fragments as Fragment objects
 BRICSFragments = [Fragment(atomNumbers=BRICSFragmentsAtoms[f]) for f in range(len(BRICSFragmentsAtoms))]
+
 
 # iterate over BRICS bonds
 for beginAtom, endAtom in BRICSBonds:
@@ -78,9 +81,21 @@ for beginAtom, endAtom in BRICSBonds:
 
 # actual fragmentation
 fragments = GetFragmentsFromAtomTuples(bonds, BRICSFragments, ligand)
+"""
+# add bond information to atom properties
+for fragment in fragments:
+    for atom in fragment.mol.GetAtoms():
+        # priority = 2 if ligand was fragmented at this atom position
+        if '*' in atom.GetNeighbors().GetSymbol():
+            atom.SetProp('priority', 2)
+            atom.SetProp('neighboringSubpocket', )
+"""
 
+for fragment in fragments:
+    tmp = AllChem.Compute2DCoords(fragment.mol)
 img = Draw.MolsToGridImage([fragment.mol for fragment in fragments],
-                           legends=[fragment.subpocket for fragment in fragments])
+                           legends=[fragment.subpocket for fragment in fragments],
+                           subImgSize=(400, 400))
 img.save('test/3w2s_subpocket-fragmentation.png')
 
 
