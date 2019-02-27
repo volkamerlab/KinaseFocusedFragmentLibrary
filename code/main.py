@@ -6,7 +6,7 @@ import sys
 
 from pocketIdentification import getSubpocketFromAtom, checkSubpockets
 from functions import loadAtomInfoFromMol2, mostCommon
-from fragmentation import FindBRICSFragments, GetFragmentsFromAtomTuples
+from fragmentation import FindBRICSFragments, getFragmentsFromAtomTuples
 from classes import Fragment
 
 
@@ -39,7 +39,7 @@ start = time.time()
 # find BRICS fragments and bonds (as atom numbers)
 BRICSFragmentsAtoms, BRICSBonds = FindBRICSFragments(ligand)
 
-# list to store the bonds where we will cleave
+# list to store the bonds where we will cleave (as atom tuples)
 bonds = []
 # BRICS fragments as Fragment objects
 BRICSFragments = [Fragment(atomNumbers=BRICSFragmentsAtoms[f]) for f in range(len(BRICSFragmentsAtoms))]
@@ -80,7 +80,7 @@ for beginAtom, endAtom in BRICSBonds:
 
 
 # actual fragmentation
-fragments = GetFragmentsFromAtomTuples(bonds, BRICSFragments, ligand)
+fragments = getFragmentsFromAtomTuples(bonds, BRICSFragments, ligand)
 """
 # add bond information to atom properties
 for fragment in fragments:

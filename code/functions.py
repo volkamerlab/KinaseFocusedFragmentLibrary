@@ -25,6 +25,12 @@ def loadAtomInfoFromMol2(file):
     return atomInfo
 
 
+def getDummyLabel(atom, smiles):
+    # TO DO:
+    # given a dummy atom, return the label
+    return 1
+
+
 # remove duplicates from array/list lst
 def removeDuplicates(lst):
     return list(dict.fromkeys(lst))

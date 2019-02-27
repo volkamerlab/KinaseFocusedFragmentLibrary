@@ -3,17 +3,6 @@ import sys
 
 from functions import removeDuplicates, calculate3DDistance
 
-# subpockets mapped to integers (two-way dict)
-subpocket_dict = {
-    'SE':       '0',
-    'AP':       '1',
-    'FP':       '2',
-    'GA':       '3',
-    'BP':       '4',
-    'other':    '5',
-}
-subpocket_dict.update(dict(reversed(item) for item in subpocket_dict.items()))
-
 
 # given an atom (atom number) of a ligand, find the three nearest protein residues
 # pocketMol2: mol2 string of the binding pocket atoms including residue information
@@ -86,15 +75,15 @@ def getRegion(res):
 def getSubpocketFromRegions(regions):
 
     if 'hinge' in regions[:1]:
-        return subpocket_dict['AP']
+        return 'AP'
     elif 'GK' and 'K17' in regions:
-        return subpocket_dict['GA']
+        return 'GA'
     elif 'linker' and 'DFG' in regions:
-        return subpocket_dict['FP']
+        return 'FP'
     elif 'alphaC' in regions:
-        return subpocket_dict['BP']
+        return 'BP'
     else:
-        return subpocket_dict['other']
+        return 'other'
 
 
 # given an atom number of the ligand, get the subpocket that atom lies in
@@ -113,7 +102,7 @@ def getSubpocketFromAtom(ligandAtom, ligandConf, pocketConf, pocketMol2):
 # function that checks validity of neighboring fragments
 def checkSubpockets(sb1, sb2):
 
-    subpockets = [subpocket_dict[sb1], subpocket_dict[sb2]]
+    subpockets = [sb1, sb2]
 
     if sb1 == sb2:
         return True

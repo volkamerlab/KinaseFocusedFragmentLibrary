@@ -2,6 +2,7 @@ from rdkit import Chem
 from rdkit.Chem import BRICS
 
 from classes import Fragment
+from functions import getDummyLabel
 
 
 # returns atom numbers of BRICS fragments
@@ -21,22 +22,12 @@ def FindBRICSFragments(mol):
 
 # given list of atom tuples and a ligand, returns a list of Fragments
 # ligand is fragmented at the bonds corresponding to the atom tuples
-def GetFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
+def getFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
 
     # get rdkit bonds (NOT BRICS bonds but custom bonds already)
     bonds = [ligand.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atomTuples]
-    # get subpocket labels for dummy atoms
-    labels = []
-    for i, bond in enumerate(bonds):
-        beginAtom = atomTuples[i][0]
-        endAtom = atomTuples[i][1]
-        # set neighboring subpockets as labels for dummy atoms
-        firstSubpocket = [fragment.subpocket for fragment in BRICSFragments if endAtom in fragment.atomNumbers][0]
-        secondSubpocket = [fragment.subpocket for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
-        labels.append((int(firstSubpocket), int(secondSubpocket)))
-
     # fragment ligand at bonds
-    fragmentedLigand = Chem.FragmentOnBonds(ligand, bonds, dummyLabels=labels)
+    fragmentedLigand = Chem.FragmentOnBonds(ligand, bonds)
     # get smiles of fragments
     fragmentSmiles = Chem.MolToSmiles(fragmentedLigand).split('.')
     # get rdkit molecules of fragments
@@ -54,6 +45,18 @@ def GetFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
         mol = fragmentMols[i]
         smiles = fragmentSmiles[i]
         # create Fragment object
-        fragments.append(Fragment(mol=mol, smiles=smiles, atomNumbers=atomNumbers, subpocket=subpocket))
+        fragment = Fragment(mol=mol, smiles=smiles, atomNumbers=atomNumbers, subpocket=subpocket)
+
+        # set atom properties for the created fragment
+        for atom in fragment.mol.GetAtoms():
+            for neighbor in atom.GetNeighbors():
+                if neighbor.GetSymbol() == '*':
+                    atom.SetProp('priority', '2')
+                    # getDummyLabel should return the actual atom number w.r.t. the ligand of the dummy atom
+                    neighboringSubpocket = [BRICSFragment.subpocket for BRICSFragment in BRICSFragments
+                                            if getDummyLabel(neighbor) in BRICSFragment.atomNumbers][0]
+                    atom.SetProp('neighboringSubpocket', neighboringSubpocket)
+
+        fragments.append(fragment)
 
     return fragments
