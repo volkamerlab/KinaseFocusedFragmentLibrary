@@ -8,7 +8,7 @@ from functions import removeDuplicates, calculate3DDistance
 # pocketMol2: mol2 string of the binding pocket atoms including residue information
 #             (all other information in the mol2 string has to be removed)
 # ligandAtom: number of the atom of interest in the ligand
-def getNearestResidues(ligandAtom, ligandConf, pocketConf, pocketMol2):
+def getNearestResidues(ligandAtom, ligandConf, pocketConf, residues):
 
     lenPocket = pocketConf.GetNumAtoms()
     distances = np.zeros(lenPocket)
@@ -19,7 +19,7 @@ def getNearestResidues(ligandAtom, ligandConf, pocketConf, pocketMol2):
     # sort pocket atoms by distance
     nearestAtoms = distances.argsort()
     # nearest atoms and corresponding pocket residue numbers
-    return removeDuplicates([int(pocketMol2[nearestAtoms[i]-1][6]) for i in range(lenPocket)])[:3]
+    return removeDuplicates([residues[nearestAtoms[i]] for i in range(lenPocket)])[:3]
 
 
 # given a residue number within the binding pocket (KLIFS numbering):
@@ -72,6 +72,7 @@ def getRegion(res):
 
 # given a list of binding pocket regions, return subpocket
 # subpockets: SE, AP, FP, GA, BP,
+# SUBPOCKET DEFINITIONS ARE NOT CORRECT!
 def getSubpocketFromRegions(regions):
 
     if 'hinge' in regions[:1]:
@@ -88,10 +89,10 @@ def getSubpocketFromRegions(regions):
 
 # given an atom number of the ligand, get the subpocket that atom lies in
 # subpockets: AP, FP, SE, GA, BP
-def getSubpocketFromAtom(ligandAtom, ligandConf, pocketConf, pocketMol2):
+def getSubpocketFromAtom(ligandAtom, ligandConf, pocketConf, residues):
 
     # get nearest pocket residues
-    nearestResidues = getNearestResidues(ligandAtom, ligandConf, pocketConf, pocketMol2)
+    nearestResidues = getNearestResidues(ligandAtom, ligandConf, pocketConf, residues)
 
     # get corresponding pocket regions
     regions = [getRegion(res) for res in nearestResidues]

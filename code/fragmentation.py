@@ -2,31 +2,30 @@ from rdkit import Chem
 from rdkit.Chem import BRICS
 
 from classes import Fragment
-from functions import getDummyLabel
 
 
-# returns atom numbers of BRICS fragments
+# returns atom numbers of BRICS fragments + bond tuples
 def FindBRICSFragments(mol):
 
     atomTuples = [bond[0] for bond in list(BRICS.FindBRICSBonds(mol))]
     bonds = [mol.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atomTuples]
-    brokenMol = Chem.FragmentOnBonds(mol, bonds)
+    brokenMol = Chem.FragmentOnBonds(mol, bonds, addDummies=False)
 
     # brokenMol = BRICS.BreakBRICSBonds(mol)
     # Draw.MolToFile(brokenMol, 'test/3w2s_ligand_broken.png')
 
     fragments = Chem.GetMolFrags(brokenMol)
 
-    return [[atom for atom in fragment if atom < mol.GetNumAtoms()] for fragment in fragments], atomTuples
+    return fragments, atomTuples
 
 
-# given list of atom tuples and a ligand, returns a list of Fragments
+# given a list of atom tuples and a ligand, returns a list of Fragment objects
 # ligand is fragmented at the bonds corresponding to the atom tuples
 def getFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
 
     # get rdkit bonds (NOT BRICS bonds but custom bonds already)
     bonds = [ligand.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atomTuples]
-    # fragment ligand at bonds
+    # fragment ligand at bonds and keep dummy atoms
     fragmentedLigand = Chem.FragmentOnBonds(ligand, bonds)
     # get smiles of fragments
     fragmentSmiles = Chem.MolToSmiles(fragmentedLigand).split('.')
@@ -48,14 +47,35 @@ def getFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
         fragment = Fragment(mol=mol, smiles=smiles, atomNumbers=atomNumbers, subpocket=subpocket)
 
         # set atom properties for the created fragment
-        for atom in fragment.mol.GetAtoms():
-            for neighbor in atom.GetNeighbors():
-                if neighbor.GetSymbol() == '*':
-                    atom.SetProp('priority', '2')
-                    # getDummyLabel should return the actual atom number w.r.t. the ligand of the dummy atom
-                    neighboringSubpocket = [BRICSFragment.subpocket for BRICSFragment in BRICSFragments
-                                            if getDummyLabel(neighbor) in BRICSFragment.atomNumbers][0]
-                    atom.SetProp('neighboringSubpocket', neighboringSubpocket)
+        for a, atom in enumerate(fragment.mol.GetAtoms()):
+
+            # if atom is not a dummy atom
+            if atom.GetSymbol() != '*':
+                # set atom number within the entire molecule as property of the fragment atom
+                # IS THIS ALWAYS TRUE? (Does order of atoms always stay the same after fragmentation?)
+                atom.SetProp('atomNumber', str(fragment.atomNumbers[a]))
+                atom.SetProp('neighboringSubpocket', 'None')
+                atom.SetProp('priority', '1')
+
+            # if atom = dummy atom
+            else:
+                atom.SetProp('priority', '0')
+                atom.SetProp('neighboringSubpocket', 'None')
+                atom.SetProp('subpocket', 'None')
+                # neighbor = atom next to a bond (Can several neighbors exist?)
+                for neighbor in atom.GetNeighbors():
+                    neighbor.SetProp('priority', '2')
+
+                neighborAtom = int(neighbor.GetProp('atomNumber'))
+                # get and set atom number w.r.t ligand of the dummy atom
+                bondAtoms = [atomTuple for atomTuple in atomTuples if neighborAtom in atomTuple][0]
+                dummyAtom = [atomNumber for atomNumber in bondAtoms if atomNumber != neighborAtom][0]
+                atom.SetProp('atomNumber', str(dummyAtom))
+                # get and set neighboring subpocket of the dummy atom
+                neighboringSubpocket = [BRICSFragment.subpocket for BRICSFragment in BRICSFragments
+                                        if dummyAtom in BRICSFragment.atomNumbers][0]
+                for neighbor in atom.GetNeighbors():
+                    neighbor.SetProp('neighboringSubpocket', neighboringSubpocket)
 
         fragments.append(fragment)
 

@@ -9,6 +9,8 @@ from functions import loadAtomInfoFromMol2, mostCommon
 from fragmentation import FindBRICSFragments, getFragmentsFromAtomTuples
 from classes import Fragment
 
+from biopandas.mol2 import PandasMol2
+
 
 # load ligand and binding pocket to rdkit molecules
 ligand = Chem.MolFromMol2File('../../data/KLIFS_download/HUMAN/EGFR/3w2s_altA_chainA/ligand.mol2', removeHs=False)
@@ -21,14 +23,25 @@ pocketConf = pocket.GetConformer()
 lenLigand = ligand.GetNumAtoms()
 
 # read atom information from binding pocket mol2 file (necessary for residue information)
-pocketMol2 = loadAtomInfoFromMol2('../../data/KLIFS_download/HUMAN/EGFR/3w2s_altA_chainA/pocket.mol2')
+# pocketMol2 = loadAtomInfoFromMol2('../../data/KLIFS_download/HUMAN/EGFR/3w2s_altA_chainA/pocket.mol2')
+pocketMol2 = PandasMol2().read_mol2('../../data/KLIFS_download/HUMAN/EGFR/3w2s_altA_chainA/pocket.mol2',
+                                    columns={0: ('atom_id', int), 1: ('atom_name', str), 2: ('x', float), 3: ('y', float), 4: ('z', float),
+                                             5: ('atom_type', str), 6: ('res_id', int), 7: ('res_name', str), 8: ('charge', float),
+                                             9: ('secondary structure', str)}).df
+residues = pocketMol2.res_id.apply(int)
 
 start = time.time()
+
+# calculate subpocket centers
+# - for each subpocket:
+#       - get residues defining the pocket
+#       - get C alpha atoms of these residues
+#       - calculate center of mass of these atoms
 
 # get subpocket for each ligand atom
 for a, atom in enumerate(ligand.GetAtoms()):
 
-    subpocket = getSubpocketFromAtom(a, ligandConf, pocketConf, pocketMol2)
+    subpocket = getSubpocketFromAtom(a, ligandConf, pocketConf, residues)
     atom.SetProp('subpocket', subpocket)
 
 end = time.time()
@@ -81,18 +94,15 @@ for beginAtom, endAtom in BRICSBonds:
 
 # actual fragmentation
 fragments = getFragmentsFromAtomTuples(bonds, BRICSFragments, ligand)
-"""
-# add bond information to atom properties
-for fragment in fragments:
-    for atom in fragment.mol.GetAtoms():
-        # priority = 2 if ligand was fragmented at this atom position
-        if '*' in atom.GetNeighbors().GetSymbol():
-            atom.SetProp('priority', 2)
-            atom.SetProp('neighboringSubpocket', )
-"""
+
 
 for fragment in fragments:
     tmp = AllChem.Compute2DCoords(fragment.mol)
+
+# atom = fragment.mol.GetAtoms()[0]
+# print(atom.GetProp('atomNumber'), atom.GetProp('neighboringSubpocket'), atom.GetProp('subpocket'), atom.GetProp('priority'),
+#     [neighbor.GetSymbol() for neighbor in atom.GetNeighbors()])
+
 img = Draw.MolsToGridImage([fragment.mol for fragment in fragments],
                            legends=[fragment.subpocket for fragment in fragments],
                            subImgSize=(400, 400))
@@ -104,8 +114,8 @@ print("Fragmentation:", end - start)
 
 
 # TO DO:
-# - store bond information (neighboring subpocket, rule?)
+# - store bond information (BRICS rule)
 #
-# - implement correct subpocket definition (e.g. subpocket centers)
+# - implement correct subpocket definition (subpocket centers)
 #
 # - iteration over multiple molecules
