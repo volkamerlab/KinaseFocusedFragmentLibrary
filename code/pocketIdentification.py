@@ -77,8 +77,10 @@ def getSubpocketFromRegions(regions):
 
     if 'hinge' in regions[:1]:
         return 'AP'
-    elif 'GK' and 'K17' in regions:
+    elif 'GK' and 'K17' in regions[:1]:
         return 'GA'
+    elif 'linker' in regions[:1]:
+        return 'SE'
     elif 'linker' and 'DFG' in regions:
         return 'FP'
     elif 'alphaC' in regions:
