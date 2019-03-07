@@ -77,8 +77,8 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
 def getFolderName(df):
 
     if df.alt == ' ':
-        folder = df.pdb+'_chain'+df.chain
+        folder = df.species.upper()+'/'+df.kinase+'/'+df.pdb+'_chain'+df.chain
     else:
-        folder = df.pdb+'_alt'+df.alt+'_chain'+df.chain
+        folder = df.species.upper()+'/'+df.kinase+'/'+df.pdb+'_alt'+df.alt+'_chain'+df.chain
 
     return folder

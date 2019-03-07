@@ -21,12 +21,11 @@ def FindBRICSFragments(mol):
 
 # given a list of atom tuples and a ligand, returns a list of Fragment objects
 # ligand is fragmented at the bonds corresponding to the atom tuples
-# TO DO: DEAL WITH EMPTY BOND ARRAY (NO FRAGMENTATION)
 def getFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
 
     # get rdkit bonds (NOT BRICS bonds but custom bonds already)
     bonds = [ligand.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atomTuples]
-    if bonds != []:
+    if len(bonds) == 0:
         # fragment ligand at bonds and keep dummy atoms
         fragmentedLigand = Chem.FragmentOnBonds(ligand, bonds)
     else:
@@ -48,7 +47,7 @@ def getFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
         mol = fragmentMols[i]
         smiles = fragmentSmiles[i]
         # create Fragment object
-        fragment = Fragment(mol=mol, smiles=smiles, atomNumbers=atomNumbers, subpocket=subpocket)
+        fragment = Fragment(mol=mol, smiles=smiles, atomNumbers=atomNumbers, subpocket=subpocket, ligand=ligand)
 
         # set atom properties for the created fragment
         for a, atom in enumerate(fragment.mol.GetAtoms()):

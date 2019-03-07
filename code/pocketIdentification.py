@@ -103,11 +103,11 @@ def getSubpocketFromAtom(ligandAtom, ligandConf, pocketConf, residues):
 
 
 # function that checks validity of neighboring fragments
-def checkSubpockets(sb1, sb2):
+def checkSubpockets(sp1, sp2):
 
-    subpockets = [sb1, sb2]
+    subpockets = [sp1, sp2]
 
-    if sb1 == sb2:
+    if sp1 == sp2:
         return True
     elif "AP" in subpockets:
         if "FP" or "SE" or "GA" in subpockets:
