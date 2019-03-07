@@ -1,0 +1,69 @@
+Structures that could not be loaded:
+(+ ATP, ADP, AMP, ANP, ACP)
+
+[11:57:40] 5jrq.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+Ligand 6N9 (HUMAN/BRAF/5jrq_chainA) could not be loaded.
+
+[11:57:41] HUMAN/CDK2_1h0w_altA_chainA: Error - C.Cat with bad number of N neighbors.
+Pocket HUMAN/CDK2/1h0w_altA_chainA could not be loaded.
+
+[11:57:43] HUMAN/CDK2_2clx_altB_chainA: Error - C.Cat with bad number of N neighbors.
+Pocket HUMAN/CDK2/2clx_altB_chainA could not be loaded.
+
+[11:57:55] 5otz.A: Warning - no explicit hydrogens in mol2 file but needed for formal charge estimation.
+
+[11:58:03] 5o4a.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+Ligand 9K8 (HUMAN/FGFR1/5o4a_altA_chainA) could not be loaded.
+
+[11:58:04] 2jld.B: Error - C.Cat with bad number of N neighbors.
+Ligand AG1 (HUMAN/GSK3B/2jld_altA_chainB) could not be loaded.
+
+[11:58:04] 3m1s.A: Error - C.Cat with bad number of N neighbors.
+Ligand DW1 (HUMAN/GSK3B/3m1s_altB_chainA) could not be loaded.
+
+[11:58:04] 3pup.A: Error - C.Cat with bad number of N neighbors.
+Ligand OS1 (HUMAN/GSK3B/3pup_chainA) could not be loaded.
+
+[11:58:12] 2p55.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+Ligand MRA (HUMAN/MAP2K1/2p55_chainA) could not be loaded.
+
+[11:58:12] 3eqh.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+Ligand 5BM (HUMAN/MAP2K1/3eqh_chainA) could not be loaded.
+
+[11:58:13] 3v01.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+Ligand 3V0 (HUMAN/MAP2K1/3v01_chainA) could not be loaded.
+
+[11:58:13] 3v04.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+Ligand V04 (HUMAN/MAP2K1/3v04_chainA) could not be loaded.
+
+[11:58:16] 3fxz.A: Error - C.Cat with bad number of N neighbors.
+Ligand FLL (HUMAN/PAK1/3fxz_altA_chainA) could not be loaded.
+
+[11:58:16] 3fy0.A: Error - C.Cat with bad number of N neighbors.
+Ligand DW1 (HUMAN/PAK1/3fy0_chainA) could not be loaded.
+
+[11:58:19] 2bzh.B: Error - C.Cat with bad number of N neighbors.
+Ligand HB1 (HUMAN/PIM1/2bzh_altA_chainB) could not be loaded.
+
+[11:58:19] 2bzj.A: Error - C.Cat with bad number of N neighbors.
+Ligand ME3 (HUMAN/PIM1/2bzj_altA_chainA) could not be loaded.
+
+[11:58:19] 3we8.A: Error - C.Cat with bad number of N neighbors.
+Ligand RUI (HUMAN/PIM1/3we8_altB_chainA) could not be loaded.
+
+[11:58:19] 4as0.A: Error - C.Cat with bad number of N neighbors.
+Ligand RPS (HUMAN/PIM1/4as0_altA_chainA) could not be loaded.
+
+[11:58:21] 2iwi.B: Error - C.Cat with bad number of N neighbors.
+Ligand HB1 (HUMAN/PIM2/2iwi_chainB) could not be loaded.
+
+[11:58:22] 2ivs.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+Ligand ACK (HUMAN/RET/2ivs_altB_chainA) could not be loaded.
+
+[11:58:22] HUMAN/RET_5fm3_chainA: warning - O.co2 with non C.2 or S.o2 neighbor.
+Pocket HUMAN/RET/5fm3_chainA could not be loaded.
+
+[11:58:23] 1ksw.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+Ligand NBS (HUMAN/SRC/1ksw_chainA) could not be loaded.
+
+
