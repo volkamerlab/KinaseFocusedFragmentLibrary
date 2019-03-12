@@ -2,7 +2,59 @@ import numpy as np
 import sys
 
 from functions import removeDuplicates, calculate3DDistance
+from classes import Subpocket
 
+
+# given an atom number of the ligand, get the subpocket that atom lies in
+# subpockets: AP, FP, SE, GA, BP
+def getSubpocketFromAtom(ligandAtom, ligandConf, subpockets):
+
+    pos = ligandConf.GetAtomPosition(ligandAtom)
+    smallestDistance = sys.maxsize  # set smallest distance as max integer value
+    nearestSubpocket = Subpocket('noSubpocket')
+    for subpocket in subpockets:
+        distance = calculate3DDistance(pos, subpocket.center)
+        if distance < smallestDistance:
+            nearestSubpocket = subpocket
+            smallestDistance = distance
+
+    return nearestSubpocket.name
+
+
+# function that checks validity of neighboring fragments
+def checkSubpockets(sp1, sp2):
+
+    subpockets = [sp1, sp2]
+
+    if sp1 == sp2:
+        return True
+    elif "AP" in subpockets:
+        if "FP" or "SE" or "GA" in subpockets:
+            return True
+        else:
+            return False
+    elif "GA" in subpockets:
+        if "FP" or "AP" or "BP" in subpockets:
+            return True
+        else:
+            return False
+    elif "other" in subpockets:
+        return True
+    else:
+        return False
+
+
+# get geometric center of atoms (list of atom objects) in mol
+def getGeometricCenter(atoms, molConf):
+
+    center = np.zeros(3, float)
+    for atom in atoms:
+        pos = molConf.GetAtomPosition(atom.GetIdx())
+        center += pos
+    return center / len(atoms)
+
+
+# ================================== OLD APPROACH ==========================================
 
 # given an atom (atom number) of a ligand, find the three nearest protein residues
 # pocketMol2: mol2 string of the binding pocket atoms including residue information
@@ -12,9 +64,13 @@ def getNearestResidues(ligandAtom, ligandConf, pocketConf, residues):
 
     lenPocket = pocketConf.GetNumAtoms()
     distances = np.zeros(lenPocket)
+
+    pos1 = ligandConf.GetAtomPosition(ligandAtom)
+
     # calculate distances from ligand atom to all pocket atoms
     for pocketAtom in range(lenPocket):
-        distances[pocketAtom] = calculate3DDistance(ligandConf, pocketConf, ligandAtom, pocketAtom)
+        pos2 = pocketConf.GetAtomPosition(pocketAtom)
+        distances[pocketAtom] = calculate3DDistance(pos1, pos2)
 
     # sort pocket atoms by distance
     nearestAtoms = distances.argsort()
@@ -91,7 +147,7 @@ def getSubpocketFromRegions(regions):
 
 # given an atom number of the ligand, get the subpocket that atom lies in
 # subpockets: AP, FP, SE, GA, BP
-def getSubpocketFromAtom(ligandAtom, ligandConf, pocketConf, residues):
+def getSubpocketFromAtomDistances(ligandAtom, ligandConf, pocketConf, residues):
 
     # get nearest pocket residues
     nearestResidues = getNearestResidues(ligandAtom, ligandConf, pocketConf, residues)
@@ -100,26 +156,3 @@ def getSubpocketFromAtom(ligandAtom, ligandConf, pocketConf, residues):
     regions = [getRegion(res) for res in nearestResidues]
 
     return getSubpocketFromRegions(regions)
-
-
-# function that checks validity of neighboring fragments
-def checkSubpockets(sp1, sp2):
-
-    subpockets = [sp1, sp2]
-
-    if sp1 == sp2:
-        return True
-    elif "AP" in subpockets:
-        if "FP" or "SE" or "GA" in subpockets:
-            return True
-        else:
-            return False
-    elif "GA" in subpockets:
-        if "FP" or "AP" or "BP" in subpockets:
-            return True
-        else:
-            return False
-    elif "other" in subpockets:
-        return True
-    else:
-        return False

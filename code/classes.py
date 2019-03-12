@@ -13,9 +13,10 @@ class Fragment:
 
 class Subpocket:
 
-    def __init__(self, name, residues=None, center=None):
+    def __init__(self, name, residues=None, center=None, color=None):
 
         self.name = name
         self.residues = residues    # residues used to calculate the subpocket center
         self.center = center
+        self.color = color
 

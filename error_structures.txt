@@ -1,5 +1,5 @@
 Structures that could not be loaded:
-(+ ATP, ADP, AMP, ANP, ACP)
+(+ 353 * ATP, ADP, AMP, ANP or ACP)
 
 [11:57:40] 5jrq.A: warning - O.co2 with non C.2 or S.o2 neighbor.
 Ligand 6N9 (HUMAN/BRAF/5jrq_chainA) could not be loaded.

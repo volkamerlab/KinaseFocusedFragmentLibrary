@@ -42,7 +42,14 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
     df_screen = pd.merge(df, df_csv, how='outer', on=['species', 'kinase', 'pdb', 'chain', 'alt', 'allosteric_PDB'])
 
     # loose irrelevant data
-    df_screen = df_screen[['kinase', 'groups', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix']]
+    df_screen = df_screen[['kinase', 'groups', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix',
+                           'missing_residues', 'pocket']]
+
+    # add column with positions of missing residues (replacing column with number of missing residues
+    missingResidues = []
+    for ix, row in df_screen.iterrows():
+        missingResidues.append(findMissingResidues(row.pocket, row.missing_residues))
+    df_screen['missing_residues'] = missingResidues
 
     # For each kinase with x different pdb codes: for each pdb code keep the structure with the best quality score
     df_screened = df_screen.groupby(["kinase", "pdb"]).max()["qualityscore"].reset_index()
@@ -72,6 +79,21 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
     # -------------------------------------
 
     return df_screened
+
+
+# find positions of missing residues
+def findMissingResidues(sequence, numMissing):
+    # iterate over sequence string
+    missingResidues = []
+    for i, aa in enumerate(sequence):
+        # all missing residues found
+        if numMissing == 0:
+            return missingResidues
+        # missing residue
+        if aa == '_':
+            missingResidues.append(i+1)
+            numMissing -= 1
+    return missingResidues
 
 
 def getFolderName(df):
