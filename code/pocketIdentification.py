@@ -38,8 +38,11 @@ def checkSubpockets(sp1, sp2):
             return True
         else:
             return False
-    elif "other" in subpockets:
-        return True
+    elif "FP" in subpockets:
+        if "AP" or "GA" or "SE" in subpockets:
+            return True
+        else:
+            return False
     else:
         return False
 

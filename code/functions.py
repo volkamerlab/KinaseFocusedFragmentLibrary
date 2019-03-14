@@ -15,7 +15,7 @@ def getCaAtom(res, pocketMol2, pocket):
     pocketMol2Res = pocketMol2[pocketMol2.res_id == res]
     CaAtom = pocketMol2Res[pocketMol2Res.atom_name == 'CA'].index.values
     if len(CaAtom) == 0:
-        print('ERROR: Important residue is missing in structure. Molecule is skipped.')
+        print('ERROR: Important residue is missing in structure. Structure is skipped.')
         return None
     CaAtomId = int(CaAtom[0])
     CaAtom = pocket.GetAtomWithIdx(CaAtomId)

@@ -15,10 +15,11 @@ def FindBRICSFragments(mol):
     bonds = [mol.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atomTuples]
     brokenMol = Chem.FragmentOnBonds(mol, bonds, addDummies=False)
 
-    # brokenMol = BRICS.BreakBRICSBonds(mol)
-    # Draw.MolToFile(brokenMol, 'test/3w2s_ligand_broken.png')
+    fragmentAtoms = Chem.GetMolFrags(brokenMol)
+    fragmentMols = Chem.GetMolFrags(brokenMol, asMols=True)
 
-    fragments = Chem.GetMolFrags(brokenMol)
+    fragments = [Fragment(atomNumbers=fragmentAtoms[f], mol=fragmentMols[f])
+                 for f in range(len(fragmentAtoms))]
 
     return fragments, atomTuples
 

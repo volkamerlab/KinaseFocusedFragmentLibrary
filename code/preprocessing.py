@@ -15,20 +15,6 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
     df_csv.columns = ['kinase', 'family', 'groups', 'pdb', 'chain', 'alt', 'species', 'ligand', 'pdb_id',
                       'allosteric_name', 'allosteric_PDB', 'dfg', 'ac_helix']
 
-    # # delete entries that are not present in both data frames
-    # not_in_struc_download = df_csv[~df_csv['pdb'].isin(df['pdb'])]
-    # while not_in_struc_download.shape[0] > 0:
-    #     df_csv.drop(df_csv.index[[not_in_struc_download.index[0]]], inplace=True)
-    #     df_csv.reset_index(drop=True, inplace=True)
-    #     not_in_struc_download = df_csv[~df_csv['pdb'].isin(df['pdb'])]
-    #     print('Deleted an entry in export table.')
-    # not_in_csv_download = df[~df['pdb'].isin(df_csv['pdb'])]
-    # while not_in_csv_download.shape[0] > 0:
-    #     df.drop(df.index[[not_in_csv_download.index[0]]], inplace=True)
-    #     df.reset_index(drop=True, inplace=True)
-    #     not_in_csv_download = df[~df['pdb'].isin(df_csv['pdb'])]
-    #     print('Deleted an entry in overview table.')
-
     # sync kinase names for both data frames
     for ix, row in df_csv.iterrows():
         a = row.alt
@@ -45,11 +31,8 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
     df_screen = df_screen[['kinase', 'groups', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix',
                            'missing_residues', 'pocket']]
 
-    # add column with positions of missing residues (replacing column with number of missing residues
-    missingResidues = []
-    for ix, row in df_screen.iterrows():
-        missingResidues.append(findMissingResidues(row.pocket, row.missing_residues))
-    df_screen['missing_residues'] = missingResidues
+    # add column with positions of missing residues (replacing column with number of missing residues)
+    df_screen = addMissingResidues(df_screen)
 
     # For each kinase with x different pdb codes: for each pdb code keep the structure with the best quality score
     df_screened = df_screen.groupby(["kinase", "pdb"]).max()["qualityscore"].reset_index()
@@ -81,6 +64,15 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
     return df_screened
 
 
+# replace number of missing residues with list of missing residues
+def addMissingResidues(df):
+    missingResidues = []
+    for ix, row in df.iterrows():
+        missingResidues.append(findMissingResidues(row.pocket, row.missing_residues))
+    df['missing_residues'] = missingResidues
+    return df
+
+
 # find positions of missing residues
 def findMissingResidues(sequence, numMissing):
     # iterate over sequence string
@@ -96,6 +88,8 @@ def findMissingResidues(sequence, numMissing):
     return missingResidues
 
 
+# input: 1D data frame with species, kinase, pdb, alt, and chain
+# output: path from KLIFS download to respective files
 def getFolderName(df):
 
     if df.alt == ' ':
@@ -104,3 +98,13 @@ def getFolderName(df):
         folder = df.species.upper()+'/'+df.kinase+'/'+df.pdb+'_alt'+df.alt+'_chain'+df.chain
 
     return folder
+
+
+def getFileName(df):
+
+    if df.alt == ' ':
+        file = df.pdb+'_chain'+df.chain
+    else:
+        file = df.pdb+'_alt'+df.alt+'_chain'+df.chain
+
+    return file
