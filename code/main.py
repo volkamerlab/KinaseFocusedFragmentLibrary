@@ -198,8 +198,11 @@ for index, entry in KLIFSData.iterrows():
     # add fragments to their respective pool
 
     for fragment in fragments:
-        output_file = path_to_library+fragment.subpocket+'/'+getFileName(entry)+'.sdf'
-        print(Chem.MolToMolBlock(fragment.mol), file=open(output_file, 'w'))
+        # output_file = path_to_library+fragment.subpocket+'/'+getFileName(entry)+'.sdf'
+        output_file = open(path_to_library+fragment.subpocket+'/'+entry.kinase+'.sdf', 'a')
+        # print(Chem.MolToMolBlock(fragment.mol), file=open(output_file, 'a'))
+        w = Chem.SDWriter(output_file)
+        w.write(fragment.mol)
 
     # ================================ DRAW FRAGMENTS ==========================================
 
