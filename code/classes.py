@@ -7,8 +7,7 @@ class Fragment:
         self.atomNumbers = atomNumbers  # atom numbers of the fragment atoms within the fragmented molecule
         self.subpocket = subpocket
         self.smiles = smiles
-        self.ligand = ligand
-        # currently, ligand is a molecule -- instead store the ligand name or so?
+        self.ligand = ligand  # currently, ligand is a molecule -- instead store the ligand name or so?
 
 
 class Subpocket:

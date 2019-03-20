@@ -3,22 +3,22 @@ from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 from biopandas.mol2 import PandasMol2
 
-from pocketIdentification import getSubpocketFromAtom, getGeometricCenter, checkSubpockets
+from pocketIdentification import getSubpocketFromAtom, getGeometricCenter, checkSubpockets, fixSubpockets
 from functions import mostCommon, getCaAtom
 from fragmentation import FindBRICSFragments, getFragmentsFromAtomTuples
 from classes import Fragment, Subpocket
-from preprocessing import preprocessKLIFSData, getFolderName, getFileName
+from preprocessing import preprocessKLIFSData, getFolderName, getFileName, fixResidueIDs
 from visualization import visualizeSubpocketCenters
 
 
 # ============================= INITIALIZATIONS ===============================================
 
 # define the 6 subpockets
-subpockets = [Subpocket('SE', residues=[50], color='0.0, 1.0, 1.0'),  # cyan
+subpockets = [Subpocket('SE', residues=[50], color='0.0, 1.0, 1.0'),  # cyan  # leave out 2? (1m17 will improve)
               Subpocket('AP', residues=[46, 50, 75, 15], color='0.6, 0.1, 0.6'),  # deeppurple
-              Subpocket('FP', residues=[74, 51, 4, 81], color='1.0, 0.5, 1.0'),  # violet
+              Subpocket('FP', residues=[74, 51, 7, 81], color='0.2, 0.6, 0.2'),  # forest # 7 instead of 4  -> but 7 is often missing
               Subpocket('GA', residues=[45, 17, 81], color='1.0, 0.5, 0.0'),  # orange
-              Subpocket('BP', residues=[82, 24, 43], color='0.3, 0.3, 1.0')  # tv_blue
+              Subpocket('BP', residues=[82, 24, 43], color='0.5, 0.0, 1.0')  # purpleblue
               # Subpocket('BP1', residues=[81, 29, 43, 38], color='tv_blue'),
               # Subpocket('BP2', residues=[24, 82, 8], color='forest')
               ]
@@ -56,14 +56,13 @@ for index, entry in KLIFSData.iterrows():
     pocket = Chem.MolFromMol2File(path_to_data + folder + '/pocket.mol2', removeHs=False)
 
     try:
-        # get molecule conformers
         ligandConf = ligand.GetConformer()
-    except:
+    except AttributeError:  # empty molecule
         print('Ligand '+entry.pdb_id+' ('+folder+') could not be loaded.')
         continue
     try:
         pocketConf = pocket.GetConformer()
-    except:
+    except AttributeError:
         print('Pocket '+folder+' could not be loaded.')
         continue
 
@@ -81,20 +80,19 @@ for index, entry in KLIFSData.iterrows():
                                                  5: ('atom_type', str), 6: ('res_id', int), 7: ('res_name', str), 8: ('charge', float),
                                                  9: ('secondary structure', str)}).df
     # fix residue IDs
-    for res in entry.missing_residues:
-        pocketMol2['res_id'].mask(pocketMol2['res_id'] >= res, pocketMol2['res_id']+1, inplace=True)
+    pocketMol2 = fixResidueIDs(pocketMol2, entry.missing_residues)
 
     # ============================ SUBPOCKET IDENTIFICATION =====================================
 
     skipStructure = False
-    fixSubpockets = False
+    # fixSubpockets = False
 
     # calculate subpocket centers
     for subpocket in subpockets:
         # Do this (get ca atoms) only once for each kinase?
         CaAtoms = [getCaAtom(res, pocketMol2, pocket) for res in subpocket.residues]
         if None in CaAtoms:
-            skip_molecule = True
+            skipStructure = True
             break
 
         # overwrite subpocket center for current structure
@@ -122,12 +120,16 @@ for index, entry in KLIFSData.iterrows():
     # find BRICS fragments and bonds (as atom numbers)
     BRICSFragments, BRICSBonds = FindBRICSFragments(ligand)
 
+    # TO DO:
+    # calculate fragment centers
+    # calculate distances from fragments to centers
+    # save distances as fragment properties
+    # --> Do we still need atom subpockets for other functions (fragmentation?)
+
     # list to store the bonds where we will cleave (as atom tuples)
     bonds = []
     # BRICS fragments as Fragment objects
-    # BRICSFragments = [Fragment(atomNumbers=BRICSFragmentsAtoms[f],
-    #                           mol=)
-    #                  for f in range(len(BRICSFragmentsAtoms))]
+    # BRICSFragments = [Fragment(atomNumbers=BRICSFragmentsAtoms[f]) for f in range(len(BRICSFragmentsAtoms))]
 
     # iterate over BRICS bonds
     for beginAtom, endAtom in BRICSBonds:
@@ -143,14 +145,16 @@ for index, entry in KLIFSData.iterrows():
         if secondFragment.subpocket is None:
             secondFragment.subpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in secondFragment.atomNumbers])
 
-        # TO DO: Why does this step join almost all fragments together and not only small ones????
-        # join very small fragments with larger fragment
-        # if firstFragment.mol.GetNumHeavyAtoms() <= 1:
-        #    firstFragment.subpocket = secondFragment.subpocket
-        # elif secondFragment.mol.GetNumHeavyAtoms() <= 1:
-        #    secondFragment.subpocket = firstFragment.subpocket
+        # # if subpockets of the 2 fragments differ
+        # if firstFragment.subpocket != secondFragment.subpocket:
+        #
+        #     # join very small fragments with larger fragment
+        #     if firstFragment.mol.GetNumHeavyAtoms() <= 2:
+        #         fixSubpockets(firstFragment, secondFragment)
+        #     if secondFragment.mol.GetNumHeavyAtoms() <= 2:
+        #         fixSubpockets(secondFragment, firstFragment)
 
-        # check validity of subpockets - if not valid, keep together
+        # check validity of subpockets
         if not checkSubpockets(firstFragment.subpocket, secondFragment.subpocket):
 
             print("ERROR: Subpockets "+firstFragment.subpocket+" and "+secondFragment.subpocket+" can not be connected."
@@ -159,11 +163,21 @@ for index, entry in KLIFSData.iterrows():
             skipStructure = True
             break
 
-        # if subpockets of the 2 fragments differ (and they are valid)
+        # check if subpockets differ
         if firstFragment.subpocket != secondFragment.subpocket:
-
             # store this bond as a bond where we will cleave
             bonds.append((beginAtom, endAtom))
+
+    # # iterate over BRICS bonds second time
+    # for beginAtom, endAtom in BRICSBonds:
+    #
+    #     # find corresponding fragments
+    #     firstFragment = [fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
+    #     secondFragment = [fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers][0]
+    #     # check again if subpockets differ because they may have changed
+    #     if firstFragment.subpocket != secondFragment.subpocket:
+    #         # store this bond as a bond where we will cleave
+    #         bonds.append((beginAtom, endAtom))
 
     # skip this molecule if subpocket definition is not valid
     if skipStructure:
@@ -173,7 +187,7 @@ for index, entry in KLIFSData.iterrows():
 
     # if the ligand is just one BRICS fragment (then the for loop above is not executed because there are no bonds)
     if len(BRICSFragments) == 1:
-        subpocket = [ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in BRICSFragments[0].atomNumbers]
+        subpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in BRICSFragments[0].atomNumbers])
         BRICSFragments[0].subpocket = subpocket
 
     # actual fragmentation
@@ -197,7 +211,7 @@ for index, entry in KLIFSData.iterrows():
     # print(atom.GetProp('atomNumber'), atom.GetProp('neighboringSubpocket'), atom.GetProp('subpocket'), atom.GetProp('priority'),
     #     [neighbor.GetSymbol() for neighbor in atom.GetNeighbors()])
 
-    img = Draw.MolsToGridImage([fragment.mol for fragment in fragments],
+    img = Draw.MolsToGridImage([Chem.RemoveHs(fragment.mol) for fragment in fragments],
                                legends=[fragment.subpocket for fragment in fragments],
                                subImgSize=(400, 400))
     img.save('../fragmented_molecules/'+getFileName(entry)+'.png')

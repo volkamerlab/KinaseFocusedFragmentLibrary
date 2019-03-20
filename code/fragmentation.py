@@ -10,7 +10,8 @@ def FindBRICSFragments(mol):
     atomTuples = [bond[0] for bond in list(BRICS.FindBRICSBonds(mol))]
     # if mol was not fragmented:
     if len(atomTuples) == 0:
-        return [range(mol.GetNumAtoms())], atomTuples
+        fragments = [Fragment(atomNumbers=range(mol.GetNumAtoms()), mol=mol)]
+        return fragments, atomTuples
     # else:
     bonds = [mol.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atomTuples]
     brokenMol = Chem.FragmentOnBonds(mol, bonds, addDummies=False)

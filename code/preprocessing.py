@@ -68,24 +68,33 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
 def addMissingResidues(df):
     missingResidues = []
     for ix, row in df.iterrows():
-        missingResidues.append(findMissingResidues(row.pocket, row.missing_residues))
+        missingResidues.append(findMissingResidues(row.pocket))
     df['missing_residues'] = missingResidues
     return df
 
 
 # find positions of missing residues
-def findMissingResidues(sequence, numMissing):
+# numMissing was used to save time, but this value is not always correct. :(
+def findMissingResidues(sequence):  # , numMissing):
     # iterate over sequence string
     missingResidues = []
     for i, aa in enumerate(sequence):
         # all missing residues found
-        if numMissing == 0:
-            return missingResidues
+        # if numMissing == 0:
+        #     return missingResidues
         # missing residue
         if aa == '_':
             missingResidues.append(i+1)
-            numMissing -= 1
+            # numMissing -= 1
     return missingResidues
+
+
+# fix residue IDs according to KLIFS in mol2 instance of binding pocket
+# missing_residues: positions (KLIFS numbering) of missing residues
+def fixResidueIDs(pocketMol2, missing_residues):
+    for res in missing_residues:
+        pocketMol2['res_id'].mask(pocketMol2['res_id'] >= res, pocketMol2['res_id']+1, inplace=True)
+    return pocketMol2
 
 
 # input: 1D data frame with species, kinase, pdb, alt, and chain

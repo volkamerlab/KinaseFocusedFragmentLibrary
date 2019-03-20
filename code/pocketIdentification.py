@@ -21,6 +21,23 @@ def getSubpocketFromAtom(ligandAtom, ligandConf, subpockets):
     return nearestSubpocket.name
 
 
+# f_small = fragment with <= 2 heavy atoms
+def fixSubpockets(f_small, f_large):
+
+    # keep SE as large as possible
+    if f_large.subpocket == 'SE':
+        f_small.subpocket = f_large.subpocket
+    # if SE not involved, keep FP as large as possible
+    elif f_large.subpocket == 'FP' and f_small.subpocket == 'AP':
+        f_small.subpocket = f_large.subpocket
+    # otherwise, keep GA as large as possible
+    elif f_large.subpocket == 'GA' and f_small.subpocket == 'FP':
+        f_small.subpocket = f_large.subpocket
+    # if none of these cases is true, nothing happens
+
+    return None
+
+
 # function that checks validity of neighboring fragments
 def checkSubpockets(sp1, sp2):
 
@@ -91,8 +108,6 @@ def getRegion(res):
         return 'g.l'  # glycine rich loop
     elif 10 <= res <= 13:
         return 'beta2'
-    elif res == 17:
-        return 'K17'
     elif 14 <= res <= 19:
         return 'beta3'
     elif 20 <= res <= 30:
