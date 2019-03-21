@@ -116,9 +116,7 @@ for index, entry in KLIFSData.iterrows():
         subpocket = getSubpocketFromAtom(a, ligandConf, subpockets)
         atom.SetProp('subpocket', subpocket)
 
-    # ================================== FRAGMENTATION ==========================================
-
-    skipStructure = False
+    # ================================ BRICS FRAGMENTATION ======================================
 
     # find BRICS fragments and bonds (as atom numbers)
     BRICSFragments, BRICSBonds = FindBRICSFragments(ligand)
@@ -128,6 +126,15 @@ for index, entry in KLIFSData.iterrows():
     # calculate distances from fragments to centers
     # save distances as fragment properties
     # --> Do we still need atom subpockets for other functions (fragmentation?)
+
+    # calculate fragment centers
+    for BRICSFragment in BRICSFragments:
+        center = getGeometricCenter(BRICSFragment.mol.GetAtoms(), BRICSFragment.mol.GetConformer())
+        BRICSFragment.center = center
+
+    # ================================== FRAGMENTATION ==========================================
+
+    skipStructure = False
 
     # list to store the bonds where we will cleave (as atom tuples)
     bonds = []

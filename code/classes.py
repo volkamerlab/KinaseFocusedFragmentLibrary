@@ -1,10 +1,11 @@
 
 class Fragment:
 
-    def __init__(self, mol=None, atomNumbers=None, subpocket=None, smiles=None, ligand=None):
+    def __init__(self, mol=None, atomNumbers=None, subpocket=None, smiles=None, ligand=None, center=None):
 
         self.mol = mol  # rdkit molecule representation of the fragment
         self.atomNumbers = atomNumbers  # atom numbers of the fragment atoms within the fragmented molecule
+        self.center = center
         self.subpocket = subpocket
         self.smiles = smiles
         self.ligand = ligand  # currently, ligand is a molecule -- instead store the ligand name or so?
