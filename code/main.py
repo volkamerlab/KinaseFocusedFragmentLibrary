@@ -89,11 +89,14 @@ for index, entry in KLIFSData.iterrows():
 
     # calculate subpocket centers
     for subpocket in subpockets:
-        # Do this (get ca atoms) only once for each kinase?
         CaAtoms = [getCaAtom(res, pocketMol2, pocket) for res in subpocket.residues]
+        # if residue is missing, skip structure
         if None in CaAtoms:
+            print('ERROR: Important residue is missing in structure. Structure is skipped.')
             skipStructure = True
             break
+            # IDEA: Do not skip structure and use continue instead
+            # -> The subpocket center of the previous structure will be used.
 
         # overwrite subpocket center for current structure
         center = getGeometricCenter(CaAtoms, pocketConf)
