@@ -22,9 +22,9 @@ subpockets = [Subpocket('SE', residues=[50], color='0.0, 1.0, 1.0'),  # cyan  # 
               Subpocket('AP', residues=[46, 50, 75, 15], color='0.6, 0.1, 0.6'),  # deeppurple
               Subpocket('FP', residues=[74, 51, 7, 81], color='0.2, 0.6, 0.2'),  # forest # 4/7/8 (7 and 8 are often missing)
               Subpocket('GA', residues=[45, 17, 80], color='1.0, 0.5, 0.0'),  # orange
-              Subpocket('BP', residues=[82, 24, 43], color='0.5, 0.0, 1.0')  # purpleblue
-              # Subpocket('BP1', residues=[81, 29, 43, 38], color='tv_blue'),
-              # Subpocket('BP2', residues=[24, 82, 8], color='forest')
+              # Subpocket('BP', residues=[82, 24, 43], color='0.5, 0.0, 1.0')  # purpleblue
+              Subpocket('B1', residues=[81, 28, 43, 38], color='0.0, 0.5, 1.0'),  # marine
+              Subpocket('B2', residues=[24, 83, 8, 42], color='0.5, 0.0, 1.0')  # purpleblue
               ]
 
 # ============================= DATA PREPROCESSING ============================================
