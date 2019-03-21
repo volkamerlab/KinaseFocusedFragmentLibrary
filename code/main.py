@@ -3,7 +3,7 @@ from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 from biopandas.mol2 import PandasMol2
 
-from pocketIdentification import getSubpocketFromAtom, getGeometricCenter, checkSubpockets, fixSubpockets
+from pocketIdentification import getSubpocketFromAtom, getSubpocketFromPos, getGeometricCenter, checkSubpockets, fixSubpockets
 from functions import mostCommon, getCaAtom
 from fragmentation import FindBRICSFragments, getFragmentsFromAtomTuples
 from classes import Fragment, Subpocket
@@ -82,7 +82,7 @@ for index, entry in KLIFSData.iterrows():
     # fix residue IDs
     pocketMol2 = fixResidueIDs(pocketMol2, entry.missing_residues)
 
-    # ============================ SUBPOCKET IDENTIFICATION =====================================
+    # ============================ SUBPOCKET CENTERS =====================================
 
     skipStructure = False
     # fixSubpockets = False
@@ -110,27 +110,25 @@ for index, entry in KLIFSData.iterrows():
     # visualize subpocket centers using PyMOL
     visualizeSubpocketCenters(subpockets, folder)
 
-    # get subpocket for each ligand atom
-    for a, atom in enumerate(ligand.GetAtoms()):
-        # subpocket = getSubpocketFromAtomDistances(a, ligandConf, pocketConf, residues)
-        subpocket = getSubpocketFromAtom(a, ligandConf, subpockets)
-        atom.SetProp('subpocket', subpocket)
+    # # get subpocket for each ligand atom
+    # for a, atom in enumerate(ligand.GetAtoms()):
+    #     # subpocket = getSubpocketFromAtomDistances(a, ligandConf, pocketConf, residues)
+    #     subpocket = getSubpocketFromAtom(a, ligandConf, subpockets)
+    #     atom.SetProp('subpocket', subpocket)
 
-    # ================================ BRICS FRAGMENTATION ======================================
+    # ================================ BRICS FRAGMENTS ======================================
 
     # find BRICS fragments and bonds (as atom numbers)
     BRICSFragments, BRICSBonds = FindBRICSFragments(ligand)
 
-    # TO DO:
-    # calculate fragment centers
-    # calculate distances from fragments to centers
-    # save distances as fragment properties
-    # --> Do we still need atom subpockets for other functions (fragmentation?)
-
-    # calculate fragment centers
+    # calculate fragment centers and get according subpockets
     for BRICSFragment in BRICSFragments:
         center = getGeometricCenter(BRICSFragment.mol.GetAtoms(), BRICSFragment.mol.GetConformer())
         BRICSFragment.center = center
+        # calculate distances from subpockets to fragments
+        subpocket = getSubpocketFromPos(center, subpockets)
+        BRICSFragment.subpocket = subpocket
+    # --> Do we still need atom subpockets for other functions (fragmentation?)
 
     # ================================== FRAGMENTATION ==========================================
 
@@ -148,12 +146,12 @@ for index, entry in KLIFSData.iterrows():
         firstFragment = [fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
         secondFragment = [fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers][0]
 
-        # add subpocket to fragment objects (if not yet defined for this fragment)
-        if firstFragment.subpocket is None:
-            firstFragment.subpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in firstFragment.atomNumbers])
-
-        if secondFragment.subpocket is None:
-            secondFragment.subpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in secondFragment.atomNumbers])
+        # # add subpocket to fragment objects (if not yet defined for this fragment)
+        # if firstFragment.subpocket is None:
+        #     firstFragment.subpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in firstFragment.atomNumbers])
+        #
+        # if secondFragment.subpocket is None:
+        #     secondFragment.subpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in secondFragment.atomNumbers])
 
         # # if subpockets of the 2 fragments differ
         # if firstFragment.subpocket != secondFragment.subpocket:
@@ -195,10 +193,10 @@ for index, entry in KLIFSData.iterrows():
 
     # check if subpockets appear several times and not next to each other
 
-    # if the ligand is just one BRICS fragment (then the for loop above is not executed because there are no bonds)
-    if len(BRICSFragments) == 1:
-        subpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in BRICSFragments[0].atomNumbers])
-        BRICSFragments[0].subpocket = subpocket
+    # # if the ligand is just one BRICS fragment (then the for loop above is not executed because there are no bonds)
+    # if len(BRICSFragments) == 1:
+    #     subpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in BRICSFragments[0].atomNumbers])
+    #     BRICSFragments[0].subpocket = subpocket
 
     # actual fragmentation
     fragments = getFragmentsFromAtomTuples(bonds, BRICSFragments, ligand)

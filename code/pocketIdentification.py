@@ -10,6 +10,11 @@ from classes import Subpocket
 def getSubpocketFromAtom(ligandAtom, ligandConf, subpockets):
 
     pos = ligandConf.GetAtomPosition(ligandAtom)
+    return getSubpocketFromPos(pos, subpockets)
+
+
+def getSubpocketFromPos(pos, subpockets):
+
     smallestDistance = sys.maxsize  # set smallest distance as max integer value
     nearestSubpocket = Subpocket('noSubpocket')
     for subpocket in subpockets:
