@@ -231,8 +231,6 @@ for index, entry in KLIFSData.iterrows():
 # TO DO:
 # - store bond information (BRICS rule?)
 #
-# - implement fragment centers
-#
 # - deal with missing residues
 #
 # - deal with multi ligands

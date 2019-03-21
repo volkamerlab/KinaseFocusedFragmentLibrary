@@ -105,6 +105,7 @@ def getNearestResidues(ligandAtom, ligandConf, pocketConf, residues):
 
 # given a residue number within the binding pocket (KLIFS numbering):
 # returns the corresponding region of the binding pocket (KLIFS definition) as a string
+# USED IN PYMOL SCRIPT!
 def getRegion(res):
 
     if 1 <= res <= 3:
