@@ -11,13 +11,17 @@ from preprocessing import preprocessKLIFSData, getFolderName, getFileName, fixRe
 from visualization import visualizeSubpocketCenters
 
 
+
+import sys
+from functions import calculate3DDistance
+
 # ============================= INITIALIZATIONS ===============================================
 
 # define the 6 subpockets
 subpockets = [Subpocket('SE', residues=[50], color='0.0, 1.0, 1.0'),  # cyan  # leave out 2? (1m17 will improve)
               Subpocket('AP', residues=[46, 50, 75, 15], color='0.6, 0.1, 0.6'),  # deeppurple
-              Subpocket('FP', residues=[74, 51, 7, 81], color='0.2, 0.6, 0.2'),  # forest # 7 instead of 4  -> but 7 is often missing
-              Subpocket('GA', residues=[45, 17, 81], color='1.0, 0.5, 0.0'),  # orange
+              Subpocket('FP', residues=[74, 51, 7, 81], color='0.2, 0.6, 0.2'),  # forest # 4/7/8 (7 and 8 are often missing)
+              Subpocket('GA', residues=[45, 17, 80], color='1.0, 0.5, 0.0'),  # orange
               Subpocket('BP', residues=[82, 24, 43], color='0.5, 0.0, 1.0')  # purpleblue
               # Subpocket('BP1', residues=[81, 29, 43, 38], color='tv_blue'),
               # Subpocket('BP2', residues=[24, 82, 8], color='forest')
@@ -82,7 +86,7 @@ for index, entry in KLIFSData.iterrows():
     # fix residue IDs
     pocketMol2 = fixResidueIDs(pocketMol2, entry.missing_residues)
 
-    # ============================ SUBPOCKET CENTERS =====================================
+    # ============================ SUBPOCKET CENTERS =========================================
 
     skipStructure = False
     # fixSubpockets = False
@@ -116,19 +120,39 @@ for index, entry in KLIFSData.iterrows():
     #     subpocket = getSubpocketFromAtom(a, ligandConf, subpockets)
     #     atom.SetProp('subpocket', subpocket)
 
-    # ================================ BRICS FRAGMENTS ======================================
+    # ================================ BRICS FRAGMENTS ==========================================
 
     # find BRICS fragments and bonds (as atom numbers)
     BRICSFragments, BRICSBonds = FindBRICSFragments(ligand)
 
-    # calculate fragment centers and get according subpockets
+    # calculate fragment centers and get nearest subpockets
     for BRICSFragment in BRICSFragments:
         center = getGeometricCenter(BRICSFragment.mol.GetAtoms(), BRICSFragment.mol.GetConformer())
         BRICSFragment.center = center
         # calculate distances from subpockets to fragments
-        subpocket = getSubpocketFromPos(center, subpockets)
-        BRICSFragment.subpocket = subpocket
-    # --> Do we still need atom subpockets for other functions (fragmentation?)
+        smallestDistance = sys.maxsize  # set smallest distance as max integer value
+        nearestSubpocket = Subpocket('noSubpocket')
+        distances = []
+        for subpocket in subpockets:
+            distance = calculate3DDistance(center, subpocket.center)
+            distances.append(distance)
+            if distance < smallestDistance:
+                nearestSubpocket = subpocket
+                smallestDistance = distance
+
+        # draw ambiguous fragments
+        minDist = min(distances)
+        for d, dist in enumerate(distances):
+            # if there is a value near the minimum distance
+            if minDist - 0.5 < dist < minDist + 0.5 and subpockets[d]!=nearestSubpocket:
+                label = subpockets[d].name+'+'+nearestSubpocket.name
+                Draw.MolToFile(BRICSFragment.mol, '../ambiguous_fragments/'+getFileName(entry)+'_'+label+'.png')
+
+        BRICSFragment.subpocket = nearestSubpocket.name
+
+        # subpocket = getSubpocketFromPos(center, subpockets)
+        # BRICSFragment.subpocket = subpocket
+    # --> Do we still need atom subpockets for other purposes?
 
     # ================================== FRAGMENTATION ==========================================
 
