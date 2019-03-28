@@ -3,15 +3,15 @@ from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 from biopandas.mol2 import PandasMol2
 
-from pocketIdentification import getSubpocketFromAtom, getSubpocketFromPos, getGeometricCenter, checkSubpockets, fixSubpockets
+from pocketIdentification import getSubpocketFromPos, getGeometricCenter, checkSubpockets, fixSmallFragments, findNeighboringFragments
 from functions import mostCommon, getCaAtom
-from fragmentation import FindBRICSFragments, getFragmentsFromAtomTuples
+from fragmentation import findBRICSFragments, getFragmentsFromAtomTuples
 from classes import Fragment, Subpocket
 from preprocessing import preprocessKLIFSData, getFolderName, getFileName, fixResidueIDs
 from visualization import visualizeSubpocketCenters
 
-
-
+import numpy as np
+import os
 import sys
 from functions import calculate3DDistance
 
@@ -27,7 +27,7 @@ subpockets = [Subpocket('SE', residues=[50], color='0.0, 1.0, 1.0'),  # cyan  # 
               Subpocket('B2', residues=[24, 83, 8, 42], color='0.5, 0.0, 1.0')  # purpleblue
               ]
 
-# ============================= DATA PREPROCESSING ============================================
+# ============================= DATA PREPARATION ============================================
 
 path_to_library = '../FragmentLibrary/'
 
@@ -44,7 +44,17 @@ KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ADP']
 KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ATP']
 KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ACP']
 KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ANP']
-KLIFSData = KLIFSData[KLIFSData.kinase == 'EGFR']
+KLIFSData = KLIFSData[(KLIFSData.family == 'EGFR')]
+
+
+# clear output files
+for subpocket in subpockets:
+    folderName = path_to_library+subpocket.name+'/'
+    kinases = set(KLIFSData.kinase)
+    for kinase in kinases:
+        fileName = folderName + kinase + '.sdf'
+        if os.path.isfile(fileName):
+            os.remove(fileName)
 
 
 # iterate over molecules
@@ -53,7 +63,7 @@ for index, entry in KLIFSData.iterrows():
     # ================================== READ DATA ============================================
 
     folder = getFolderName(entry)
-    print(folder, entry.dfg, entry.ac_helix)
+    # print(folder, entry.dfg, entry.ac_helix)
 
     # load ligand and binding pocket to rdkit molecules
     ligand = Chem.MolFromMol2File(path_to_data + folder + '/ligand.mol2', removeHs=False)
@@ -62,17 +72,20 @@ for index, entry in KLIFSData.iterrows():
     try:
         ligandConf = ligand.GetConformer()
     except AttributeError:  # empty molecule
-        print('Ligand '+entry.pdb_id+' ('+folder+') could not be loaded.')
+        print('ERROR in ' + folder + ':')
+        print('Ligand '+entry.pdb_id+' ('+folder+') could not be loaded. \n')
         continue
     try:
         pocketConf = pocket.GetConformer()
     except AttributeError:
-        print('Pocket '+folder+' could not be loaded.')
+        print('ERROR in ' + folder + ':')
+        print('Pocket '+folder+' could not be loaded. \n')
         continue
 
     # skip multi ligands
     if '.' in Chem.MolToSmiles(ligand):
-        print('Ligand consists of multiple molecules. Structure is skipped.')
+        print('ERROR in ' + folder + ':')
+        print('Ligand consists of multiple molecules. Structure is skipped. \n')
         continue
 
     lenLigand = ligand.GetNumAtoms()
@@ -96,7 +109,8 @@ for index, entry in KLIFSData.iterrows():
         CaAtoms = [getCaAtom(res, pocketMol2, pocket) for res in subpocket.residues]
         # if residue is missing, skip structure
         if None in CaAtoms:
-            print('ERROR: Important residue is missing in structure. Structure is skipped.')
+            print('ERROR in '+folder+':')
+            print('Important residue is missing in structure. Structure is skipped. \n')
             skipStructure = True
             break
             # IDEA: Do not skip structure and use continue instead
@@ -105,7 +119,6 @@ for index, entry in KLIFSData.iterrows():
         # overwrite subpocket center for current structure
         center = getGeometricCenter(CaAtoms, pocketConf)
         subpocket.center = center
-        # print(subpocket.name, subpocket.center)
 
     # skip this molecule if important residues are missing
     if skipStructure:
@@ -123,36 +136,57 @@ for index, entry in KLIFSData.iterrows():
     # ================================ BRICS FRAGMENTS ==========================================
 
     # find BRICS fragments and bonds (as atom numbers)
-    BRICSFragments, BRICSBonds = FindBRICSFragments(ligand)
+    BRICSFragments, BRICSBonds = findBRICSFragments(ligand)
 
     # calculate fragment centers and get nearest subpockets
     for BRICSFragment in BRICSFragments:
+
         center = getGeometricCenter(BRICSFragment.mol.GetAtoms(), BRICSFragment.mol.GetConformer())
         BRICSFragment.center = center
-        # calculate distances from subpockets to fragments
-        smallestDistance = sys.maxsize  # set smallest distance as max integer value
-        nearestSubpocket = Subpocket('noSubpocket')
-        distances = []
-        for subpocket in subpockets:
-            distance = calculate3DDistance(center, subpocket.center)
-            distances.append(distance)
-            if distance < smallestDistance:
-                nearestSubpocket = subpocket
-                smallestDistance = distance
 
-        # draw ambiguous fragments
-        minDist = min(distances)
-        for d, dist in enumerate(distances):
-            # if there is a value near the minimum distance
-            if minDist - 0.5 < dist < minDist + 0.5 and subpockets[d]!=nearestSubpocket:
-                label = subpockets[d].name+'+'+nearestSubpocket.name
-                Draw.MolToFile(BRICSFragment.mol, '../ambiguous_fragments/'+getFileName(entry)+'_'+label+'.png')
+    # ========================== SUBPOCKET IDENTIFICATION ========================================
+    #
+    #     # ---------------------------------------
+    #     # instead of getSubpocketFromPos() function in order to find ambiguous fragments
+    #
+    #     # calculate distances from subpockets to fragments
+    #     smallestDistance = sys.maxsize  # set smallest distance as max integer value
+    #     nearestSubpocket = Subpocket('noSubpocket')
+    #     distances = []
+    #     for subpocket in subpockets:
+    #         distance = calculate3DDistance(center, subpocket.center)
+    #         distances.append(distance)
+    #         if distance < smallestDistance:
+    #             nearestSubpocket = subpocket
+    #             smallestDistance = distance
+    #
+    #     # draw ambiguous fragments
+    #     minDist = min(distances)
+    #     for d, dist in enumerate(distances):
+    #         # if there is a value near the minimum distance
+    #         if minDist - 0.7 < dist < minDist + 0.7 and subpockets[d] != nearestSubpocket:
+    #             label = subpockets[d].name+'+'+nearestSubpocket.name
+    #             Draw.MolToFile(BRICSFragment.mol, '../ambiguous_fragments/'+getFileName(entry)+'_'+label+'.png')
+    #
+    #     BRICSFragment.subpocket = nearestSubpocket.name
+    #
+    #     # -------------------------------------------
 
-        BRICSFragment.subpocket = nearestSubpocket.name
-
-        # subpocket = getSubpocketFromPos(center, subpockets)
-        # BRICSFragment.subpocket = subpocket
+        subpocket = getSubpocketFromPos(center, subpockets)
+        BRICSFragment.subpocket = subpocket
     # --> Do we still need atom subpockets for other purposes?
+
+    # discard any fragments where the AP fragment is larger than 20 heavy atoms (e.g. staurosporine)
+        if subpocket == 'AP' and BRICSFragment.mol.GetNumHeavyAtoms() > 20:
+            skipStructure = True
+            break
+
+    if skipStructure:
+        continue
+
+    # Deal with small fragments
+
+    fixSmallFragments(BRICSFragments, BRICSBonds)
 
     # ================================== FRAGMENTATION ==========================================
 
@@ -160,8 +194,6 @@ for index, entry in KLIFSData.iterrows():
 
     # list to store the bonds where we will cleave (as atom tuples)
     bonds = []
-    # BRICS fragments as Fragment objects
-    # BRICSFragments = [Fragment(atomNumbers=BRICSFragmentsAtoms[f]) for f in range(len(BRICSFragmentsAtoms))]
 
     # iterate over BRICS bonds
     for beginAtom, endAtom in BRICSBonds:
@@ -170,27 +202,12 @@ for index, entry in KLIFSData.iterrows():
         firstFragment = [fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
         secondFragment = [fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers][0]
 
-        # # add subpocket to fragment objects (if not yet defined for this fragment)
-        # if firstFragment.subpocket is None:
-        #     firstFragment.subpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in firstFragment.atomNumbers])
-        #
-        # if secondFragment.subpocket is None:
-        #     secondFragment.subpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in secondFragment.atomNumbers])
-
-        # # if subpockets of the 2 fragments differ
-        # if firstFragment.subpocket != secondFragment.subpocket:
-        #
-        #     # join very small fragments with larger fragment
-        #     if firstFragment.mol.GetNumHeavyAtoms() <= 2:
-        #         fixSubpockets(firstFragment, secondFragment)
-        #     if secondFragment.mol.GetNumHeavyAtoms() <= 2:
-        #         fixSubpockets(secondFragment, firstFragment)
-
         # check validity of subpockets
         if not checkSubpockets(firstFragment.subpocket, secondFragment.subpocket):
 
-            print("ERROR: Subpockets "+firstFragment.subpocket+" and "+secondFragment.subpocket+" can not be connected."
-                                                                                                "Structure is skipped.")
+            print('ERROR in '+folder+':')
+            print("Subpockets "+firstFragment.subpocket+" and "+secondFragment.subpocket+" can not be connected."
+                                                                                         "Structure is skipped. \n")
             # skip this molecule if subpocket definition is not valid
             skipStructure = True
             break
@@ -200,27 +217,9 @@ for index, entry in KLIFSData.iterrows():
             # store this bond as a bond where we will cleave
             bonds.append((beginAtom, endAtom))
 
-    # # iterate over BRICS bonds second time
-    # for beginAtom, endAtom in BRICSBonds:
-    #
-    #     # find corresponding fragments
-    #     firstFragment = [fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
-    #     secondFragment = [fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers][0]
-    #     # check again if subpockets differ because they may have changed
-    #     if firstFragment.subpocket != secondFragment.subpocket:
-    #         # store this bond as a bond where we will cleave
-    #         bonds.append((beginAtom, endAtom))
-
     # skip this molecule if subpocket definition is not valid
     if skipStructure:
         continue
-
-    # check if subpockets appear several times and not next to each other
-
-    # # if the ligand is just one BRICS fragment (then the for loop above is not executed because there are no bonds)
-    # if len(BRICSFragments) == 1:
-    #     subpocket = mostCommon([ligand.GetAtomWithIdx(a).GetProp('subpocket') for a in BRICSFragments[0].atomNumbers])
-    #     BRICSFragments[0].subpocket = subpocket
 
     # actual fragmentation
     fragments = getFragmentsFromAtomTuples(bonds, BRICSFragments, ligand)

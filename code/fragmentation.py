@@ -5,7 +5,7 @@ from classes import Fragment
 
 
 # returns atom numbers of BRICS fragments + bond tuples
-def FindBRICSFragments(mol):
+def findBRICSFragments(mol):
 
     atomTuples = [bond[0] for bond in list(BRICS.FindBRICSBonds(mol))]
     # if mol was not fragmented:
@@ -25,7 +25,7 @@ def FindBRICSFragments(mol):
     return fragments, atomTuples
 
 
-# given a list of atom tuples and a ligand, returns a list of Fragment objects
+# given a list of atom tuples, BRICS fragments, and the ligand, returns a list of Fragment objects
 # ligand is fragmented at the bonds corresponding to the atom tuples
 def getFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
 

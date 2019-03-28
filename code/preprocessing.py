@@ -28,7 +28,7 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
     df_screen = pd.merge(df, df_csv, how='outer', on=['species', 'kinase', 'pdb', 'chain', 'alt', 'allosteric_PDB'])
 
     # loose irrelevant data
-    df_screen = df_screen[['kinase', 'groups', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix',
+    df_screen = df_screen[['kinase', 'family', 'groups', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix',
                            'missing_residues', 'pocket']]
 
     # add column with positions of missing residues (replacing column with number of missing residues)
