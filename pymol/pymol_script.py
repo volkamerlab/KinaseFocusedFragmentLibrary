@@ -15,31 +15,20 @@ info = addMissingResidues(pd.read_csv(path + 'overview.csv'))
 # Launch PyMol
 pymol.finish_launching()
 
-# EVA'S FUNCTIONS
 
-def get_bs_res(pmol):
-    res_id_list = []
-    klifs_id_list = []
+# function to get dict with 
+# keys = KLIFS binding pocket residue numbers 
+# values = residue numbers w.r.t. protein
+def getResDict(pmol):
+    resIDs = []
+    klifsIDs = []
     for i, name in enumerate(pmol.res_name):
-        if name[3:] in res_id_list:
+        if name[3:] in resIDs:
             continue
         else:
-            res_id_list.append(name[3:])
-            klifs_id_list.append(pmol.res_id[i])
-    return dict(zip(klifs_id_list, res_id_list))
-
-
-def klifs_to_pdb(pmol, l):
-    pdb_anchors = []
-    # regions
-    for elem in l:
-        tmp = []
-        # residues in region
-        for id in elem:
-            tmp.append(pmol.df[pmol.df.res_id == id]['res_name'].iloc[0][3:])
-        pdb_anchors.append(tmp)
-
-    return pdb_anchors
+            resIDs.append(name[3:])
+            klifsIDs.append(pmol.res_id[i])
+    return dict(zip(klifsIDs, resIDs))
 
 
 # color binding pocket using PyMOL
@@ -50,7 +39,7 @@ def visualizePocket(species, kinase, pdb, alt, chain):
     # overview table for this structure
     global info
     info = info[(info.species == species) & (info.kinase == kinase) & (info.pdb == pdb) & (info.alt == alt) & (info.chain == chain)].iloc[0]
-
+    
     folder = getFolderName(info)
 
     # mol2 file of this pocket structure
@@ -62,7 +51,7 @@ def visualizePocket(species, kinase, pdb, alt, chain):
     # fix residue IDs
     pocketMol2 = fixResidueIDs(pocketMol2, info.missing_residues)
     # corresponding residue numbers within the protein
-    residueDict = get_bs_res(pocketMol2)
+    residueDict = getResDict(pocketMol2)
 
     # draw protein
     cmd.load(path+folder+'/pocket.mol2')
@@ -106,5 +95,7 @@ def visualizePocket(species, kinase, pdb, alt, chain):
 
 
 # visualizePocket('Human', 'CDK2', '1h01', 'A', 'A')
-visualizePocket('Human', 'EGFR', '1m17', 'A', 'A')
+# visualizePocket('Human', 'EGFR', '1m17', 'A', 'A')
+# visualizePocket('Human', 'EGFR', '5em7', 'B', 'A')
+# visualizePocket('Human', 'EGFR', '1xkk', ' ', 'A')
 
