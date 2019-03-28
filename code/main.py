@@ -10,7 +10,6 @@ from classes import Fragment, Subpocket
 from preprocessing import preprocessKLIFSData, getFolderName, getFileName, fixResidueIDs
 from visualization import visualizeSubpocketCenters
 
-import numpy as np
 import os
 import sys
 from functions import calculate3DDistance
@@ -44,7 +43,7 @@ KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ADP']
 KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ATP']
 KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ACP']
 KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ANP']
-KLIFSData = KLIFSData[(KLIFSData.family == 'EGFR')]
+KLIFSData = KLIFSData[(KLIFSData.family == 'RAF')]
 
 
 # clear output files
@@ -202,15 +201,15 @@ for index, entry in KLIFSData.iterrows():
         firstFragment = [fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
         secondFragment = [fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers][0]
 
-        # check validity of subpockets
-        if not checkSubpockets(firstFragment.subpocket, secondFragment.subpocket):
-
-            print('ERROR in '+folder+':')
-            print("Subpockets "+firstFragment.subpocket+" and "+secondFragment.subpocket+" can not be connected."
-                                                                                         "Structure is skipped. \n")
-            # skip this molecule if subpocket definition is not valid
-            skipStructure = True
-            break
+        # # check validity of subpockets
+        # if not checkSubpockets(firstFragment.subpocket, secondFragment.subpocket):
+        #
+        #     print('ERROR in '+folder+':')
+        #     print("Subpockets "+firstFragment.subpocket+" and "+secondFragment.subpocket+" can not be connected."
+        #                                                                                  "Structure is skipped. \n")
+        #     # skip this molecule if subpocket definition is not valid
+        #     skipStructure = True
+        #     break
 
         # check if subpockets differ
         if firstFragment.subpocket != secondFragment.subpocket:

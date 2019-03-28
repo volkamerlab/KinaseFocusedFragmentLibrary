@@ -103,25 +103,17 @@ def checkSubpockets(sp1, sp2):
     if sp1 == sp2:
         return True
     elif "AP" in subpockets:
-        if "FP" or "SE" or "GA" in subpockets:
+        if "FP" in subpockets or "SE" in subpockets or "GA" in subpockets:
             return True
-        else:
-            return False
     elif "GA" in subpockets:
-        if "FP" or "AP" or "BP" or "B1" or "B2" in subpockets:
+        if "FP" in subpockets or "AP" in subpockets or "BP" in subpockets or "B1" in subpockets or "B2" in subpockets:
             return True
-        else:
-            return False
     elif "FP" in subpockets:
-        if "AP" or "GA" or "SE" in subpockets:
+        if "AP" in subpockets or "GA" in subpockets or "SE" in subpockets:
             return True
-        else:
-            return False
     elif "B2" in subpockets:
         if "B1" in subpockets:
             return True
-        else:
-            return False
     else:
         return False
 
