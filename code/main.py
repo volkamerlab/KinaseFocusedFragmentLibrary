@@ -43,7 +43,7 @@ KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ADP']
 KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ATP']
 KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ACP']
 KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ANP']
-KLIFSData = KLIFSData[(KLIFSData.family == 'RAF')]
+KLIFSData = KLIFSData[(KLIFSData.family == 'RAF') | (KLIFSData.family == 'EGFR') | (KLIFSData.family == 'CDK')]
 
 
 # clear output files
@@ -55,6 +55,8 @@ for subpocket in subpockets:
         if os.path.isfile(fileName):
             os.remove(fileName)
 
+discardedFragments = []
+discardedLigands = []
 
 # iterate over molecules
 for index, entry in KLIFSData.iterrows():
@@ -94,7 +96,7 @@ for index, entry in KLIFSData.iterrows():
     pocketMol2 = PandasMol2().read_mol2(path_to_data + folder + '/pocket.mol2',
                                         columns={0: ('atom_id', int), 1: ('atom_name', str), 2: ('x', float), 3: ('y', float), 4: ('z', float),
                                                  5: ('atom_type', str), 6: ('res_id', int), 7: ('res_name', str), 8: ('charge', float),
-                                                 9: ('secondary structure', str)}).df
+                                                 9: ('secondary_structure', str)}).df
     # fix residue IDs
     pocketMol2 = fixResidueIDs(pocketMol2, entry.missing_residues)
 
@@ -108,12 +110,13 @@ for index, entry in KLIFSData.iterrows():
         CaAtoms = [getCaAtom(res, pocketMol2, pocket) for res in subpocket.residues]
         # if residue is missing, skip structure
         if None in CaAtoms:
-            print('ERROR in '+folder+':')
-            print('Important residue is missing in structure. Structure is skipped. \n')
-            skipStructure = True
-            break
-            # IDEA: Do not skip structure and use continue instead
+            # print('ERROR in '+folder+':')
+            # print('Important residue is missing in structure. Structure is skipped. \n')
+            # skipStructure = True
+            # break
+
             # -> The subpocket center of the previous structure will be used.
+            continue
 
         # overwrite subpocket center for current structure
         center = getGeometricCenter(CaAtoms, pocketConf)
@@ -173,10 +176,10 @@ for index, entry in KLIFSData.iterrows():
 
         subpocket = getSubpocketFromPos(center, subpockets)
         BRICSFragment.subpocket = subpocket
-    # --> Do we still need atom subpockets for other purposes?
 
     # discard any fragments where the AP fragment is larger than 20 heavy atoms (e.g. staurosporine)
-        if subpocket == 'AP' and BRICSFragment.mol.GetNumHeavyAtoms() > 20:
+        if subpocket == 'AP' and BRICSFragment.mol.GetNumHeavyAtoms() > 22:
+            discardedLigands.append([ligand, entry.pdb])
             skipStructure = True
             break
 
@@ -216,9 +219,9 @@ for index, entry in KLIFSData.iterrows():
             # store this bond as a bond where we will cleave
             bonds.append((beginAtom, endAtom))
 
-    # skip this molecule if subpocket definition is not valid
-    if skipStructure:
-        continue
+    # # skip this molecule if subpocket definition is not valid
+    # if skipStructure:
+    #     continue
 
     # actual fragmentation
     fragments = getFragmentsFromAtomTuples(bonds, BRICSFragments, ligand)
@@ -228,11 +231,17 @@ for index, entry in KLIFSData.iterrows():
     # add fragments to their respective pool
 
     for fragment in fragments:
-        # output_file = path_to_library+fragment.subpocket+'/'+getFileName(entry)+'.sdf'
-        output_file = open(path_to_library+fragment.subpocket+'/'+entry.kinase+'.sdf', 'a')
-        # print(Chem.MolToMolBlock(fragment.mol), file=open(output_file, 'a'))
-        w = Chem.SDWriter(output_file)
-        w.write(fragment.mol)
+        # store ligand for this fragment
+        fragment.structure = entry.pdb
+        # discard large fragments
+        if fragment.mol.GetNumHeavyAtoms() > 29:
+            discardedFragments.append(fragment)
+        else:
+            # output_file = path_to_library+fragment.subpocket+'/'+getFileName(entry)+'.sdf'
+            output_file = open(path_to_library+fragment.subpocket+'/'+entry.kinase+'.sdf', 'a')
+            # print(Chem.MolToMolBlock(fragment.mol), file=open(output_file, 'a'))
+            w = Chem.SDWriter(output_file)
+            w.write(fragment.mol)
 
     # ================================ DRAW FRAGMENTS ==========================================
 
@@ -248,6 +257,21 @@ for index, entry in KLIFSData.iterrows():
                                legends=[fragment.subpocket for fragment in fragments],
                                subImgSize=(400, 400))
     img.save('../fragmented_molecules/'+getFileName(entry)+'.png')
+
+
+# draw discarded fragments
+img = Draw.MolsToGridImage([Chem.RemoveHs(fragment.mol) for fragment in discardedFragments],
+                           legends=[fragment.structure+' '+fragment.subpocket+str(fragment.mol.GetNumHeavyAtoms()) for fragment in discardedFragments],
+                           subImgSize=(400, 400), molsPerRow=4)
+img.save('../discarded_fragments.png')
+
+# draw discarded ligands
+for ligand in discardedLigands:
+    tmp = AllChem.Compute2DCoords(ligand[0])
+img = Draw.MolsToGridImage([Chem.RemoveHs(ligand[0]) for ligand in discardedLigands],
+                           legends=[ligand[1] for ligand in discardedLigands],
+                           subImgSize=(400, 400))
+img.save('../discarded_ligands.png')
 
 
 # TO DO:

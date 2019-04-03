@@ -5,14 +5,8 @@ from functions import removeDuplicates, calculate3DDistance
 from classes import Subpocket
 
 
-# given an atom number of the ligand, get the subpocket that atom lies in
-# subpockets: AP, FP, SE, GA, BP
-def getSubpocketFromAtom(ligandAtom, ligandConf, subpockets):
-
-    pos = ligandConf.GetAtomPosition(ligandAtom)
-    return getSubpocketFromPos(pos, subpockets)
-
-
+# given a 3D position, get the subpocket of the nearest subpocket center
+# subpockets: AP, FP, SE, GA, B1, B2
 def getSubpocketFromPos(pos, subpockets):
 
     smallestDistance = sys.maxsize  # set smallest distance as max integer value
@@ -95,6 +89,18 @@ def fixSmallFragments(BRICSFragments, BRICSBonds):
     return None
 
 
+# get geometric center of atoms (list of atom objects) in mol
+def getGeometricCenter(atoms, molConf):
+
+    center = np.zeros(3, float)
+    for atom in atoms:
+        pos = molConf.GetAtomPosition(atom.GetIdx())
+        center += pos
+    return center / len(atoms)
+
+
+# ================================== OBSOLETE ==========================================
+
 # function that checks validity of neighboring fragments
 def checkSubpockets(sp1, sp2):
 
@@ -118,17 +124,13 @@ def checkSubpockets(sp1, sp2):
         return False
 
 
-# get geometric center of atoms (list of atom objects) in mol
-def getGeometricCenter(atoms, molConf):
+# given an atom number of the ligand, get the subpocket that atom lies in
+# subpockets: AP, FP, SE, GA, BP
+def getSubpocketFromAtom(ligandAtom, ligandConf, subpockets):
 
-    center = np.zeros(3, float)
-    for atom in atoms:
-        pos = molConf.GetAtomPosition(atom.GetIdx())
-        center += pos
-    return center / len(atoms)
+    pos = ligandConf.GetAtomPosition(ligandAtom)
+    return getSubpocketFromPos(pos, subpockets)
 
-
-# ================================== OLD APPROACH ==========================================
 
 # given an atom (atom number) of a ligand, find the three nearest protein residues
 # pocketMol2: mol2 string of the binding pocket atoms including residue information

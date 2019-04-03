@@ -51,7 +51,7 @@ def getFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
         # get subpocket corresponding to fragment (Is there a better way?)
         subpocket = [BRICSFragment.subpocket for BRICSFragment in BRICSFragments if atomNumbers[0] in BRICSFragment.atomNumbers][0]
         # create Fragment object
-        fragment = Fragment(mol=fragmentMols[i], smiles=fragmentSmiles[i], atomNumbers=atomNumbers, subpocket=subpocket, ligand=ligand)
+        fragment = Fragment(mol=fragmentMols[i], smiles=fragmentSmiles[i], atomNumbers=atomNumbers, subpocket=subpocket)
 
         # set atom properties for the created fragment
         for a, atom in enumerate(fragment.mol.GetAtoms()):
