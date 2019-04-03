@@ -3,27 +3,24 @@ from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 from biopandas.mol2 import PandasMol2
 
-from pocketIdentification import getSubpocketFromPos, getGeometricCenter, checkSubpockets, fixSmallFragments, findNeighboringFragments
-from functions import mostCommon, getCaAtom
+from pocketIdentification import getSubpocketFromPos, getGeometricCenter, fixSmallFragments, calculateSubpocketCenter
 from fragmentation import findBRICSFragments, getFragmentsFromAtomTuples
-from classes import Fragment, Subpocket
+from classes import Subpocket
 from preprocessing import preprocessKLIFSData, getFolderName, getFileName, fixResidueIDs
 from visualization import visualizeSubpocketCenters
 
 import os
-import sys
-from functions import calculate3DDistance
 
 # ============================= INITIALIZATIONS ===============================================
 
 # define the 6 subpockets
-subpockets = [Subpocket('SE', residues=[50], color='0.0, 1.0, 1.0'),  # cyan  # leave out 2? (1m17 will improve)
-              Subpocket('AP', residues=[46, 50, 75, 15], color='0.6, 0.1, 0.6'),  # deeppurple
-              Subpocket('FP', residues=[74, 51, 7, 81], color='0.2, 0.6, 0.2'),  # forest # 4/7/8 (7 and 8 are often missing)
+subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # leave out 2? (1m17 will improve)
+              Subpocket('AP', residues=[46, 51, 75, 15], color='0.6, 0.1, 0.6'),  # deeppurple
+              Subpocket('FP', residues=[72, 51, 4, 81], color='0.2, 0.6, 0.2'),  # forest # substituted 4 for 7 and 72 for 74
               Subpocket('GA', residues=[45, 17, 80], color='1.0, 0.5, 0.0'),  # orange
               # Subpocket('BP', residues=[82, 24, 43], color='0.5, 0.0, 1.0')  # purpleblue
               Subpocket('B1', residues=[81, 28, 43, 38], color='0.0, 0.5, 1.0'),  # marine
-              Subpocket('B2', residues=[24, 83, 8, 42], color='0.5, 0.0, 1.0')  # purpleblue
+              Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0')  # purpleblue # [24, 83, 8, 42] removed 8 because often missing
               ]
 
 # ============================= DATA PREPARATION ============================================
@@ -49,6 +46,8 @@ KLIFSData = KLIFSData[(KLIFSData.family == 'RAF') | (KLIFSData.family == 'EGFR')
 # clear output files
 for subpocket in subpockets:
     folderName = path_to_library+subpocket.name+'/'
+    if not os.path.exists(folderName):
+        os.mkdir(folderName)
     kinases = set(KLIFSData.kinase)
     for kinase in kinases:
         fileName = folderName + kinase + '.sdf'
@@ -103,24 +102,14 @@ for index, entry in KLIFSData.iterrows():
     # ============================ SUBPOCKET CENTERS =========================================
 
     skipStructure = False
-    # fixSubpockets = False
 
     # calculate subpocket centers
     for subpocket in subpockets:
-        CaAtoms = [getCaAtom(res, pocketMol2, pocket) for res in subpocket.residues]
-        # if residue is missing, skip structure
-        if None in CaAtoms:
-            # print('ERROR in '+folder+':')
-            # print('Important residue is missing in structure. Structure is skipped. \n')
-            # skipStructure = True
-            # break
 
-            # -> The subpocket center of the previous structure will be used.
-            continue
-
-        # overwrite subpocket center for current structure
-        center = getGeometricCenter(CaAtoms, pocketConf)
-        subpocket.center = center
+        center = calculateSubpocketCenter(subpocket, pocket, pocketMol2, folder)
+        # skip structure if no center could be calculated because of missing residues
+        if not center:
+            skipStructure = True
 
     # skip this molecule if important residues are missing
     if skipStructure:
@@ -136,6 +125,8 @@ for index, entry in KLIFSData.iterrows():
     #     atom.SetProp('subpocket', subpocket)
 
     # ================================ BRICS FRAGMENTS ==========================================
+
+    skipStructure = False
 
     # find BRICS fragments and bonds (as atom numbers)
     BRICSFragments, BRICSBonds = findBRICSFragments(ligand)
@@ -178,7 +169,7 @@ for index, entry in KLIFSData.iterrows():
         BRICSFragment.subpocket = subpocket
 
     # discard any fragments where the AP fragment is larger than 20 heavy atoms (e.g. staurosporine)
-        if subpocket == 'AP' and BRICSFragment.mol.GetNumHeavyAtoms() > 22:
+        if BRICSFragment.mol.GetNumHeavyAtoms() > 22:  # and subpocket == 'AP'
             discardedLigands.append([ligand, entry.pdb])
             skipStructure = True
             break
@@ -187,7 +178,6 @@ for index, entry in KLIFSData.iterrows():
         continue
 
     # Deal with small fragments
-
     fixSmallFragments(BRICSFragments, BRICSBonds)
 
     # ================================== FRAGMENTATION ==========================================

@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 
-from functions import removeDuplicates, calculate3DDistance
+from functions import removeDuplicates, calculate3DDistance, getCaAtom
 from classes import Subpocket
 
 
@@ -97,6 +97,47 @@ def getGeometricCenter(atoms, molConf):
         pos = molConf.GetAtomPosition(atom.GetIdx())
         center += pos
     return center / len(atoms)
+
+
+# calculate the geometric center of a given subpocket
+def calculateSubpocketCenter(subpocket, pocket, pocketMol2, folder):
+
+    pocketConf = pocket.GetConformer()
+    CaAtoms = []
+    for res in subpocket.residues:
+        CaAtom = getCaAtom(res, pocketMol2, pocket)
+        # if this residue or its C alpha atom is missing
+        if not CaAtom:
+            # print(res)
+            # try neighboring residues
+            CaAtomsNei = []
+            for resNei in [res - 1, res + 1]:
+                CaAtomsNei.append(getCaAtom(resNei, pocketMol2, pocket))
+            if None in CaAtomsNei:
+                # if only one neighboring residue is missing, take the other one
+                CaAtom = [atom for atom in CaAtomsNei if atom]
+                if CaAtom:
+                    CaAtom = CaAtom[0]
+                    CaAtomPos = pocketConf.GetAtomPosition(CaAtom.GetIdx())
+                # if both neighboring residues are missing
+                else:
+                    print('ERROR in ' + folder + ':')
+                    print('Important residue ' + str(res) + ' is missing in structure. Structure is skipped. \n')
+                    return None
+            else:
+                # if both neighboring residues are present, take the center
+                CaAtomPos = getGeometricCenter(CaAtomsNei, pocketConf)
+        else:
+            CaAtomPos = pocketConf.GetAtomPosition(CaAtom.GetIdx())
+
+        CaAtoms.append(CaAtomPos)
+
+    # overwrite subpocket center for current structure
+    center = np.zeros(3, float)
+    for pos in CaAtoms:
+        center += pos
+
+    return center / len(CaAtoms)
 
 
 # ================================== OBSOLETE ==========================================
