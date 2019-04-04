@@ -3,13 +3,14 @@ from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 from biopandas.mol2 import PandasMol2
 
-from pocketIdentification import getSubpocketFromPos, getGeometricCenter, fixSmallFragments, calculateSubpocketCenter
-from fragmentation import findBRICSFragments, getFragmentsFromAtomTuples
+from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center
+from fragmentation import find_brics_fragments, fragmentation
 from classes import Subpocket
-from preprocessing import preprocessKLIFSData, getFolderName, getFileName, fixResidueIDs
-from visualization import visualizeSubpocketCenters
+from preprocessing import preprocess_klifs_data, get_folder_name, get_file_name, fix_residue_numbers
+from visualization import visual_subpockets
 
-import os
+# import os
+from pathlib import Path
 
 # ============================= INITIALIZATIONS ===============================================
 
@@ -18,41 +19,38 @@ subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # 
               Subpocket('AP', residues=[46, 51, 75, 15], color='0.6, 0.1, 0.6'),  # deeppurple
               Subpocket('FP', residues=[72, 51, 4, 81], color='0.2, 0.6, 0.2'),  # forest # substituted 4 for 7 and 72 for 74
               Subpocket('GA', residues=[45, 17, 80], color='1.0, 0.5, 0.0'),  # orange
-              # Subpocket('BP', residues=[82, 24, 43], color='0.5, 0.0, 1.0')  # purpleblue
+              # Subpocket('BP', residues=[82, 24, 43], color='0.5, 0.0, 1.0')  # purple blue
               Subpocket('B1', residues=[81, 28, 43, 38], color='0.0, 0.5, 1.0'),  # marine
-              Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0')  # purpleblue # [24, 83, 8, 42] removed 8 because often missing
+              Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0')  # purple blue # [24, 83, 8, 42] removed 8 because often missing
               ]
 
 # ============================= DATA PREPARATION ============================================
 
-path_to_library = '../FragmentLibrary/'
+path_to_library = Path('../FragmentLibrary')
 
-path_to_data = '../../data/KLIFS_download/'
-path_to_KLIFS_download = path_to_data + 'overview.csv'
-path_to_KLIFS_export = path_to_data + 'KLIFS_export.csv'
+path_to_data = Path('../../data/KLIFS_download')
+path_to_KLIFS_download = path_to_data / 'overview.csv'
+path_to_KLIFS_export = path_to_data / 'KLIFS_export.csv'
 
-KLIFSData = preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export)
+KLIFSData = preprocess_klifs_data(path_to_KLIFS_download, path_to_KLIFS_export)
 KLIFSData = KLIFSData[KLIFSData.species == 'Human']
 KLIFSData = KLIFSData[KLIFSData.dfg == 'in']
 # We are not interested in adenosine phosphates
-KLIFSData = KLIFSData[KLIFSData.pdb_id != 'AMP']
-KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ADP']
-KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ATP']
-KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ACP']
-KLIFSData = KLIFSData[KLIFSData.pdb_id != 'ANP']
-KLIFSData = KLIFSData[(KLIFSData.family == 'RAF') | (KLIFSData.family == 'EGFR') | (KLIFSData.family == 'CDK')]
+KLIFSData = KLIFSData[~KLIFSData.pdb_id.isin(['AMP', 'ADP', 'ATP', 'ACP', 'ANP'])]
+
+KLIFSData = KLIFSData[KLIFSData.family.isin(['RAF', 'EGFR', 'CDK'])]
 
 
-# clear output files
+# clear output files and create output folders
 for subpocket in subpockets:
-    folderName = path_to_library+subpocket.name+'/'
-    if not os.path.exists(folderName):
-        os.mkdir(folderName)
+    folderName = path_to_library / subpocket.name
+    if not folderName.exists():
+        Path.mkdir(folderName)
     kinases = set(KLIFSData.kinase)
     for kinase in kinases:
-        fileName = folderName + kinase + '.sdf'
-        if os.path.isfile(fileName):
-            os.remove(fileName)
+        fileName = folderName / (kinase+'.sdf')
+        if fileName.exists():
+            Path.unlink(fileName)
 
 discardedFragments = []
 discardedLigands = []
@@ -62,12 +60,12 @@ for index, entry in KLIFSData.iterrows():
 
     # ================================== READ DATA ============================================
 
-    folder = getFolderName(entry)
+    folder = get_folder_name(entry)
     # print(folder, entry.dfg, entry.ac_helix)
 
     # load ligand and binding pocket to rdkit molecules
-    ligand = Chem.MolFromMol2File(path_to_data + folder + '/ligand.mol2', removeHs=False)
-    pocket = Chem.MolFromMol2File(path_to_data + folder + '/pocket.mol2', removeHs=False)
+    ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
+    pocket = Chem.MolFromMol2File(str(path_to_data / folder / 'pocket.mol2'), removeHs=False)
 
     try:
         ligandConf = ligand.GetConformer()
@@ -92,12 +90,12 @@ for index, entry in KLIFSData.iterrows():
 
     # read atom information from binding pocket mol2 file (necessary for residue information)
     # pocketMol2 = loadAtomInfoFromMol2('../../data/KLIFS_download/HUMAN/EGFR/3w2s_altA_chainA/pocket.mol2')
-    pocketMol2 = PandasMol2().read_mol2(path_to_data + folder + '/pocket.mol2',
+    pocketMol2 = PandasMol2().read_mol2(str(path_to_data / folder / 'pocket.mol2'),
                                         columns={0: ('atom_id', int), 1: ('atom_name', str), 2: ('x', float), 3: ('y', float), 4: ('z', float),
                                                  5: ('atom_type', str), 6: ('res_id', int), 7: ('res_name', str), 8: ('charge', float),
                                                  9: ('secondary_structure', str)}).df
     # fix residue IDs
-    pocketMol2 = fixResidueIDs(pocketMol2, entry.missing_residues)
+    pocketMol2 = fix_residue_numbers(pocketMol2, entry.missing_residues)
 
     # ============================ SUBPOCKET CENTERS =========================================
 
@@ -106,17 +104,18 @@ for index, entry in KLIFSData.iterrows():
     # calculate subpocket centers
     for subpocket in subpockets:
 
-        center = calculateSubpocketCenter(subpocket, pocket, pocketMol2, folder)
+        subpocket.center = calc_subpocket_center(subpocket, pocket, pocketMol2, folder)
         # skip structure if no center could be calculated because of missing residues
-        if not center:
+        if subpocket.center is None:
             skipStructure = True
+            break
 
     # skip this molecule if important residues are missing
     if skipStructure:
         continue
 
     # visualize subpocket centers using PyMOL
-    visualizeSubpocketCenters(subpockets, folder)
+    visual_subpockets(subpockets, folder)
 
     # # get subpocket for each ligand atom
     # for a, atom in enumerate(ligand.GetAtoms()):
@@ -129,12 +128,12 @@ for index, entry in KLIFSData.iterrows():
     skipStructure = False
 
     # find BRICS fragments and bonds (as atom numbers)
-    BRICSFragments, BRICSBonds = findBRICSFragments(ligand)
+    BRICSFragments, BRICSBonds = find_brics_fragments(ligand)
 
     # calculate fragment centers and get nearest subpockets
     for BRICSFragment in BRICSFragments:
 
-        center = getGeometricCenter(BRICSFragment.mol.GetAtoms(), BRICSFragment.mol.GetConformer())
+        center = calc_geo_center(BRICSFragment.mol.GetAtoms(), BRICSFragment.mol.GetConformer())
         BRICSFragment.center = center
 
     # ========================== SUBPOCKET IDENTIFICATION ========================================
@@ -165,7 +164,7 @@ for index, entry in KLIFSData.iterrows():
     #
     #     # -------------------------------------------
 
-        subpocket = getSubpocketFromPos(center, subpockets)
+        subpocket = get_subpocket_from_pos(center, subpockets)
         BRICSFragment.subpocket = subpocket
 
     # discard any fragments where the AP fragment is larger than 20 heavy atoms (e.g. staurosporine)
@@ -178,7 +177,7 @@ for index, entry in KLIFSData.iterrows():
         continue
 
     # Deal with small fragments
-    fixSmallFragments(BRICSFragments, BRICSBonds)
+    fix_small_fragments(BRICSFragments, BRICSBonds)
 
     # ================================== FRAGMENTATION ==========================================
 
@@ -214,7 +213,7 @@ for index, entry in KLIFSData.iterrows():
     #     continue
 
     # actual fragmentation
-    fragments = getFragmentsFromAtomTuples(bonds, BRICSFragments, ligand)
+    fragments = fragmentation(ligand, bonds, BRICSFragments)
 
     # ================================ FRAGMENT LIBRARY ========================================
 
@@ -228,7 +227,7 @@ for index, entry in KLIFSData.iterrows():
             discardedFragments.append(fragment)
         else:
             # output_file = path_to_library+fragment.subpocket+'/'+getFileName(entry)+'.sdf'
-            output_file = open(path_to_library+fragment.subpocket+'/'+entry.kinase+'.sdf', 'a')
+            output_file = (path_to_library / fragment.subpocket / (entry.kinase+'.sdf')).open('a')
             # print(Chem.MolToMolBlock(fragment.mol), file=open(output_file, 'a'))
             w = Chem.SDWriter(output_file)
             w.write(fragment.mol)
@@ -246,7 +245,7 @@ for index, entry in KLIFSData.iterrows():
     img = Draw.MolsToGridImage([Chem.RemoveHs(fragment.mol) for fragment in fragments],
                                legends=[fragment.subpocket for fragment in fragments],
                                subImgSize=(400, 400))
-    img.save('../fragmented_molecules/'+getFileName(entry)+'.png')
+    img.save('../fragmented_molecules/' + get_file_name(entry) + '.png')
 
 
 # draw discarded fragments

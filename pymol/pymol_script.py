@@ -6,11 +6,11 @@ from pymol import cmd
 
 import sys
 sys.path.append("/home/paula/Masterarbeit/KinaseFocusedFragmentLibrary/code/")
-from preprocessing import addMissingResidues, getFolderName, fixResidueIDs
-from pocketIdentification import getRegion
+from preprocessing import add_missing_residues, get_folder_name, fix_residue_numbers
+from pocketIdentification import get_region
 
 path = '/home/paula/Masterarbeit/data/KLIFS_download/'
-info = addMissingResidues(pd.read_csv(path + 'overview.csv'))
+info = add_missing_residues(pd.read_csv(path + 'overview.csv'))
 
 # Launch PyMol
 pymol.finish_launching()
@@ -19,7 +19,7 @@ pymol.finish_launching()
 # function to get dict with 
 # keys = KLIFS binding pocket residue numbers 
 # values = residue numbers w.r.t. protein
-def getResDict(pmol):
+def get_res_dict(pmol):
     resIDs = []
     klifsIDs = []
     for i, name in enumerate(pmol.res_name):
@@ -32,7 +32,7 @@ def getResDict(pmol):
 
 
 # color binding pocket using PyMOL
-def visualizePocket(species, kinase, pdb, alt, chain):
+def visual_pocket(species, kinase, pdb, alt, chain):
 
     cmd.reinitialize()
 
@@ -40,7 +40,7 @@ def visualizePocket(species, kinase, pdb, alt, chain):
     global info
     info = info[(info.species == species) & (info.kinase == kinase) & (info.pdb == pdb) & (info.alt == alt) & (info.chain == chain)].iloc[0]
     
-    folder = getFolderName(info)
+    folder = get_folder_name(info)
 
     # mol2 file of this pocket structure
     pocketMol2 = PandasMol2().read_mol2(path+folder+'/pocket.mol2',
@@ -49,9 +49,9 @@ def visualizePocket(species, kinase, pdb, alt, chain):
                                                  9: ('secondary structure', str)}).df
 
     # fix residue IDs
-    pocketMol2 = fixResidueIDs(pocketMol2, info.missing_residues)
+    pocketMol2 = fix_residue_numbers(pocketMol2, info.missing_residues)
     # corresponding residue numbers within the protein
-    residueDict = getResDict(pocketMol2)
+    residueDict = get_res_dict(pocketMol2)
 
     # draw protein
     cmd.load(path+folder+'/pocket.mol2')
@@ -63,15 +63,15 @@ def visualizePocket(species, kinase, pdb, alt, chain):
 
     # color binding site regions
     for res in residueDict:
-        if getRegion(res) == 'hinge':
+        if get_region(res) == 'hinge':
             cmd.color('deeppurple', 'resi '+residueDict[res])
-        elif getRegion(res) == 'DFG':
+        elif get_region(res) == 'DFG':
             cmd.color('tv_blue', 'resi '+residueDict[res])
             if res != 80:
                 cmd.show('lines', 'resi ' + residueDict[res])
-        elif getRegion(res) == 'g.l':
+        elif get_region(res) == 'g.l':
             cmd.color('forest', 'resi '+residueDict[res])
-        elif getRegion(res) == 'alphaC':
+        elif get_region(res) == 'alphaC':
             cmd.color('red', 'resi '+residueDict[res])
         elif res == 17:
             cmd.color('yelloworange', 'resi '+residueDict[res])
@@ -79,7 +79,7 @@ def visualizePocket(species, kinase, pdb, alt, chain):
         elif res == 45:
             cmd.color('sand', 'resi '+residueDict[res])
             cmd.show('lines', 'resi '+residueDict[res])
-        elif getRegion(res) == 'linker':
+        elif get_region(res) == 'linker':
             cmd.color('cyan', 'resi '+residueDict[res])
 
     # draw subpockets
@@ -94,8 +94,8 @@ def visualizePocket(species, kinase, pdb, alt, chain):
     return None
 
 
-# visualizePocket('Human', 'CDK2', '1h01', 'A', 'A')
-# visualizePocket('Human', 'EGFR', '1m17', 'A', 'A')
-# visualizePocket('Human', 'EGFR', '5em7', 'B', 'A')
-# visualizePocket('Human', 'EGFR', '1xkk', ' ', 'A')
+# visual_pocket('Human', 'CDK2', '1h01', 'A', 'A')
+# visual_pocket('Human', 'EGFR', '1m17', 'A', 'A')
+# visual_pocket('Human', 'EGFR', '5em7', 'B', 'A')
+# visual_pocket('Human', 'EGFR', '1xkk', ' ', 'A')
 

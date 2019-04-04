@@ -1,45 +1,45 @@
 import numpy as np
 
 
-def calculate3DDistance(pos1, pos2):
+def calc_3d_dist(pos1, pos2):
 
     return np.linalg.norm(pos1 - pos2)
 
 
 # get CA atom object of a residue number in a pocket
-def getCaAtom(res, pocketMol2, pocket):
+def get_ca_atom(res, pocket_mol2, pocket):
 
-    pocketMol2Res = pocketMol2[pocketMol2.res_id == res]
-    CaAtom = pocketMol2Res[pocketMol2Res.atom_name == 'CA'].index.values
-    if len(CaAtom) == 0:
+    pocket_mol2_res = pocket_mol2[pocket_mol2.res_id == res]
+    ca_atom = pocket_mol2_res[pocket_mol2_res.atom_name == 'CA'].index.values
+    if len(ca_atom) == 0:
         # if this residue/atom is missing in the structure, return None
         return None
-    CaAtomId = int(CaAtom[0])
-    CaAtom = pocket.GetAtomWithIdx(CaAtomId)
-    return CaAtom
+    ca_atom_id = int(ca_atom[0])
+    ca_atom = pocket.GetAtomWithIdx(ca_atom_id)
+    return ca_atom
 
 
 # remove duplicates from array/list lst
-def removeDuplicates(lst):
+def remove_duplicates(lst):
     return list(dict.fromkeys(lst))
 
 
 # find most common element in a list
-def mostCommon(lst):
+def most_common(lst):
     return max(set(lst), key=lst.count)
 
 
 # load atom information block from a mol2 file into a list of lists of strings
-def loadAtomInfoFromMol2(file):
+def load_mol2(file):
 
-    atomInfo = []
+    atom_info = []
     with open(file) as f:
         line = f.readline()
         while not line.startswith('@<TRIPOS>ATOM'):
             line = f.readline()
         line = f.readline()
         while not line.startswith('@<TRIPOS>'):
-            atomInfo.append(line.split())
+            atom_info.append(line.split())
             line = f.readline()
 
-    return atomInfo
+    return atom_info

@@ -5,53 +5,52 @@ from classes import Fragment
 
 
 # returns atom numbers of BRICS fragments + bond tuples
-def findBRICSFragments(mol):
+def find_brics_fragments(mol):
 
-    atomTuples = [bond[0] for bond in list(BRICS.FindBRICSBonds(mol))]
+    atom_tuples = [bond[0] for bond in BRICS.FindBRICSBonds(mol)]
     # if mol was not fragmented:
-    if len(atomTuples) == 0:
+    if len(atom_tuples) == 0:
         fragments = [Fragment(atomNumbers=range(mol.GetNumAtoms()), mol=mol)]
-        return fragments, atomTuples
+        return fragments, atom_tuples
     # else:
-    bonds = [mol.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atomTuples]
-    brokenMol = Chem.FragmentOnBonds(mol, bonds, addDummies=False)
+    bonds = [mol.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atom_tuples]
+    broken_mol = Chem.FragmentOnBonds(mol, bonds, addDummies=False)
 
-    fragmentAtoms = Chem.GetMolFrags(brokenMol)
-    fragmentMols = Chem.GetMolFrags(brokenMol, asMols=True)
+    fragment_atoms = Chem.GetMolFrags(broken_mol)
+    fragment_mols = Chem.GetMolFrags(broken_mol, asMols=True)
 
-    fragments = [Fragment(atomNumbers=fragmentAtoms[f], mol=fragmentMols[f])
-                 for f in range(len(fragmentAtoms))]
+    fragments = [Fragment(atomNumbers=n, mol=m) for (n, m) in zip(fragment_atoms, fragment_mols)]
 
-    return fragments, atomTuples
+    return fragments, atom_tuples
 
 
 # given a list of atom tuples, BRICS fragments, and the ligand, returns a list of Fragment objects
 # ligand is fragmented at the bonds corresponding to the atom tuples
-def getFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
+def fragmentation(ligand, atom_tuples, brics_fragments):
 
     # get rdkit bonds (NOT BRICS bonds but custom bonds already)
-    bonds = [ligand.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atomTuples]
+    bonds = [ligand.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atom_tuples]
     if len(bonds) > 0:
         # fragment ligand at bonds and keep dummy atoms
-        fragmentedLigand = Chem.FragmentOnBonds(ligand, bonds)
+        fragmented_ligand = Chem.FragmentOnBonds(ligand, bonds)
     else:
-        fragmentedLigand = ligand
+        fragmented_ligand = ligand
     # get smiles of fragments
-    fragmentSmiles = Chem.MolToSmiles(fragmentedLigand).split('.')
+    fragment_smiles = Chem.MolToSmiles(fragmented_ligand).split('.')
     # get rdkit molecules of fragments
-    fragmentMols = Chem.GetMolFrags(fragmentedLigand, asMols=True)  # [Chem.MolFromSmiles(x) for x in fragmentSmiles]
+    fragment_mols = Chem.GetMolFrags(fragmented_ligand, asMols=True)  # [Chem.MolFromSmiles(x) for x in fragment_smiles]
     # get atom numbers (w.r.t. ligand) of fragments
-    fragmentAtoms = Chem.GetMolFrags(fragmentedLigand)
+    fragment_atoms = Chem.GetMolFrags(fragmented_ligand)
 
     fragments = []
 
     # iterate over new fragments
-    for i, atomNumbers in enumerate(fragmentAtoms):
+    for i, atomNumbers in enumerate(fragment_atoms):
 
         # get subpocket corresponding to fragment (Is there a better way?)
-        subpocket = [BRICSFragment.subpocket for BRICSFragment in BRICSFragments if atomNumbers[0] in BRICSFragment.atomNumbers][0]
+        subpocket = [brics_fragment.subpocket for brics_fragment in brics_fragments if atomNumbers[0] in brics_fragment.atomNumbers][0]
         # create Fragment object
-        fragment = Fragment(mol=fragmentMols[i], smiles=fragmentSmiles[i], atomNumbers=atomNumbers, subpocket=subpocket)
+        fragment = Fragment(mol=fragment_mols[i], smiles=fragment_smiles[i], atomNumbers=atomNumbers, subpocket=subpocket)
 
         # set atom properties for the created fragment
         for a, atom in enumerate(fragment.mol.GetAtoms()):
@@ -73,16 +72,16 @@ def getFragmentsFromAtomTuples(atomTuples, BRICSFragments, ligand):
                 for neighbor in atom.GetNeighbors():
                     neighbor.SetProp('priority', '2')
 
-                neighborAtom = int(neighbor.GetProp('atomNumber'))
+                neighbor_atom = int(neighbor.GetProp('atomNumber'))
                 # get and set atom number w.r.t ligand of the dummy atom
-                bondAtoms = [atomTuple for atomTuple in atomTuples if neighborAtom in atomTuple][0]
-                dummyAtom = [atomNumber for atomNumber in bondAtoms if atomNumber != neighborAtom][0]
-                atom.SetProp('atomNumber', str(dummyAtom))
+                bond_atoms = [atomTuple for atomTuple in atom_tuples if neighbor_atom in atomTuple][0]
+                dummy_atom = [atomNumber for atomNumber in bond_atoms if atomNumber != neighbor_atom][0]
+                atom.SetProp('atomNumber', str(dummy_atom))
                 # get and set neighboring subpocket of the dummy atom
-                neighboringSubpocket = [BRICSFragment.subpocket for BRICSFragment in BRICSFragments
-                                        if dummyAtom in BRICSFragment.atomNumbers][0]
+                neighboring_subpocket = [BRICSFragment.subpocket for BRICSFragment in brics_fragments
+                                         if dummy_atom in BRICSFragment.atomNumbers][0]
                 for neighbor in atom.GetNeighbors():
-                    neighbor.SetProp('neighboringSubpocket', neighboringSubpocket)
+                    neighbor.SetProp('neighboringSubpocket', neighboring_subpocket)
 
         fragments.append(fragment)
 

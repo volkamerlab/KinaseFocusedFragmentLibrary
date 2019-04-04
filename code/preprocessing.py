@@ -1,18 +1,16 @@
 import pandas as pd
 import sys
 
-import matplotlib.pyplot as plt
-
 
 # code taken and adapted from
 # https://github.com/AndreaVolkamer/KinaseSimilarity/blob/master/Bachelorarbeit/structFP_phchem/structFP_phchem_preprocessing.ipynb
 
-def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
+def preprocess_klifs_data(path_to_klifs_download, path_to_klifs_export):
 
     # read overview file
-    df = pd.read_csv(path_to_KLIFS_download)
+    df = pd.read_csv(path_to_klifs_download)
     # read export file
-    df_csv = pd.read_csv(path_to_KLIFS_export)
+    df_csv = pd.read_csv(path_to_klifs_export)
     # rename columns
     df_csv.columns = ['kinase', 'family', 'groups', 'pdb', 'chain', 'alt', 'species', 'ligand', 'pdb_id',
                       'allosteric_name', 'allosteric_PDB', 'dfg', 'ac_helix']
@@ -34,7 +32,7 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
                            'missing_residues', 'pocket']]
 
     # add column with positions of missing residues (replacing column with number of missing residues)
-    df_screen = addMissingResidues(df_screen)
+    df_screen = add_missing_residues(df_screen)
 
     # For each kinase with x different pdb codes: for each pdb code keep the structure with the best quality score
     df_screened = df_screen.groupby(["kinase", "pdb"]).max()["qualityscore"].reset_index()
@@ -49,17 +47,17 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
 
     # ------------ CHECKING --------------
 
-    # number of distinct pdb codes existing for each kinase (just for checking with database)
-    df_group = df_screened.groupby(["kinase"]).pdb.nunique().reset_index()
-    # print(df_group)
-    # check if there are still multiple pdb codes per kinase
-    if df_screened.shape[0] != df_group.pdb.sum():
-        print('ERROR: Something went wrong. Multiple PDB codes per kinase!')
-        sys.exit()
-    # Check if there is a unique pdb code for every kinase structure in the screened data set
-    df_group = df_screened.groupby(["kinase"]).pdb.nunique().reset_index()
-    if df_screened.shape[0] != df_group.pdb.sum():
-        print('PDB codes not unique amongst kinases!')
+    # # number of distinct pdb codes existing for each kinase (just for checking with database)
+    # df_group = df_screened.groupby(["kinase"]).pdb.nunique().reset_index()
+    # # print(df_group)
+    # # check if there are still multiple pdb codes per kinase
+    # if df_screened.shape[0] != df_group.pdb.sum():
+    #     print('ERROR: Something went wrong. Multiple PDB codes per kinase!')
+    #     sys.exit()
+    # # Check if there is a unique pdb code for every kinase structure in the screened data set
+    # df_group = df_screened.groupby(["kinase"]).pdb.nunique().reset_index()
+    # if df_screened.shape[0] != df_group.pdb.sum():
+    #     print('PDB codes not unique amongst kinases!')
 
     # # plot gap rate
     # missingResidues = []
@@ -78,41 +76,41 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
 
 
 # replace number of missing residues with list of missing residues
-def addMissingResidues(df):
-    missingResidues = []
+def add_missing_residues(df):
+    missing_residues = []
     for ix, row in df.iterrows():
-        missingResidues.append(findMissingResidues(row.pocket))
-    df['missing_residues'] = missingResidues
+        missing_residues.append(find_missing_residues(row.pocket))
+    df['missing_residues'] = missing_residues
     return df
 
 
 # find positions of missing residues
 # numMissing was used to save time, but this value is not always correct. :(
-def findMissingResidues(sequence):  # , numMissing):
+def find_missing_residues(sequence):  # , numMissing):
     # iterate over sequence string
-    missingResidues = []
+    missing_residues = []
     for i, aa in enumerate(sequence):
         # all missing residues found
         # if numMissing == 0:
         #     return missingResidues
         # missing residue
         if aa == '_':
-            missingResidues.append(i+1)
+            missing_residues.append(i+1)
             # numMissing -= 1
-    return missingResidues
+    return missing_residues
 
 
 # fix residue IDs according to KLIFS in mol2 instance of binding pocket
 # missing_residues: positions (KLIFS numbering) of missing residues
-def fixResidueIDs(pocketMol2, missing_residues):
+def fix_residue_numbers(pocket_mol2, missing_residues):
     for res in missing_residues:
-        pocketMol2['res_id'].mask(pocketMol2['res_id'] >= res, pocketMol2['res_id']+1, inplace=True)
-    return pocketMol2
+        pocket_mol2['res_id'].mask(pocket_mol2['res_id'] >= res, pocket_mol2['res_id'] + 1, inplace=True)
+    return pocket_mol2
 
 
 # input: 1D data frame with species, kinase, pdb, alt, and chain
 # output: path from KLIFS download to respective files
-def getFolderName(df):
+def get_folder_name(df):
 
     if df.alt == ' ':
         folder = df.species.upper()+'/'+df.kinase+'/'+df.pdb+'_chain'+df.chain
@@ -122,7 +120,7 @@ def getFolderName(df):
     return folder
 
 
-def getFileName(df):
+def get_file_name(df):
 
     if df.alt == ' ':
         file = df.pdb+'_chain'+df.chain

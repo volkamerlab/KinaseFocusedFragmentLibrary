@@ -3,7 +3,7 @@ radius = 2
 
 
 # create cgo file with subpocket centers as spheres to load in PyMOL
-def visualizeSubpocketCenters(subpockets, folder):
+def visual_subpockets(subpockets, folder):
 
     f = open(path+folder+'/subpockets.cgo', 'w')
     # write header

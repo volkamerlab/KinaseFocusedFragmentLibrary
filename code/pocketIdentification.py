@@ -1,96 +1,97 @@
 import numpy as np
 import sys
 
-from functions import removeDuplicates, calculate3DDistance, getCaAtom
+from functions import remove_duplicates, calc_3d_dist, get_ca_atom
 from classes import Subpocket
 
 
 # given a 3D position, get the subpocket of the nearest subpocket center
 # subpockets: AP, FP, SE, GA, B1, B2
-def getSubpocketFromPos(pos, subpockets):
+def get_subpocket_from_pos(pos, subpockets):
 
-    smallestDistance = sys.maxsize  # set smallest distance as max integer value
-    nearestSubpocket = Subpocket('noSubpocket')
+    smallest_distance = sys.maxsize  # set smallest distance as max integer value
+    nearest_subpocket = Subpocket('noSubpocket')
     for subpocket in subpockets:
-        distance = calculate3DDistance(pos, subpocket.center)
-        if distance < smallestDistance:
-            nearestSubpocket = subpocket
-            smallestDistance = distance
+        distance = calc_3d_dist(pos, subpocket.center)
+        if distance < smallest_distance:
+            nearest_subpocket = subpocket
+            smallest_distance = distance
 
-    return nearestSubpocket.name
+    return nearest_subpocket.name
 
 
-def findNeighboringFragments(fragment, fragments, bonds):
-    neighboringFragments = []
+def find_neighboring_fragments(fragment, fragments, bonds):
+    neighboring_fragments = []
     for bond in bonds:
         if bond[0] in fragment.atomNumbers:
-            neighboringFragment = [fragment for fragment in fragments if bond[1] in fragment.atomNumbers][0]
-            neighboringFragments.append(neighboringFragment)
+            neighboring_fragment = [fragment for fragment in fragments if bond[1] in fragment.atomNumbers][0]
+            neighboring_fragments.append(neighboring_fragment)
         elif bond[1] in fragment.atomNumbers:
-            neighboringFragment = [fragment for fragment in fragments if bond[0] in fragment.atomNumbers][0]
-            neighboringFragments.append(neighboringFragment)
-    return neighboringFragments
+            neighboring_fragment = [fragment for fragment in fragments if bond[0] in fragment.atomNumbers][0]
+            neighboring_fragments.append(neighboring_fragment)
+    return neighboring_fragments
 
 
 # fix subpockets of small BRICS fragments such that the final result does not have single small fragments
-def fixSmallFragments(BRICSFragments, BRICSBonds):
+def fix_small_fragments(fragments, bonds):
 
     # repeat until all small fragments are fixed
-    numFixedFragments = 1
-    while numFixedFragments > 0:
-        numFixedFragments = 0
+    num_fixed_fragments = 1
+    while num_fixed_fragments > 0:
+        num_fixed_fragments = 0
 
         # iterate over BRICS fragments, which now all have a subpocket assigned
-        for BRICSFragment in BRICSFragments:
+        for BRICSFragment in fragments:
 
             # small fragments
             if BRICSFragment.mol.GetNumHeavyAtoms() <= 3:
                 # find neighboring fragments and fragments in same subpocket
-                neighboringFragments = findNeighboringFragments(BRICSFragment, BRICSFragments, BRICSBonds)
-                fragmentsInSameSubpocket = [f for f in neighboringFragments if f.subpocket == BRICSFragment.subpocket]
-                fragmentSizes = [f.mol.GetNumHeavyAtoms() for f in neighboringFragments]
+                neighboring_fragments = find_neighboring_fragments(BRICSFragment, fragments, bonds)
+                fragments_in_same_subpocket = [f for f in neighboring_fragments if f.subpocket == BRICSFragment.subpocket]
+                fragment_sizes = [f.mol.GetNumHeavyAtoms() for f in neighboring_fragments]
 
                 # if small fragment is not yet connected to another fragment
-                if not fragmentsInSameSubpocket:
+                if not fragments_in_same_subpocket:
                     # connect fragment to largest neighboring fragment (this will also fix single terminal fragments)
-                    BRICSFragment.subpocket = neighboringFragments[int(np.argmax(fragmentSizes))].subpocket
-                    numFixedFragments += 1
+                    BRICSFragment.subpocket = neighboring_fragments[int(np.argmax(fragment_sizes))].subpocket
+                    num_fixed_fragments += 1
 
                 # if small fragment is already connected to other fragments
                 else:
-                    subpocketSize = BRICSFragment.mol.GetNumHeavyAtoms() + sum([f.mol.GetNumHeavyAtoms() for f in fragmentsInSameSubpocket])
+                    subpocket_size = BRICSFragment.mol.GetNumHeavyAtoms() + sum([f.mol.GetNumHeavyAtoms() for f in fragments_in_same_subpocket])
                     # if those fragments build up a large enough fragment, do nothing
-                    if subpocketSize > 3:
+                    if subpocket_size > 3:
                         continue
                     # else check further neighboring fragments
                     # (1 round is enough because that would make 3 fragments which should always have a combined size of > 3)
                     else:
                         # find more fragments in the same subpocket
-                        for fragment in fragmentsInSameSubpocket:
-                            fragmentsInSameSubpocket2 = [f for f in findNeighboringFragments(fragment, BRICSFragments, BRICSBonds)
-                                                         if f.subpocket == BRICSFragment.subpocket]
+                        for fragment_2 in fragments_in_same_subpocket:
+                            fragments_in_same_subpocket_2 = [f for f in find_neighboring_fragments(fragment_2, fragments, bonds)
+                                                             if f.subpocket == BRICSFragment.subpocket]
                             # if fragment has neighbors in this subpocket other than BRICSFragment
-                            if len(fragmentsInSameSubpocket2) > 1:
-                                subpocketSize += (sum([f.mol.GetNumHeavyAtoms() for f in fragmentsInSameSubpocket2])-fragment.mol.GetNumHeavyAtoms())
+                            if len(fragments_in_same_subpocket_2) > 1:
+                                subpocket_size += (sum([f.mol.GetNumHeavyAtoms() for f in fragments_in_same_subpocket_2])
+                                                   - fragment_2.mol.GetNumHeavyAtoms())
 
                         # if combined fragments in this subpocket are large enough, do nothing
-                        if subpocketSize > 3:
+                        if subpocket_size > 3:
                             continue
                         else:
                             # if this is a terminal fragment, do nothing
-                            if len(neighboringFragments) == 1:
+                            if len(neighboring_fragments) == 1:
                                 continue
                             else:
                                 # else connect fragment to largest neighboring fragment in other pocket
-                                fragmentsInOtherSubpocket = [f for f in neighboringFragments if f.subpocket != BRICSFragment.subpocket]
-                                fragmentSizes = [f.mol.GetNumHeavyAtoms() for f in fragmentsInOtherSubpocket]
-                                BRICSFragment.subpocket = fragmentsInOtherSubpocket[int(np.argmax(fragmentSizes))].subpocket
-                                numFixedFragments += 1
+                                fragments_in_other_subpocket = [f for f in neighboring_fragments if f.subpocket != BRICSFragment.subpocket]
+                                fragment_sizes = [f.mol.GetNumHeavyAtoms() for f in fragments_in_other_subpocket]
+                                BRICSFragment.subpocket = fragments_in_other_subpocket[int(np.argmax(fragment_sizes))].subpocket
+                                num_fixed_fragments += 1
     return None
 
 
 # get geometric center of atoms (list of atom objects) in mol
-def getGeometricCenter(atoms, molConf):
+def calc_geo_center(atoms, molConf):
 
     center = np.zeros(3, float)
     for atom in atoms:
@@ -100,25 +101,25 @@ def getGeometricCenter(atoms, molConf):
 
 
 # calculate the geometric center of a given subpocket
-def calculateSubpocketCenter(subpocket, pocket, pocketMol2, folder):
+def calc_subpocket_center(subpocket, pocket, pocket_mol2, folder):
 
-    pocketConf = pocket.GetConformer()
-    CaAtoms = []
+    pocket_conf = pocket.GetConformer()
+    ca_atoms = []
     for res in subpocket.residues:
-        CaAtom = getCaAtom(res, pocketMol2, pocket)
+        ca_atom = get_ca_atom(res, pocket_mol2, pocket)
         # if this residue or its C alpha atom is missing
-        if not CaAtom:
+        if not ca_atom:
             # print(res)
             # try neighboring residues
-            CaAtomsNei = []
+            ca_atoms_nei = []
             for resNei in [res - 1, res + 1]:
-                CaAtomsNei.append(getCaAtom(resNei, pocketMol2, pocket))
-            if None in CaAtomsNei:
+                ca_atoms_nei.append(get_ca_atom(resNei, pocket_mol2, pocket))
+            if None in ca_atoms_nei:
                 # if only one neighboring residue is missing, take the other one
-                CaAtom = [atom for atom in CaAtomsNei if atom]
-                if CaAtom:
-                    CaAtom = CaAtom[0]
-                    CaAtomPos = pocketConf.GetAtomPosition(CaAtom.GetIdx())
+                ca_atom = [atom for atom in ca_atoms_nei if atom]
+                if ca_atom:
+                    ca_atom = ca_atom[0]
+                    ca_atom_pos = pocket_conf.GetAtomPosition(ca_atom.GetIdx())
                 # if both neighboring residues are missing
                 else:
                     print('ERROR in ' + folder + ':')
@@ -126,79 +127,24 @@ def calculateSubpocketCenter(subpocket, pocket, pocketMol2, folder):
                     return None
             else:
                 # if both neighboring residues are present, take the center
-                CaAtomPos = getGeometricCenter(CaAtomsNei, pocketConf)
+                ca_atom_pos = calc_geo_center(ca_atoms_nei, pocket_conf)
         else:
-            CaAtomPos = pocketConf.GetAtomPosition(CaAtom.GetIdx())
+            ca_atom_pos = pocket_conf.GetAtomPosition(ca_atom.GetIdx())
 
-        CaAtoms.append(CaAtomPos)
+        ca_atoms.append(ca_atom_pos)
 
     # overwrite subpocket center for current structure
     center = np.zeros(3, float)
-    for pos in CaAtoms:
+    for pos in ca_atoms:
         center += pos
 
-    return center / len(CaAtoms)
-
-
-# ================================== OBSOLETE ==========================================
-
-# function that checks validity of neighboring fragments
-def checkSubpockets(sp1, sp2):
-
-    subpockets = [sp1, sp2]
-
-    if sp1 == sp2:
-        return True
-    elif "AP" in subpockets:
-        if "FP" in subpockets or "SE" in subpockets or "GA" in subpockets:
-            return True
-    elif "GA" in subpockets:
-        if "FP" in subpockets or "AP" in subpockets or "BP" in subpockets or "B1" in subpockets or "B2" in subpockets:
-            return True
-    elif "FP" in subpockets:
-        if "AP" in subpockets or "GA" in subpockets or "SE" in subpockets:
-            return True
-    elif "B2" in subpockets:
-        if "B1" in subpockets:
-            return True
-    else:
-        return False
-
-
-# given an atom number of the ligand, get the subpocket that atom lies in
-# subpockets: AP, FP, SE, GA, BP
-def getSubpocketFromAtom(ligandAtom, ligandConf, subpockets):
-
-    pos = ligandConf.GetAtomPosition(ligandAtom)
-    return getSubpocketFromPos(pos, subpockets)
-
-
-# given an atom (atom number) of a ligand, find the three nearest protein residues
-# pocketMol2: mol2 string of the binding pocket atoms including residue information
-#             (all other information in the mol2 string has to be removed)
-# ligandAtom: number of the atom of interest in the ligand
-def getNearestResidues(ligandAtom, ligandConf, pocketConf, residues):
-
-    lenPocket = pocketConf.GetNumAtoms()
-    distances = np.zeros(lenPocket)
-
-    pos1 = ligandConf.GetAtomPosition(ligandAtom)
-
-    # calculate distances from ligand atom to all pocket atoms
-    for pocketAtom in range(lenPocket):
-        pos2 = pocketConf.GetAtomPosition(pocketAtom)
-        distances[pocketAtom] = calculate3DDistance(pos1, pos2)
-
-    # sort pocket atoms by distance
-    nearestAtoms = distances.argsort()
-    # nearest atoms and corresponding pocket residue numbers
-    return removeDuplicates([residues[nearestAtoms[i]] for i in range(lenPocket)])[:3]
+    return center / len(ca_atoms)
 
 
 # given a residue number within the binding pocket (KLIFS numbering):
 # returns the corresponding region of the binding pocket (KLIFS definition) as a string
 # USED IN PYMOL SCRIPT!
-def getRegion(res):
+def get_region(res):
 
     if 1 <= res <= 3:
         return 'beta1'
@@ -241,6 +187,60 @@ def getRegion(res):
     else:
         sys.exit('ERROR: Given residue number not between 1 and 85!')
 
+# ================================== OBSOLETE ==========================================
+
+# function that checks validity of neighboring fragments
+def checkSubpockets(sp1, sp2):
+
+    subpockets = [sp1, sp2]
+
+    if sp1 == sp2:
+        return True
+    elif "AP" in subpockets:
+        if "FP" in subpockets or "SE" in subpockets or "GA" in subpockets:
+            return True
+    elif "GA" in subpockets:
+        if "FP" in subpockets or "AP" in subpockets or "BP" in subpockets or "B1" in subpockets or "B2" in subpockets:
+            return True
+    elif "FP" in subpockets:
+        if "AP" in subpockets or "GA" in subpockets or "SE" in subpockets:
+            return True
+    elif "B2" in subpockets:
+        if "B1" in subpockets:
+            return True
+    else:
+        return False
+
+
+# given an atom number of the ligand, get the subpocket that atom lies in
+# subpockets: AP, FP, SE, GA, BP
+def getSubpocketFromAtom(ligandAtom, ligandConf, subpockets):
+
+    pos = ligandConf.GetAtomPosition(ligandAtom)
+    return get_subpocket_from_pos(pos, subpockets)
+
+
+# given an atom (atom number) of a ligand, find the three nearest protein residues
+# pocketMol2: mol2 string of the binding pocket atoms including residue information
+#             (all other information in the mol2 string has to be removed)
+# ligandAtom: number of the atom of interest in the ligand
+def getNearestResidues(ligandAtom, ligandConf, pocketConf, residues):
+
+    lenPocket = pocketConf.GetNumAtoms()
+    distances = np.zeros(lenPocket)
+
+    pos1 = ligandConf.GetAtomPosition(ligandAtom)
+
+    # calculate distances from ligand atom to all pocket atoms
+    for pocketAtom in range(lenPocket):
+        pos2 = pocketConf.GetAtomPosition(pocketAtom)
+        distances[pocketAtom] = calc_3d_dist(pos1, pos2)
+
+    # sort pocket atoms by distance
+    nearestAtoms = distances.argsort()
+    # nearest atoms and corresponding pocket residue numbers
+    return remove_duplicates([residues[nearestAtoms[i]] for i in range(lenPocket)])[:3]
+
 
 # given a list of binding pocket regions, return subpocket
 # subpockets: SE, AP, FP, GA, BP,
@@ -269,6 +269,6 @@ def getSubpocketFromAtomDistances(ligandAtom, ligandConf, pocketConf, residues):
     nearestResidues = getNearestResidues(ligandAtom, ligandConf, pocketConf, residues)
 
     # get corresponding pocket regions
-    regions = [getRegion(res) for res in nearestResidues]
+    regions = [get_region(res) for res in nearestResidues]
 
     return getSubpocketFromRegions(regions)
