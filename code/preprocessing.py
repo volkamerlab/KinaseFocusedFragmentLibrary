@@ -1,6 +1,8 @@
 import pandas as pd
 import sys
 
+import matplotlib.pyplot as plt
+
 
 # code taken and adapted from
 # https://github.com/AndreaVolkamer/KinaseSimilarity/blob/master/Bachelorarbeit/structFP_phchem/structFP_phchem_preprocessing.ipynb
@@ -58,6 +60,17 @@ def preprocessKLIFSData(path_to_KLIFS_download, path_to_KLIFS_export):
     df_group = df_screened.groupby(["kinase"]).pdb.nunique().reset_index()
     if df_screened.shape[0] != df_group.pdb.sum():
         print('PDB codes not unique amongst kinases!')
+
+    # # plot gap rate
+    # missingResidues = []
+    # for entry in df_screened.missing_residues:
+    #     missingResidues.extend(entry)
+    # plt.hist(missingResidues, density=True, bins=85, rwidth=0.8)
+    # plt.title('Gap rate of 85 binding pocket residues')
+    # plt.xticks(range(5, 85, 5))
+    # plt.xlabel('KLIFS residue number')
+    # plt.show()
+    # sys.exit()
 
     # -------------------------------------
 
