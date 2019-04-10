@@ -9,7 +9,6 @@ from classes import Subpocket
 from preprocessing import preprocess_klifs_data, get_folder_name, get_file_name, fix_residue_numbers
 from visualization import visual_subpockets
 
-# import os
 from pathlib import Path
 
 # ============================= INITIALIZATIONS ===============================================
@@ -24,6 +23,15 @@ subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # 
               Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0')  # purple blue # [24, 83, 8, 42] removed 8 because often missing
               ]
 
+# count dicarded structures
+count_ligand_errors = 0
+count_pocket_errors = 0
+count_multi_ligands = 0
+count_missing_res = 0
+# count_phosphates = 0
+# count_dfg_out = 0
+count_structures = 0
+
 # ============================= DATA PREPARATION ============================================
 
 path_to_library = Path('../FragmentLibrary')
@@ -34,11 +42,16 @@ path_to_KLIFS_export = path_to_data / 'KLIFS_export.csv'
 
 KLIFSData = preprocess_klifs_data(path_to_KLIFS_download, path_to_KLIFS_export)
 KLIFSData = KLIFSData[KLIFSData.species == 'Human']
+before = len(KLIFSData)
 KLIFSData = KLIFSData[KLIFSData.dfg == 'in']
+after_dfg = len(KLIFSData)
+count_dfg_out = before - after_dfg
 # We are not interested in adenosine phosphates
 KLIFSData = KLIFSData[~KLIFSData.pdb_id.isin(['AMP', 'ADP', 'ATP', 'ACP', 'ANP'])]
+after_phosphates = len(KLIFSData)
+count_phosphates = after_dfg - after_phosphates
 
-KLIFSData = KLIFSData[KLIFSData.family.isin(['RAF', 'EGFR', 'CDK'])]
+# KLIFSData = KLIFSData[KLIFSData.family.isin(['RAF', 'EGFR', 'CDK'])]
 
 
 # clear output files and create output folders
@@ -72,18 +85,21 @@ for index, entry in KLIFSData.iterrows():
     except AttributeError:  # empty molecule
         print('ERROR in ' + folder + ':')
         print('Ligand '+entry.pdb_id+' ('+folder+') could not be loaded. \n')
+        count_ligand_errors += 1
         continue
     try:
         pocketConf = pocket.GetConformer()
     except AttributeError:
         print('ERROR in ' + folder + ':')
         print('Pocket '+folder+' could not be loaded. \n')
+        count_pocket_errors += 1
         continue
 
     # skip multi ligands
     if '.' in Chem.MolToSmiles(ligand):
         print('ERROR in ' + folder + ':')
         print('Ligand consists of multiple molecules. Structure is skipped. \n')
+        count_multi_ligands += 1
         continue
 
     lenLigand = ligand.GetNumAtoms()
@@ -107,6 +123,7 @@ for index, entry in KLIFSData.iterrows():
         subpocket.center = calc_subpocket_center(subpocket, pocket, pocketMol2, folder)
         # skip structure if no center could be calculated because of missing residues
         if subpocket.center is None:
+            count_missing_res += 1
             skipStructure = True
             break
 
@@ -167,8 +184,8 @@ for index, entry in KLIFSData.iterrows():
         subpocket = get_subpocket_from_pos(center, subpockets)
         BRICSFragment.subpocket = subpocket
 
-    # discard any fragments where the AP fragment is larger than 20 heavy atoms (e.g. staurosporine)
-        if BRICSFragment.mol.GetNumHeavyAtoms() > 22:  # and subpocket == 'AP'
+    # discard any ligands where a BRICS fragment is larger than 22 heavy atoms (e.g. staurosporine)
+        if BRICSFragment.mol.GetNumHeavyAtoms() > 22:
             discardedLigands.append([ligand, entry.pdb])
             skipStructure = True
             break
@@ -247,11 +264,12 @@ for index, entry in KLIFSData.iterrows():
                                subImgSize=(400, 400))
     img.save('../fragmented_molecules/' + get_file_name(entry) + '.png')
 
+    count_structures += 1
 
 # draw discarded fragments
 img = Draw.MolsToGridImage([Chem.RemoveHs(fragment.mol) for fragment in discardedFragments],
                            legends=[fragment.structure+' '+fragment.subpocket+str(fragment.mol.GetNumHeavyAtoms()) for fragment in discardedFragments],
-                           subImgSize=(400, 400), molsPerRow=4)
+                           subImgSize=(400, 400), molsPerRow=6)
 img.save('../discarded_fragments.png')
 
 # draw discarded ligands
@@ -259,9 +277,20 @@ for ligand in discardedLigands:
     tmp = AllChem.Compute2DCoords(ligand[0])
 img = Draw.MolsToGridImage([Chem.RemoveHs(ligand[0]) for ligand in discardedLigands],
                            legends=[ligand[1] for ligand in discardedLigands],
-                           subImgSize=(400, 400))
+                           subImgSize=(400, 400), molsPerRow=6)
 img.save('../discarded_ligands.png')
 
+
+# output statistics
+print('Number of fragmented structures: ', count_structures)
+print('\nNumber of discarded structures: ')
+print('DFG-out conformations: ', count_dfg_out)
+print('A*P ligands: ', count_phosphates)
+print('Ligand could not be loaded: ', count_ligand_errors)
+print('Pocket could not be loaded: ', count_pocket_errors)
+print('Multiple ligands in structure: ', count_multi_ligands)
+print('Missing residue position could not be inferred: ', count_missing_res)
+print('Ligands with too large fragments: ', len(discardedLigands))
 
 # TO DO:
 # - store bond information (BRICS rule?)
