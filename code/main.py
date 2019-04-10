@@ -23,7 +23,7 @@ subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # 
               Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0')  # purple blue # [24, 83, 8, 42] removed 8 because often missing
               ]
 
-# count dicarded structures
+# count discarded structures
 count_ligand_errors = 0
 count_pocket_errors = 0
 count_multi_ligands = 0
@@ -95,12 +95,26 @@ for index, entry in KLIFSData.iterrows():
         count_pocket_errors += 1
         continue
 
-    # skip multi ligands
+    # multiple ligands in one structure
     if '.' in Chem.MolToSmiles(ligand):
-        print('ERROR in ' + folder + ':')
-        print('Ligand consists of multiple molecules. Structure is skipped. \n')
-        count_multi_ligands += 1
-        continue
+        # choose largest one
+        multi_ligands = Chem.GetMolFrags(ligand, asMols=True)
+        sizes = [l.GetNumHeavyAtoms() for l in multi_ligands]
+        max_size = max(sizes)
+
+        # if multiple ligands have the same largest size, skip this molecule
+        if sizes.count(max_size) > 1:
+            print('ERROR in ' + folder + ':')
+            print('Ligand consists of multiple molecules. Structure is skipped. \n')
+            count_multi_ligands += 1
+            continue
+
+        # if there is a unique largest ligand
+        else:
+            ligand = multi_ligands[0]
+            for l in multi_ligands:
+                if l.GetNumHeavyAtoms() > ligand.GetNumHeavyAtoms():
+                    ligand = l
 
     lenLigand = ligand.GetNumAtoms()
 
@@ -268,7 +282,8 @@ for index, entry in KLIFSData.iterrows():
 
 # draw discarded fragments
 img = Draw.MolsToGridImage([Chem.RemoveHs(fragment.mol) for fragment in discardedFragments],
-                           legends=[fragment.structure+' '+fragment.subpocket+str(fragment.mol.GetNumHeavyAtoms()) for fragment in discardedFragments],
+                           legends=[fragment.structure+' '+fragment.subpocket+str(fragment.mol.GetNumHeavyAtoms())
+                                    for fragment in discardedFragments],
                            subImgSize=(400, 400), molsPerRow=6)
 img.save('../discarded_fragments.png')
 
@@ -289,8 +304,8 @@ print('A*P ligands: ', count_phosphates)
 print('Ligand could not be loaded: ', count_ligand_errors)
 print('Pocket could not be loaded: ', count_pocket_errors)
 print('Multiple ligands in structure: ', count_multi_ligands)
+print('Ligands with too large BRICS fragments: ', len(discardedLigands))
 print('Missing residue position could not be inferred: ', count_missing_res)
-print('Ligands with too large fragments: ', len(discardedLigands))
 
 # TO DO:
 # - store bond information (BRICS rule?)
