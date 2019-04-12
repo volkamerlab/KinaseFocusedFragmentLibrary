@@ -5,11 +5,11 @@ import pymol
 from pymol import cmd
 
 import sys
-sys.path.append("/home/paula/Masterarbeit/KinaseFocusedFragmentLibrary/code/")
+sys.path.append("../code/")
 from preprocessing import add_missing_residues, get_folder_name, fix_residue_numbers
 from pocketIdentification import get_region
 
-path = '/home/paula/Masterarbeit/data/KLIFS_download/'
+path = '../../data/KLIFS_download/'
 info = add_missing_residues(pd.read_csv(path + 'overview.csv'))
 
 # Launch PyMol
