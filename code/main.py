@@ -252,7 +252,7 @@ for index, entry in KLIFSData.iterrows():
 
     for fragment in fragments:
         # store PDB where this fragment came from
-        fragment.structure = entry.pdb
+        fragment.structure = get_file_name(entry)
         # this sets the PDB code as 'name' of the fragment at the top of the SD file entry
         fragment.mol.SetProp('_Name', fragment.structure)
         # discard large fragments
@@ -263,7 +263,6 @@ for index, entry in KLIFSData.iterrows():
             output_file = (path_to_library / fragment.subpocket / (entry.kinase+'.sdf')).open('a')
             # print(Chem.MolToMolBlock(fragment.mol), file=open(output_file, 'a'))
             w = Chem.SDWriter(output_file)
-            w.SetProps(['pdb'])
             w.write(fragment.mol)
 
     # ================================ DRAW FRAGMENTS ==========================================
