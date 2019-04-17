@@ -251,8 +251,10 @@ for index, entry in KLIFSData.iterrows():
     # add fragments to their respective pool
 
     for fragment in fragments:
-        # store ligand for this fragment
+        # store PDB where this fragment came from
         fragment.structure = entry.pdb
+        # this sets the PDB code as 'name' of the fragment at the top of the SD file entry
+        fragment.mol.SetProp('_Name', fragment.structure)
         # discard large fragments
         if fragment.mol.GetNumHeavyAtoms() > 29:
             discardedFragments.append(fragment)
@@ -261,6 +263,7 @@ for index, entry in KLIFSData.iterrows():
             output_file = (path_to_library / fragment.subpocket / (entry.kinase+'.sdf')).open('a')
             # print(Chem.MolToMolBlock(fragment.mol), file=open(output_file, 'a'))
             w = Chem.SDWriter(output_file)
+            w.SetProps(['pdb'])
             w.write(fragment.mol)
 
     # ================================ DRAW FRAGMENTS ==========================================
@@ -299,7 +302,7 @@ img.save('../discarded_ligands.png')
 # output statistics
 print('Number of fragmented structures: ', count_structures)
 print('\nNumber of discarded structures: ')
-print('DFG-out conformations: ', count_dfg_out)
+print('DFG-out/out-like conformations: ', count_dfg_out)
 print('A*P ligands: ', count_phosphates)
 print('Ligand could not be loaded: ', count_ligand_errors)
 print('Pocket could not be loaded: ', count_pocket_errors)

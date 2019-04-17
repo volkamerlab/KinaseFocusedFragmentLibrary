@@ -8,7 +8,7 @@ class Fragment:
         self.center = center
         self.subpocket = subpocket
         self.smiles = smiles
-        self.structure = structure  # structure of corresponding PDB code
+        self.structure = structure  # PDB code of corresponding structure
 
 
 class Subpocket:
