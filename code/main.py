@@ -61,7 +61,7 @@ for subpocket in subpockets:
         Path.mkdir(folderName)
     kinases = set(KLIFSData.kinase)
     for kinase in kinases:
-        fileName = folderName / (kinase+'.sdf')
+        fileName = folderName / (subpocket.name+'.sdf')
         if fileName.exists():
             Path.unlink(fileName)
 
@@ -255,12 +255,19 @@ for index, entry in KLIFSData.iterrows():
         fragment.structure = get_file_name(entry)
         # this sets the PDB code as 'name' of the fragment at the top of the SD file entry
         fragment.mol.SetProp('_Name', fragment.structure)
+        # set other properties to be stored in the SD file
+        # 'kinase', 'family', 'groups', 'pdb', 'pdb_id', 'alt', 'chain'
+        fragment.mol.SetProp('kinase', entry.kinase)
+        fragment.mol.SetProp('family', entry.family)
+        fragment.mol.SetProp('group', entry.groups)
+        fragment.mol.SetProp('complex_pdb', entry.pdb)
+        fragment.mol.SetProp('ligand_pdb', entry.pdb_id)
         # discard large fragments
         if fragment.mol.GetNumHeavyAtoms() > 29:
             discardedFragments.append(fragment)
         else:
             # output_file = path_to_library+fragment.subpocket+'/'+getFileName(entry)+'.sdf'
-            output_file = (path_to_library / fragment.subpocket / (entry.kinase+'.sdf')).open('a')
+            output_file = (path_to_library / fragment.subpocket / (fragment.subpocket+'.sdf')).open('a')
             # print(Chem.MolToMolBlock(fragment.mol), file=open(output_file, 'a'))
             w = Chem.SDWriter(output_file)
             w.write(fragment.mol)
