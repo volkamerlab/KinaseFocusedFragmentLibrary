@@ -91,11 +91,11 @@ def fix_small_fragments(fragments, bonds):
 
 
 # get geometric center of atoms (list of atom objects) in mol
-def calc_geo_center(atoms, molConf):
+def calc_geo_center(atoms, mol_conf):
 
     center = np.zeros(3, float)
     for atom in atoms:
-        pos = molConf.GetAtomPosition(atom.GetIdx())
+        pos = mol_conf.GetAtomPosition(atom.GetIdx())
         center += pos
     return center / len(atoms)
 

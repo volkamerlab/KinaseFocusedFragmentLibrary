@@ -60,18 +60,19 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
                 # set atom number within the entire molecule as property of the fragment atom
                 # IS THIS ALWAYS TRUE? (Does order of atoms always stay the same after fragmentation?)
                 atom.SetProp('atomNumber', str(fragment.atomNumbers[a]))
-                atom.SetProp('neighboringSubpocket', 'None')
+                #atom.SetProp('neighboringSubpocket', 'None')
                 atom.SetProp('priority', '1')
 
             # if atom = dummy atom
             else:
                 atom.SetProp('priority', '0')
-                atom.SetProp('neighboringSubpocket', 'None')
+                #atom.SetProp('neighboringSubpocket', 'None')
                 # atom.SetProp('subpocket', 'None')
                 # neighbor = atom next to a bond (Can several neighbors exist?)
                 for neighbor in atom.GetNeighbors():
                     neighbor.SetProp('priority', '2')
 
+                # Problem: Why does this work? Is atomNumber prop defined somewhere else except in above if statement?
                 neighbor_atom = int(neighbor.GetProp('atomNumber'))
                 # get and set atom number w.r.t ligand of the dummy atom
                 bond_atoms = [atomTuple for atomTuple in atom_tuples if neighbor_atom in atomTuple][0]

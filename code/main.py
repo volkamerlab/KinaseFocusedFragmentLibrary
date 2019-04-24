@@ -253,15 +253,23 @@ for index, entry in KLIFSData.iterrows():
     for fragment in fragments:
         # store PDB where this fragment came from
         fragment.structure = get_file_name(entry)
+
+        # fragment properties
         # this sets the PDB code as 'name' of the fragment at the top of the SD file entry
         fragment.mol.SetProp('_Name', fragment.structure)
         # set other properties to be stored in the SD file
-        # 'kinase', 'family', 'groups', 'pdb', 'pdb_id', 'alt', 'chain'
         fragment.mol.SetProp('kinase', entry.kinase)
         fragment.mol.SetProp('family', entry.family)
         fragment.mol.SetProp('group', entry.groups)
         fragment.mol.SetProp('complex_pdb', entry.pdb)
         fragment.mol.SetProp('ligand_pdb', entry.pdb_id)
+        fragment.mol.SetProp('alt', entry.alt)
+        fragment.mol.SetProp('chain', entry.chain)
+
+        # atom properties as fragment property
+        Chem.CreateAtomStringPropertyList(fragment.mol, 'priority')
+        Chem.CreateAtomStringPropertyList(fragment.mol, 'neighboringSubpocket')
+
         # discard large fragments
         if fragment.mol.GetNumHeavyAtoms() > 29:
             discardedFragments.append(fragment)
