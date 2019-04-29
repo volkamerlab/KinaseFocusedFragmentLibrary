@@ -60,14 +60,14 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
                 # set atom number within the entire molecule as property of the fragment atom
                 # IS THIS ALWAYS TRUE? (Does order of atoms always stay the same after fragmentation?)
                 atom.SetProp('atomNumber', str(fragment.atomNumbers[a]))
+                atom.SetProp('subpocket', subpocket)
 
             # if atom = dummy atom
             else:
                 # neighbor = atom next to a dummy (Can several neighbors exist?)
                 neighbor = atom.GetNeighbors()[0]
 
-                # Problem: Why does this work? Is atomNumber prop defined somewhere else except in above if statement?
-                # -> This works only because dummy atoms are last in the iteration
+                # -> This works only because dummy atoms are always last in the iteration
                 neighbor_atom = int(neighbor.GetProp('atomNumber'))
                 # get and set atom number w.r.t ligand of the dummy atom
                 bond_atoms = [atomTuple for atomTuple in atom_tuples if neighbor_atom in atomTuple][0]
@@ -76,8 +76,11 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
                 # get and set neighboring subpocket of the dummy atom
                 neighboring_subpocket = [BRICSFragment.subpocket for BRICSFragment in brics_fragments
                                          if dummy_atom in BRICSFragment.atomNumbers][0]
-                for neighbor in atom.GetNeighbors():
-                    neighbor.SetProp('neighboringSubpocket', neighboring_subpocket)
+                # for neighbor in atom.GetNeighbors():
+                #     neighbor.SetProp('neighboringSubpocket', neighboring_subpocket)
+
+                # set subpocket for dummy atom instead of connecting atom (neighbor) as done above
+                atom.SetProp('subpocket', neighboring_subpocket)
 
         fragments.append(fragment)
 

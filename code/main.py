@@ -270,7 +270,8 @@ for index, entry in KLIFSData.iterrows():
         # RemoveHs() does not remove all hydrogens, inconsistency with removeHs=True flag
         # fragment.mol = Chem.RemoveHs(fragment.mol)  # remove hydrogens for consistency reasons (when using PandasTools.LoadSDF)
         # create list of atom properties
-        Chem.CreateAtomStringPropertyList(fragment.mol, 'neighboringSubpocket')
+        # Chem.CreateAtomStringPropertyList(fragment.mol, 'neighboringSubpocket')
+        Chem.CreateAtomStringPropertyList(fragment.mol, 'subpocket')
 
         # discard large fragments
         if fragment.mol.GetNumHeavyAtoms() > 29:
