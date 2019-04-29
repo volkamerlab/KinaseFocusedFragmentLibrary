@@ -267,7 +267,9 @@ for index, entry in KLIFSData.iterrows():
         fragment.mol.SetProp('chain', entry.chain)
 
         # atom properties as fragment property
-        Chem.CreateAtomStringPropertyList(fragment.mol, 'priority')
+        # RemoveHs() does not remove all hydrogens, inconsistency with removeHs=True flag
+        # fragment.mol = Chem.RemoveHs(fragment.mol)  # remove hydrogens for consistency reasons (when using PandasTools.LoadSDF)
+        # create list of atom properties
         Chem.CreateAtomStringPropertyList(fragment.mol, 'neighboringSubpocket')
 
         # discard large fragments
@@ -285,10 +287,6 @@ for index, entry in KLIFSData.iterrows():
     # convert to 2D molecules for drawing
     for fragment in fragments:
         tmp = AllChem.Compute2DCoords(fragment.mol)
-
-    # atom = fragment.mol.GetAtoms()[0]
-    # print(atom.GetProp('atomNumber'), atom.GetProp('neighboringSubpocket'), atom.GetProp('subpocket'), atom.GetProp('priority'),
-    #     [neighbor.GetSymbol() for neighbor in atom.GetNeighbors()])
 
     img = Draw.MolsToGridImage([Chem.RemoveHs(fragment.mol) for fragment in fragments],
                                legends=[fragment.subpocket for fragment in fragments],
