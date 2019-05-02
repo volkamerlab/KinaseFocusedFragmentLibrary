@@ -322,10 +322,3 @@ print('Pocket could not be loaded: ', count_pocket_errors)
 print('Multiple ligands in structure: ', count_multi_ligands)
 print('Ligands with too large BRICS fragments: ', len(discardedLigands))
 print('Missing residue position could not be inferred: ', count_missing_res)
-
-# TO DO:
-# - store bond information (BRICS rule?)
-#
-# - deal with missing residues
-#
-# - deal with multi ligands
