@@ -5,7 +5,7 @@ import pymol
 from pymol import cmd
 
 import sys
-sys.path.append("../code/")
+sys.path.append("../fragmentation/")
 from preprocessing import add_missing_residues, get_folder_name, fix_residue_numbers
 from pocketIdentification import get_region
 
