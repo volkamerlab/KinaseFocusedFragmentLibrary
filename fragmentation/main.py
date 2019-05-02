@@ -298,7 +298,7 @@ for index, entry in KLIFSData.iterrows():
 
 # draw discarded fragments
 img = Draw.MolsToGridImage([Chem.RemoveHs(fragment.mol) for fragment in discardedFragments],
-                           legends=[fragment.structure+' '+fragment.subpocket+str(fragment.mol.GetNumHeavyAtoms())
+                           legends=[fragment.structure+' '+fragment.subpocket+' '+str(fragment.mol.GetNumHeavyAtoms())
                                     for fragment in discardedFragments],
                            subImgSize=(400, 400), molsPerRow=6)
 img.save('../discarded_fragments.png')
