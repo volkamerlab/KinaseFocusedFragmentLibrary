@@ -297,19 +297,21 @@ for index, entry in KLIFSData.iterrows():
     count_structures += 1
 
 # draw discarded fragments
-img = Draw.MolsToGridImage([Chem.RemoveHs(fragment.mol) for fragment in discardedFragments],
-                           legends=[fragment.structure+' '+fragment.subpocket+' '+str(fragment.mol.GetNumHeavyAtoms())
-                                    for fragment in discardedFragments],
-                           subImgSize=(400, 400), molsPerRow=6)
-img.save('../output/discarded_fragments.png')
+if discardedFragments:
+    img = Draw.MolsToGridImage([Chem.RemoveHs(fragment.mol) for fragment in discardedFragments],
+                               legends=[fragment.structure+' '+fragment.subpocket+' '+str(fragment.mol.GetNumHeavyAtoms())
+                                        for fragment in discardedFragments],
+                               subImgSize=(400, 400), molsPerRow=6)
+    img.save('../output/discarded_fragments.png')
 
 # draw discarded ligands
-for ligand in discardedLigands:
-    tmp = AllChem.Compute2DCoords(ligand[0])
-img = Draw.MolsToGridImage([Chem.RemoveHs(ligand[0]) for ligand in discardedLigands],
-                           legends=[ligand[1] for ligand in discardedLigands],
-                           subImgSize=(400, 400), molsPerRow=6)
-img.save('../output/discarded_ligands.png')
+if discardedLigands:
+    for ligand in discardedLigands:
+        tmp = AllChem.Compute2DCoords(ligand[0])
+    img = Draw.MolsToGridImage([Chem.RemoveHs(ligand[0]) for ligand in discardedLigands],
+                               legends=[ligand[1] for ligand in discardedLigands],
+                               subImgSize=(400, 400), molsPerRow=6)
+    img.save('../output/discarded_ligands.png')
 
 
 # output statistics
