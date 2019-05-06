@@ -1,12 +1,18 @@
 from rdkit import Chem
-from rdkit.Chem import AllChem
+# from rdkit.Chem import AllChem
 from rdkit.Chem import Draw
-from rdkit.Chem.Draw import MolDrawing, DrawingOptions
 
 from collections import deque  # queue
 import glob
+import gc
+import time
 
-from classes import PermutationStep
+from PermutationStep import PermutationStep
+from add_results import add_to_results
+
+start = time.time()
+
+n_frags = 10
 
 # ============================= READ DATA ===============================================
 
@@ -34,18 +40,18 @@ for i, folder in enumerate(folders):
 
 # ============================= INITIALIZATION ===============================================
 
-# iterate over all fragments and store each binding site in queue
+# iterate over all fragments and add each binding site to queue
 
 count_fragments = 0
 results = set()  # result set
 queue = deque()  # queue containing binding sites to be processed
 
-for subpocket in data:
+for subpocket, suppl in data.items():
 
-    fragments = [frag for frag in data[subpocket]]
-    for fragment in fragments[:10]:
+    for fragment in [f for f in suppl][:n_frags]:
         count_fragments += 1
-
+        # get all binding sites and add to queue
+        # if fragment has no open binding sites (fragment = entire ligand), nothing happens
         dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
         for dummy in dummy_atoms:
             ps = PermutationStep(fragment, dummy, 1, subpockets=[subpocket])
@@ -55,6 +61,8 @@ print('Number of fragments: ', count_fragments)
 print('Number of binding sites: ', len(queue))
 
 # ============================= PERMUTATION ===============================================
+
+count_exceptions = 0
 
 # while queue not empty
 while queue:
@@ -73,12 +81,19 @@ while queue:
     # subpocket of current fragment
     subpocket = atom.GetProp('subpocket')
 
-    # iterate over fragments that might be attached at the current position
-    for fragment_2 in data[neighboring_subpocket]:
+    # check if subpocket already targeted by this fragment
+    if neighboring_subpocket in ps.subpockets:
+        # store fragment as ligand if no other open binding sites left
+        dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
+        if ps.depth > 1 >= len(dummy_atoms):  # len(dummy atoms) should always be >= 1 -> change to == 1 ?
+            count = add_to_results(fragment, dummy_atoms, results)
+            count_exceptions += count
+        continue
 
-        # check if subpocket already targeted by this fragment
-        if neighboring_subpocket in ps.subpockets:
-            continue
+    something_added = False
+
+    # iterate over fragments that might be attached at the current position
+    for fragment_2 in [f for f in data[neighboring_subpocket]][:n_frags]:
 
         # check if fragment has matching binding site
         dummy_atoms_2 = [a for a in fragment_2.GetAtoms() if a.GetSymbol() == '*'
@@ -111,36 +126,25 @@ while queue:
         ed_combo.AddBond(atom_1.GetIdx(), atom_2.GetIdx(), order=bond_type_1)
         result = ed_combo.GetMol()
 
+        # skip this fragment if no bond could be created
+        smiles = Chem.MolToSmiles(result)
+        if '.' in smiles:
+            continue
+
         # remove dummy atoms
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_1.GetSmarts()))
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_2.GetSmarts()))
-        # fix molecule coordinates (only at the end, after removing dummys from finished ligand?)
-        # AllChem.EmbedMolecule(result, randomSeed=1, maxAttempts=0)
 
         # dummy atoms of new molecule
         dummy_atoms = [a for a in result.GetAtoms() if a.GetSymbol() == '*']
 
         # if no dummy atoms present, ligand is finished
-        if not dummy_atoms:
-            # store ligand as result, if molecule can be kekulized
-            try:
-                # fix coordinates
-                AllChem.EmbedMolecule(result, randomSeed=1, maxAttempts=0)
-                results.add(result)
-            except Exception:
-                pass
-            continue
         # if max depth is reached, ligand is also finished, because all subpockets are explored
-        elif ps.depth + 1 == 6:
-            # remove all dummy atoms from finished ligand
-            for dummy in dummy_atoms:
-                result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy.GetSmarts()))
-            try:
-                # fix coordinates
-                AllChem.EmbedMolecule(result, randomSeed=1, maxAttempts=0)
-                results.add(result)
-            except Exception:
-                pass
+        if (not dummy_atoms) or (ps.depth+1 == len(subpockets)):
+            count = add_to_results(result, dummy_atoms, results)
+            count_exceptions += count
+            if count == 0:
+                something_added = True
             continue
 
         # else add binding sites of new molecule to queue
@@ -148,9 +152,39 @@ while queue:
         for dummy in dummy_atoms:
             ps_new = PermutationStep(result, dummy, ps.depth+1, subpockets=ps.subpockets)
             queue.append(ps_new)
+            something_added = True
 
-print(len(results))
+    # if nothing was added to ps.fragment: store fragment itself as ligand (if it has depth>1 and no other dummy atoms)
+    if not something_added:
+        dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
+        if ps.depth > 1 >= len(dummy_atoms):
+            count = add_to_results(fragment, dummy_atoms, results)
+            count_exceptions += count
+
+
+print('Number of resulting ligands: ', len(results))
+
+results = [Chem.RemoveHs(Chem.MolFromSmiles(mol)) for mol in results]
+count_unconnected = 0
 for mol in results:
-    AllChem.Compute2DCoords(mol)
-img = Draw.MolsToGridImage(list(results)[:20], molsPerRow=2)
+    # AllChem.Compute2DCoords(mol)
+
+    smiles = Chem.MolToSmiles(mol)
+    if '.' in smiles:
+        count_unconnected += 1
+
+img = Draw.MolsToGridImage(list(results)[:100], molsPerRow=6)
 img.save('test.png')
+
+print('Number of ligands with unconnected fragments: ', count_unconnected)
+print('Number of ligands where 3D structure could not be inferred: ', count_exceptions)
+
+gc.collect()
+
+print('Time: ', time.time() - start)
+
+# Problems:
+
+# - AddBonds does not always actually create a bond
+
+# - Inferring 3D coordinates takes super long! -> Solution: smaller number of attempts
