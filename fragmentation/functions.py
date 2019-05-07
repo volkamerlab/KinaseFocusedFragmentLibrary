@@ -27,19 +27,3 @@ def remove_duplicates(lst):
 # find most common element in a list
 def most_common(lst):
     return max(set(lst), key=lst.count)
-
-
-# load atom information block from a mol2 file into a list of lists of strings
-def load_mol2(file):
-
-    atom_info = []
-    with open(file) as f:
-        line = f.readline()
-        while not line.startswith('@<TRIPOS>ATOM'):
-            line = f.readline()
-        line = f.readline()
-        while not line.startswith('@<TRIPOS>'):
-            atom_info.append(line.split())
-            line = f.readline()
-
-    return atom_info

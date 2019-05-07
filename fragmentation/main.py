@@ -15,7 +15,7 @@ from pathlib import Path
 
 # define the 6 subpockets
 subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # leave out 2? (1m17 will improve)
-              Subpocket('AP', residues=[46, 51, 75, 15], color='0.6, 0.1, 0.6'),  # deeppurple
+              Subpocket('AP', residues=[46, 51, 75, 15], color='0.6, 0.1, 0.6'),  # deep purple
               Subpocket('FP', residues=[72, 51, 4, 81], color='0.2, 0.6, 0.2'),  # forest # substituted 4 for 7 and 72 for 74
               Subpocket('GA', residues=[45, 17, 80], color='1.0, 0.5, 0.0'),  # orange
               # Subpocket('BP', residues=[82, 24, 43], color='0.5, 0.0, 1.0')  # purple blue
@@ -28,8 +28,6 @@ count_ligand_errors = 0
 count_pocket_errors = 0
 count_multi_ligands = 0
 count_missing_res = 0
-# count_phosphates = 0
-# count_dfg_out = 0
 count_structures = 0
 
 # ============================= DATA PREPARATION ============================================
@@ -74,7 +72,6 @@ for index, entry in KLIFSData.iterrows():
     # ================================== READ DATA ============================================
 
     folder = get_folder_name(entry)
-    # print(folder, entry.dfg, entry.ac_helix)
 
     # load ligand and binding pocket to rdkit molecules
     ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
@@ -119,7 +116,6 @@ for index, entry in KLIFSData.iterrows():
     lenLigand = ligand.GetNumAtoms()
 
     # read atom information from binding pocket mol2 file (necessary for residue information)
-    # pocketMol2 = loadAtomInfoFromMol2('../../data/KLIFS_download/HUMAN/EGFR/3w2s_altA_chainA/pocket.mol2')
     pocketMol2 = PandasMol2().read_mol2(str(path_to_data / folder / 'pocket.mol2'),
                                         columns={0: ('atom_id', int), 1: ('atom_name', str), 2: ('x', float), 3: ('y', float), 4: ('z', float),
                                                  5: ('atom_type', str), 6: ('res_id', int), 7: ('res_name', str), 8: ('charge', float),
@@ -147,12 +143,6 @@ for index, entry in KLIFSData.iterrows():
 
     # visualize subpocket centers using PyMOL
     visual_subpockets(subpockets, folder)
-
-    # # get subpocket for each ligand atom
-    # for a, atom in enumerate(ligand.GetAtoms()):
-    #     # subpocket = getSubpocketFromAtomDistances(a, ligandConf, pocketConf, residues)
-    #     subpocket = getSubpocketFromAtom(a, ligandConf, subpockets)
-    #     atom.SetProp('subpocket', subpocket)
 
     # ================================ BRICS FRAGMENTS ==========================================
 
@@ -270,16 +260,13 @@ for index, entry in KLIFSData.iterrows():
         # RemoveHs() does not remove all hydrogens, inconsistency with removeHs=True flag
         # fragment.mol = Chem.RemoveHs(fragment.mol)  # remove hydrogens for consistency reasons (when using PandasTools.LoadSDF)
         # create list of atom properties
-        # Chem.CreateAtomStringPropertyList(fragment.mol, 'neighboringSubpocket')
         Chem.CreateAtomStringPropertyList(fragment.mol, 'subpocket')
 
         # discard large fragments
         if fragment.mol.GetNumHeavyAtoms() > 29:
             discardedFragments.append(fragment)
         else:
-            # output_file = path_to_library+fragment.subpocket+'/'+getFileName(entry)+'.sdf'
             output_file = (path_to_library / fragment.subpocket / (fragment.subpocket+'.sdf')).open('a')
-            # print(Chem.MolToMolBlock(fragment.mol), file=open(output_file, 'a'))
             w = Chem.SDWriter(output_file)
             w.write(fragment.mol)
 

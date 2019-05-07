@@ -38,28 +38,28 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
     # get smiles of fragments
     fragment_smiles = Chem.MolToSmiles(fragmented_ligand).split('.')
     # get rdkit molecules of fragments
-    fragment_mols = Chem.GetMolFrags(fragmented_ligand, asMols=True)  # [Chem.MolFromSmiles(x) for x in fragment_smiles]
+    fragment_mols = Chem.GetMolFrags(fragmented_ligand, asMols=True)
     # get atom numbers (w.r.t. ligand) of fragments
     fragment_atoms = Chem.GetMolFrags(fragmented_ligand)
 
     fragments = []
 
     # iterate over new fragments
-    for i, atomNumbers in enumerate(fragment_atoms):
+    for (atomNumbers, mol, smile) in zip(fragment_atoms, fragment_mols, fragment_smiles):
 
         # get subpocket corresponding to fragment (Is there a better way?)
         subpocket = [brics_fragment.subpocket for brics_fragment in brics_fragments if atomNumbers[0] in brics_fragment.atomNumbers][0]
         # create Fragment object
-        fragment = Fragment(mol=fragment_mols[i], smiles=fragment_smiles[i], atomNumbers=atomNumbers, subpocket=subpocket)
+        fragment = Fragment(mol=mol, smiles=smile, atomNumbers=atomNumbers, subpocket=subpocket)
 
         # set atom properties for the created fragment
-        for a, atom in enumerate(fragment.mol.GetAtoms()):
+        for atom, atomNumber in zip(fragment.mol.GetAtoms(), fragment.atomNumbers):
 
             # if atom is not a dummy atom
             if atom.GetSymbol() != '*':
                 # set atom number within the entire molecule as property of the fragment atom
                 # IS THIS ALWAYS TRUE? (Does order of atoms always stay the same after fragmentation?)
-                atom.SetProp('atomNumber', str(fragment.atomNumbers[a]))
+                atom.SetIntProp('atomNumber', atomNumber)
                 atom.SetProp('subpocket', subpocket)
 
             # if atom = dummy atom
@@ -68,18 +68,14 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
                 neighbor = atom.GetNeighbors()[0]
 
                 # -> This works only because dummy atoms are always last in the iteration
-                neighbor_atom = int(neighbor.GetProp('atomNumber'))
+                neighbor_atom = neighbor.GetIntProp('atomNumber')
                 # get and set atom number w.r.t ligand of the dummy atom
                 bond_atoms = [atomTuple for atomTuple in atom_tuples if neighbor_atom in atomTuple][0]
                 dummy_atom = [atomNumber for atomNumber in bond_atoms if atomNumber != neighbor_atom][0]
-                atom.SetProp('atomNumber', str(dummy_atom))
-                # get and set neighboring subpocket of the dummy atom
+                atom.SetIntProp('atomNumber', dummy_atom)
+                # get and set subpocket of the dummy atom
                 neighboring_subpocket = [BRICSFragment.subpocket for BRICSFragment in brics_fragments
                                          if dummy_atom in BRICSFragment.atomNumbers][0]
-                # for neighbor in atom.GetNeighbors():
-                #     neighbor.SetProp('neighboringSubpocket', neighboring_subpocket)
-
-                # set subpocket for dummy atom instead of connecting atom (neighbor) as done above
                 atom.SetProp('subpocket', neighboring_subpocket)
 
         fragments.append(fragment)

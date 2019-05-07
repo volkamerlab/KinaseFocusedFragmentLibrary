@@ -32,7 +32,7 @@ def find_neighboring_fragments(fragment, fragments, bonds):
     return neighboring_fragments
 
 
-# fix subpockets of small BRICS fragments such that the final result does not have single small fragments
+# fix subpockets of small BRICS fragments such that the final result does not have single small fragments in one subpocket
 def fix_small_fragments(fragments, bonds):
 
     # repeat until all small fragments are fixed
