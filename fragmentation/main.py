@@ -57,11 +57,9 @@ for subpocket in subpockets:
     folderName = path_to_library / subpocket.name
     if not folderName.exists():
         Path.mkdir(folderName)
-    kinases = set(KLIFSData.kinase)
-    for kinase in kinases:
-        fileName = folderName / (subpocket.name+'.sdf')
-        if fileName.exists():
-            Path.unlink(fileName)
+    fileName = folderName / (subpocket.name+'.sdf')
+    if fileName.exists():
+        Path.unlink(fileName)
 
 discardedFragments = []
 discardedLigands = []
@@ -269,6 +267,7 @@ for index, entry in KLIFSData.iterrows():
             output_file = (path_to_library / fragment.subpocket / (fragment.subpocket+'.sdf')).open('a')
             w = Chem.SDWriter(output_file)
             w.write(fragment.mol)
+            # output_file.close()
 
     # ================================ DRAW FRAGMENTS ==========================================
 
@@ -282,6 +281,7 @@ for index, entry in KLIFSData.iterrows():
     img.save('../output/fragmented_molecules/' + get_file_name(entry) + '.png')
 
     count_structures += 1
+
 
 # draw discarded fragments
 if discardedFragments:
