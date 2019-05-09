@@ -4,14 +4,35 @@ from rdkit.Chem import AllChem
 from PermutationStep import PermutationStep
 
 
-# add finished ligand to results, if ligand can be kekulized
 def add_to_results(result, dummy_atoms, results):
+
+    """
+    Adds a fragment to the result set after
+    - removing all dummy atoms from the fragment
+    - inferring coordinates of the fragment
+
+    Parameters
+    ----------
+    result: RDKit Mol object
+        fragment to be added to results
+    dummy_atoms: list(Atom)
+        dummy Atom objects of this fragment
+    results: set(string)
+        result set containing SMILES strings
+
+    Returns
+    -------
+    int
+        0 if fragment was added to the result set
+        1 if not, because the molecule could not be kekulized (or other exceptions)
+
+    """
 
     # remove all dummy atoms from finished ligand
     for dummy in dummy_atoms:
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy.GetSmarts()))
     try:
-        # infer 3D coordinates
+        # infer coordinates
         AllChem.EmbedMolecule(result, randomSeed=1, maxAttempts=1)  # higher number of maxAttempts does not seem to change anything except runtime
     except Exception:
         return 1
@@ -25,6 +46,34 @@ def add_to_results(result, dummy_atoms, results):
 # add all open fragmentation sites of a fragment to queue, if not already present
 # return: boolean: Was fragment added to queue?
 def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
+
+    """
+    Add all fragmentation sites (dummy atoms) of a fragment to the queue if
+    - fragment has dummy atoms
+    - fragment is not already in queue (comparison by smiles, dummy atoms and subpockets of atoms)
+
+    Parameters
+    ----------
+    fragment: RDKit Mol object
+        fragment to be added to queue
+    frags_in_queue: set(tuple)
+        set of tuples:
+        first element: SMILES string of a fragment
+        second element: tuple of subpockets for each atom in the fragment
+    queue: deque(PermutationStep)
+        queue containing PermutationStep objects
+    subpockets:
+        list of the subpockets the fragment is targeting
+    depth:
+        number of original fragments that the fragment consists of
+
+    Returns
+    -------
+    Boolean
+        True if fragment was added to the queue
+        False if not, because it either has no dummy atoms or is already present in the queue
+
+    """
 
     dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
 
