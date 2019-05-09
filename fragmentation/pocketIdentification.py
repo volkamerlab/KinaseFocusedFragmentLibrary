@@ -9,6 +9,23 @@ from classes import Subpocket
 # subpockets: AP, FP, SE, GA, B1, B2
 def get_subpocket_from_pos(pos, subpockets):
 
+    """
+    Get the subpocket of the nearest subpocket center to a given 3D position
+
+    Parameters
+    ----------
+    pos: list(float)
+        3D position in the kinase binding pocket
+    subpockets: list(Subpocket)
+        list of subpockets as Subpocket objects
+
+    Returns
+    -------
+    String
+        Name of the subpocket
+
+    """
+
     smallest_distance = sys.maxsize  # set smallest distance as max integer value
     nearest_subpocket = Subpocket('noSubpocket')
     for subpocket in subpockets:
@@ -21,6 +38,26 @@ def get_subpocket_from_pos(pos, subpockets):
 
 
 def find_neighboring_fragments(fragment, fragments, bonds):
+
+    """
+    Get all fragments connected of a given fragment
+
+    Parameters
+    ----------
+    fragment: Fragment
+        fragment of interest
+    fragments: list(Fragment)
+        all fragments of the ligand
+    bonds: list(tuple(int))
+        list of atom index tuples, where each tuple represents a bond between two atoms in the ligand
+
+    Returns
+    -------
+    neighboring_fragments: list(Fragment)
+        list of fragments connected to the given fragment
+
+    """
+
     neighboring_fragments = []
     for bond in bonds:
         if bond[0] in fragment.atomNumbers:
@@ -32,8 +69,23 @@ def find_neighboring_fragments(fragment, fragments, bonds):
     return neighboring_fragments
 
 
-# fix subpockets of small BRICS fragments such that the final result does not have single small fragments in one subpocket
 def fix_small_fragments(fragments, bonds):
+
+    """
+    Fix subpocket assignment of small BRICS fragments such that the final result does not have single small fragments in one subpocket (in place)
+
+    Parameters
+    ----------
+    fragments: list(Fragment)
+        all BRICS fragments of the ligand
+    bonds: list(tuple(int))
+        list of atom index tuples, where each tuple represents a bond between two atoms in the ligand
+
+    Returns
+    -------
+    None
+
+    """
 
     # repeat until all small fragments are fixed
     num_fixed_fragments = 1
@@ -90,8 +142,24 @@ def fix_small_fragments(fragments, bonds):
     return None
 
 
-# get geometric center of atoms (list of atom objects) in mol
 def calc_geo_center(atoms, mol_conf):
+
+    """
+    Calculate geometric center of given atoms in a molecule
+
+    Parameters
+    ----------
+    atoms: list(Atom)
+        list of RDKit Atom objects
+    mol_conf: RDKit molecule conformer
+        conformer of the molecule containing the atoms
+
+    Returns
+    -------
+    list(float)
+        3D position of the geometric center
+
+    """
 
     center = np.zeros(3, float)
     for atom in atoms:
@@ -100,8 +168,28 @@ def calc_geo_center(atoms, mol_conf):
     return center / len(atoms)
 
 
-# calculate the geometric center of a given subpocket
 def calc_subpocket_center(subpocket, pocket, pocket_mol2, folder):
+
+    """
+    Calculate geometric center of a given subpocket (NOT in place, Subpocket object is not changed)
+
+    Parameters
+    ----------
+    subpocket: Subpocket
+        Subpocket object to calculate the center of
+    pocket: RDKit Mol object
+        binding pocket molecule
+    pocket_mol2: Pandas DataFrame
+        atom block from mol2 file representing the pocket (read using PandasMol2().read_mol2())
+    folder: String
+        Structure ID, e.g. '3w2s_altA_chainA'
+
+    Returns
+    -------
+    list(float)
+        3D position of the geometric center
+
+    """
 
     pocket_conf = pocket.GetConformer()
     ca_atoms = []
@@ -143,8 +231,24 @@ def calc_subpocket_center(subpocket, pocket, pocket_mol2, folder):
 
 # given a residue number within the binding pocket (KLIFS numbering):
 # returns the corresponding region of the binding pocket (KLIFS definition) as a string
-# USED IN PYMOL SCRIPT!
+# used only in pymol script
 def get_region(res):
+
+    """
+    Given a residue number within the binding pocket (KLIFS numbering):
+    Returns the corresponding region of the binding pocket (KLIFS definition) as a string
+
+    Parameters
+    ----------
+    res: int
+        Residue ID (1-85)
+
+    Returns
+    -------
+    String
+        Kinase binding pocket region
+
+    """
 
     if 1 <= res <= 3:
         return 'beta1'
@@ -186,6 +290,7 @@ def get_region(res):
         return 'a.I'
     else:
         sys.exit('ERROR: Given residue number not between 1 and 85!')
+
 
 # ================================== OBSOLETE ==========================================
 

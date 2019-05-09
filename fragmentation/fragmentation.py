@@ -4,8 +4,24 @@ from rdkit.Chem import BRICS
 from classes import Fragment
 
 
-# returns atom numbers of BRICS fragments + bond tuples
 def find_brics_fragments(mol):
+
+    """
+    Carries out the BRICS fragmentation algorithm and returns the BRICS fragments and bonds
+
+    Parameters
+    ----------
+    mol: RDKit Mol object
+        molecule to be fragmented
+
+    Returns
+    -------
+    fragments: list(Fragment)
+        list of the resulting BRICS fragments as Fragment objects
+    atom_tuples: list(tuple(int))
+        list of atom index tuples, where each tuple represents the BRICS bond between two atoms in mol
+
+    """
 
     atom_tuples = [bond[0] for bond in BRICS.FindBRICSBonds(mol)]
     # if mol was not fragmented:
@@ -24,9 +40,28 @@ def find_brics_fragments(mol):
     return fragments, atom_tuples
 
 
-# given a list of atom tuples, BRICS fragments, and the ligand, returns a list of Fragment objects
-# ligand is fragmented at the bonds corresponding to the atom tuples
 def fragmentation(ligand, atom_tuples, brics_fragments):
+
+    """
+    - Carries out a fragmentation of the given molecule at the given bonds (which should be a subsection of its BRICS bonds)
+    - Assigns each resulting fragment to a subpocket based on the subpocket of the BRICS fragments that it consists of
+    - Assigns each atom of the new fragments to a subpocket -> Neighboring subpocket is stored at the dummy atoms
+
+    Parameters
+    ----------
+    ligand: RDKit Mol object
+        molecule to be fragmented
+    atom_tuples: list(tuple(int))
+        list of atom index tuples, where each tuple represents a bond between two atoms in the ligand
+    brics_fragments: list(Fragment)
+        list of BRICS fragments of the ligand as Fragment objects
+
+    Returns
+    -------
+    fragments: list(Fragment)
+        list of the resulting fragments as Fragment objects
+
+    """
 
     # get rdkit bonds (NOT BRICS bonds but custom bonds already)
     bonds = [ligand.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atom_tuples]
@@ -79,5 +114,13 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
                 atom.SetProp('subpocket', neighboring_subpocket)
 
         fragments.append(fragment)
+
+        # solve linker problem here?
+        # 1. get all brics fragments for this fragment
+        # 2. identify ambiguous brics fragment(s)
+        # 3. remove this substructure from current fragment
+        # 4. store resulting fragment additionally, set 'stripped' property?
+        # What if resulting fragment is too small? -> check for that; do not strip
+        # Will atom properties be kept after editing molecule?
 
     return fragments
