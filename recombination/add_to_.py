@@ -7,8 +7,6 @@ from PermutationStep import PermutationStep
 # add finished ligand to results, if ligand can be kekulized
 def add_to_results(result, dummy_atoms, results):
 
-    # TO DO: store fragment PDBs?
-
     # remove all dummy atoms from finished ligand
     for dummy in dummy_atoms:
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy.GetSmarts()))
@@ -43,17 +41,17 @@ def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
 
     # First approach: almost twice as many ligands as result -> Why??
 
-    #atom_subpockets = [atom.GetProp('subpocket') for atom in fragment.GetAtoms()]
+    atom_subpockets = tuple([atom.GetProp('subpocket') for atom in fragment.GetAtoms()])
 
-    atom_subpockets = [dummy.GetProp('subpocket') for dummy in dummy_atoms]
-    atom_subpockets.append(dummy_atoms[0].GetNeighbors()[0].GetProp('subpocket'))
+    # atom_subpockets = tuple([dummy.GetProp('subpocket') for dummy in dummy_atoms])
+    # atom_subpockets.append(dummy_atoms[0].GetNeighbors()[0].GetProp('subpocket'))
 
     # if fragment already in queue, do nothing
     if (frag_smiles, atom_subpockets) in frags_in_queue:
         return False
 
     # if fragment not yet in queue, add all fragmentation sites of this fragment to queue
-    frags_in_queue.append((frag_smiles, atom_subpockets))
+    frags_in_queue.add((frag_smiles, atom_subpockets))
     for dummy in dummy_atoms:
         ps_new = PermutationStep(fragment, dummy, depth, subpockets=subpockets)
         queue.append(ps_new)

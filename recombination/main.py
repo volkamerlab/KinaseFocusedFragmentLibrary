@@ -1,5 +1,6 @@
 from rdkit import Chem
 from rdkit.Chem import Draw
+from rdkit.Chem import AllChem
 
 from collections import deque  # queue
 import time
@@ -45,12 +46,14 @@ for folder, subpocket in zip(folders, subpockets):
 
 results = set()  # result set
 queue = deque()  # queue containing fragmentation sites to be processed
-frags_in_queue = []  # list containing all fragments that have once been in the queue [as tuples: (smiles, subpockets of atoms)]
+frags_in_queue = set()  # set containing all fragments that have once been in the queue [as tuples: (smiles, subpockets of atoms)]
 
 for subpocket, fragments in data.items():
 
     for fragment in fragments:
 
+        AllChem.Compute2DCoords(fragment, sampleSeed=1)
+        fragment.SetProp('subpocket', subpocket)
         add_to_queue(fragment, frags_in_queue, queue, [subpocket], depth=0)
 
 n_frags = len(frags_in_queue)
@@ -139,6 +142,13 @@ while queue:
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_1.GetSmarts()))
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_2.GetSmarts()))
 
+        # TO DO: Store fragment info
+        # Problem: result is stored as smiles in result set -> properties will disappear ...
+        # result.SetProp('subpocket', fragment.GetProp('subpocket')+' '+fragment_2.GetProp('subpocket'))
+        # result.SetProp('kinase', fragment.GetProp('kinase')+' '+fragment_2.GetProp('kinase'))
+        # result.SetProp('complex_pdb', fragment.GetProp('complex_pdb') + ' ' + fragment_2.GetProp('complex_pdb'))
+        # print(result.GetProp('subpocket'))
+
         # dummy atoms of new molecule
         dummy_atoms = [a for a in result.GetAtoms() if a.GetSymbol() == '*']
 
@@ -159,10 +169,15 @@ while queue:
     # if nothing was added to ps.fragment: store fragment itself as ligand (if it has depth>1 and no other dummy atoms)
     if not something_added:
         dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
-        if ps.depth > 1 >= len(dummy_atoms):
-            count_iterations += 1
-            count = add_to_results(fragment, dummy_atoms, results)
-            count_exceptions += count
+        if ps.depth > 1:
+            if len(dummy_atoms) <= 1:
+                count_iterations += 1
+                count = add_to_results(fragment, dummy_atoms, results)
+                count_exceptions += count
+            # if other dummy atoms are present, remove current dummy and add fragment to queue
+            else:
+                fragment_stripped = Chem.DeleteSubstructs(fragment, Chem.MolFromSmiles(dummy_atom.GetSmarts()))
+                add_to_queue(fragment_stripped, frags_in_queue, queue, ps.subpockets, ps.depth)
 
 # ============================= OUTPUT ===============================================
 
