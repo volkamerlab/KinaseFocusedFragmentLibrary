@@ -5,14 +5,17 @@ from rdkit.Chem import AllChem
 from collections import deque  # queue
 import time
 import sys
+import pickle
 from pathlib import Path
 sys.path.append("../fragmentation/")
 
 from add_to_ import add_to_results, add_to_queue
+from optimization import slice_deque, pickle_loader
 
 start = time.time()
 
-input = int(sys.argv[1])
+in_arg = int(sys.argv[1])
+limit = in_arg*20  # if queue has reached limit, write fragments in queue to file
 count_iterations = 0
 
 # ============================= READ DATA ===============================================
@@ -36,7 +39,7 @@ for folder, subpocket in zip(folders, subpockets):
     suppl = Chem.SDMolSupplier(str(file), removeHs=False)
     fragments = [f for f in suppl]
 
-    data[subpocket] = fragments[:input]
+    data[subpocket] = fragments[:in_arg]
 
 # print(data)
 
@@ -61,9 +64,10 @@ n_frags = len(frags_in_queue)
 print('Number of fragments: ', n_frags)
 print('Number of fragmentation sites: ', len(queue))
 
-stat_file = Path('statistics_' + str(input) + '.txt').open('w')
-stat_file.write('Fragments ' + str(n_frags) + '\n')
-stat_file.write('Queue ')
+# temporary output file for storing part of the queue
+tmp_q_path = Path('tmp_queue.txt')
+if tmp_q_path.exists():
+    Path.unlink(tmp_q_path)
 
 # ============================= PERMUTATION ===============================================
 
@@ -74,12 +78,32 @@ while queue:
 
     # first element in queue of fragmentation sites to be processed
     print(len(queue))
-    stat_file.write(str(len(queue)) + ' ')
     ps = queue.popleft()
 
+    # check length of queue and write some stuff to output file if necessary:
+    if len(queue) >= limit:
+        n_out = int(limit/2)
+        pickle_out = tmp_q_path.open('ab')
+        #out_objects = slice_deque(queue, int(len(queue)/2), len(queue))
+        print('Write '+str(n_out)+' queue objects to file.')
+        #for out_object in out_objects:
+        #    pickle.dump(out_object, pickle_out)
+        for i in range(n_out):
+            ps = queue.popleft()
+            pickle.dump(ps, pickle_out)
+        pickle_out.close()
+
+    elif len(queue) == 0:
+        pickle_in = tmp_q_path.open('rb')
+        for q_object in pickle_loader(pickle_in):
+            queue.append(q_object)
+        print('Read queue objects from file.')
+        pickle_in.close()
+
     fragment = ps.fragment
+    print(fragment.GetProp('kinase'))
     # dummy atom which is supposed to be replaced with new fragment
-    dummy_atom = ps.dummy
+    dummy_atom = fragment.GetAtomWithIdx(ps.dummy)
     # connecting atom where the new bond will be made
     atom = dummy_atom.GetNeighbors()[0]
     # subpocket to be attached
@@ -183,8 +207,12 @@ while queue:
 
 # write statistics to file
 runtime = time.time() - start
+stat_path = Path('statistics_' + str(in_arg) + '.txt')
+stat_file = stat_path.open('w')
+stat_file.write('Fragments ' + str(n_frags))
 stat_file.write('\nLigands ' + str(len(results)))
 stat_file.write('\nLigands2 ' + str(count_iterations))
+stat_file.write('\nQFragments ' + str(len(frags_in_queue)))
 stat_file.write('\nErrors ' + str(count_exceptions))
 stat_file.write('\nTime ' + str(runtime))
 stat_file.close()
@@ -193,6 +221,7 @@ stat_file.close()
 print('Number of resulting ligands: ', len(results))
 print('Number of ligands including duplicates: ', count_iterations)
 print('Number of ligands where 3D structure could not be inferred: ', count_exceptions)
+print('Overall number of fragments in queue: ', len(frags_in_queue))
 print('Time: ', runtime)
 
 # write ligands to file
@@ -209,7 +238,6 @@ results = [Chem.RemoveHs(Chem.MolFromSmiles(mol)) for mol in results]
 img = Draw.MolsToGridImage(list(results)[:100], molsPerRow=6)
 img.save('test.png')
 
-print(len(frags_in_queue))
 # Problems:
 
 # - AddBonds does not always actually create a bond -> Output example!

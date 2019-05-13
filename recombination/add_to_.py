@@ -102,7 +102,7 @@ def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
     # if fragment not yet in queue, add all fragmentation sites of this fragment to queue
     frags_in_queue.add((frag_smiles, atom_subpockets))
     for dummy in dummy_atoms:
-        ps_new = PermutationStep(fragment, dummy, depth, subpockets=subpockets)
+        ps_new = PermutationStep(fragment, dummy.GetIdx(), depth, subpockets=subpockets)
         queue.append(ps_new)
 
     return True
