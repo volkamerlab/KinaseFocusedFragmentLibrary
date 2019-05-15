@@ -5,18 +5,21 @@ from rdkit.Chem import AllChem
 from collections import deque  # queue
 import time
 import sys
-import pickle
 from pathlib import Path
+import itertools
 sys.path.append("../fragmentation/")
 
 from add_to_ import add_to_results, add_to_queue
-from optimization import slice_deque, pickle_loader
+from PermutationStep import PermutationStep
+from temp_file import queue_to_tmp
 
 start = time.time()
 
 in_arg = int(sys.argv[1])
 limit = in_arg*20  # if queue has reached limit, write fragments in queue to file
+# limit = 1000
 count_iterations = 0
+
 
 # ============================= READ DATA ===============================================
 
@@ -41,7 +44,6 @@ for folder, subpocket in zip(folders, subpockets):
 
     data[subpocket] = fragments[:in_arg]
 
-# print(data)
 
 # ========================== INITIALIZATION ==============================================
 
@@ -56,18 +58,18 @@ for subpocket, fragments in data.items():
     for fragment in fragments:
 
         AllChem.Compute2DCoords(fragment, sampleSeed=1)
-        fragment.SetProp('subpocket', subpocket)
-        add_to_queue(fragment, frags_in_queue, queue, [subpocket], depth=0)
+        add_to_queue(fragment, frags_in_queue, queue, [subpocket], depth=1)
 
 n_frags = len(frags_in_queue)
 
 print('Number of fragments: ', n_frags)
 print('Number of fragmentation sites: ', len(queue))
 
-# temporary output file for storing part of the queue
-tmp_q_path = Path('tmp_queue.txt')
-if tmp_q_path.exists():
-    Path.unlink(tmp_q_path)
+
+# # temporary output file for storing part of the queue
+# tmp_q_path = Path('tmp_queue.sdf')
+# if tmp_q_path.exists():
+#     Path.unlink(tmp_q_path)
 
 # ============================= PERMUTATION ===============================================
 
@@ -79,29 +81,44 @@ while queue:
     # first element in queue of fragmentation sites to be processed
     print(len(queue))
     ps = queue.popleft()
+    # queue.reverse()
+    # print(ps.depth)
 
-    # check length of queue and write some stuff to output file if necessary:
-    if len(queue) >= limit:
-        n_out = int(limit/2)
-        pickle_out = tmp_q_path.open('ab')
-        #out_objects = slice_deque(queue, int(len(queue)/2), len(queue))
-        print('Write '+str(n_out)+' queue objects to file.')
-        #for out_object in out_objects:
-        #    pickle.dump(out_object, pickle_out)
-        for i in range(n_out):
-            ps = queue.popleft()
-            pickle.dump(ps, pickle_out)
-        pickle_out.close()
+    # if len(queue) < in_arg and tmp_q_path.exists():
+    #     # print(len(queue))
+    #     suppl = Chem.SDMolSupplier(str(tmp_q_path), removeHs=False)
+    #     print('Read queue objects from file.')
+    #     # read first elements of tmp file
+    #     for mol in suppl:  # itertools.islice(suppl, int(limit/2)):
+    #         try:
+    #             dummy = mol.GetIntProp('dummy')
+    #             depth = mol.GetIntProp('depth')
+    #             subpockets = mol.GetProp('subpockets').split(' ')
+    #             ps_in = PermutationStep(mol, dummy, depth, subpockets)
+    #             # does this add duplicates to queue? -> No, because they have been in there before and would not have been added
+    #             queue.append(ps_in)
+    #         except (KeyError, AttributeError) as e:
+    #             print('ERROR: ', e)
+    #             continue
+    #     Path.unlink(tmp_q_path)
+    #     # write last part back to file
+    #     tmp_q_file = tmp_q_path.open('a')
+    #     w = Chem.SDWriter(tmp_q_file)
+    #     for mol in itertools.islice(suppl, int(limit / 2), len(suppl)):
+    #         try:
+    #             w.write(mol)
+    #         except ValueError as e:
+    #             print('ERROR: ', e)
+    #             continue
+    #     w.flush()
+    #     tmp_q_file.flush()
 
-    elif len(queue) == 0:
-        pickle_in = tmp_q_path.open('rb')
-        for q_object in pickle_loader(pickle_in):
-            queue.append(q_object)
-        print('Read queue objects from file.')
-        pickle_in.close()
+    # # if queue has reached limit length write part of it to temp output file:
+    # elif len(queue) >= limit:
+    #     # print(len(queue))
+    #     queue_to_tmp(queue, limit, tmp_q_path)
 
     fragment = ps.fragment
-    print(fragment.GetProp('kinase'))
     # dummy atom which is supposed to be replaced with new fragment
     dummy_atom = fragment.GetAtomWithIdx(ps.dummy)
     # connecting atom where the new bond will be made
@@ -115,7 +132,7 @@ while queue:
     if neighboring_subpocket in ps.subpockets:
         # store fragment as ligand if no other open fragmentation sites left
         dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
-        if ps.depth > 1 >= len(dummy_atoms):  # len(dummy atoms) should always be >= 1 -> change to == 1 ?
+        if ps.depth > 1 >= len(dummy_atoms):
             count_iterations += 1
             count = add_to_results(fragment, dummy_atoms, results)
             count_exceptions += count
@@ -146,6 +163,7 @@ while queue:
 
         # find dummy atoms of new combined molecule
         dummy_atoms = [a for a in combo.GetAtoms() if a.GetSymbol() == '*']
+        # This can be another atom!! How to make sure it is the same dummy atom as before?
         dummy_atom_1 = [a for a in dummy_atoms if a.GetProp('subpocket') == neighboring_subpocket][0]
         dummy_atom_2 = [a for a in dummy_atoms if a.GetProp('subpocket') == subpocket][0]
         # find atoms to be connected
@@ -165,6 +183,12 @@ while queue:
         # remove dummy atoms
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_1.GetSmarts()))
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_2.GetSmarts()))
+
+        # # skip this fragment if coordinates can not be inferred
+        # try:
+        #     AllChem.EmbedMolecule(result, randomSeed=1, maxAttempts=1)
+        # except Exception:
+        #     continue
 
         # TO DO: Store fragment info
         # Problem: result is stored as smiles in result set -> properties will disappear ...
@@ -198,10 +222,11 @@ while queue:
                 count_iterations += 1
                 count = add_to_results(fragment, dummy_atoms, results)
                 count_exceptions += count
-            # if other dummy atoms are present, remove current dummy and add fragment to queue
+            # if other dummy atoms are present, remove current dummy (as nothing could be attached there) and add fragment to queue
             else:
                 fragment_stripped = Chem.DeleteSubstructs(fragment, Chem.MolFromSmiles(dummy_atom.GetSmarts()))
                 add_to_queue(fragment_stripped, frags_in_queue, queue, ps.subpockets, ps.depth)
+
 
 # ============================= OUTPUT ===============================================
 
@@ -230,15 +255,17 @@ output_file = output_path.open('w')
 w = Chem.SDWriter(output_file)
 for mol in results:
     w.write(Chem.MolFromSmiles(mol))
+w.close()
 output_file.close()
 
 # draw some ligands
 results = [Chem.RemoveHs(Chem.MolFromSmiles(mol)) for mol in results]
-
 img = Draw.MolsToGridImage(list(results)[:100], molsPerRow=6)
 img.save('test.png')
 
 # Problems:
+
+# - Result seems to depend on the order of the queue
 
 # - AddBonds does not always actually create a bond -> Output example!
 
@@ -248,6 +275,6 @@ img.save('test.png')
 
 # TO DO:
 
-# Parallelize?
+# Parallelize? Write part of queue temporarily to hard drive?
 
 # remember fragments of which resulting ligand consists
