@@ -1,12 +1,14 @@
 from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
+from rdkit.Chem.PropertyMol import PropertyMol
+Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AllProps)
 
 from collections import deque  # queue
 import time
 import sys
 from pathlib import Path
-import itertools
+import pickle
 sys.path.append("../fragmentation/")
 
 from add_to_ import add_to_results, add_to_queue, get_tuple
@@ -19,6 +21,36 @@ in_arg = int(sys.argv[1])
 limit = in_arg*20  # if queue has reached limit, write fragments in queue to file
 # limit = 1000
 count_iterations = 0
+
+
+# queue: 2000 objects ~ 1 MB
+def get_size(obj, seen=None):
+    """Recursively finds size of objects"""
+    size = sys.getsizeof(obj)
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0
+    # Important mark as seen *before* entering recursion to gracefully handle
+    # self-referential objects
+    seen.add(obj_id)
+    if isinstance(obj, dict):
+        size += sum([get_size(v, seen) for v in obj.values()])
+        size += sum([get_size(k, seen) for k in obj.keys()])
+    elif hasattr(obj, '__dict__'):
+        size += get_size(obj.__dict__, seen)
+    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+        size += sum([get_size(i, seen) for i in obj])
+    return size
+
+
+def pickle_loader(pickle_file):
+    try:
+        while True:
+            yield pickle.load(pickle_file)
+    except EOFError:
+        pass
 
 
 # ============================= READ DATA ===============================================
@@ -36,7 +68,7 @@ subpockets = [str(folder)[-2:] for folder in folders]
 
 results = set()  # result set
 queue = deque()  # queue containing fragmentation sites to be processed
-frags_in_queue = set()  # set containing all fragments that have once been in the queue 
+frags_in_queue = set()  # set containing all fragments that have once been in the queue
 
 data = {}
 for folder, subpocket in zip(folders, subpockets):
@@ -93,59 +125,44 @@ print('Number of fragmentation sites: ', len(queue))
 # print('Number of fragmentation sites: ', len(queue))
 
 
-# # temporary output file for storing part of the queue
-# tmp_q_path = Path('tmp_queue.sdf')
-# if tmp_q_path.exists():
-#     Path.unlink(tmp_q_path)
+# temporary output file for storing part of the queue
 
 # ============================= PERMUTATION ===============================================
 
 count_exceptions = 0
+n_tmp_file_out = 0
+n_tmp_file_in = 0
 
 # while queue not empty
 while queue:
 
     # first element in queue of fragmentation sites to be processed
     print(len(queue))
-    # for ps in queue:
-    #     print(ps.subpockets, ps.dummy)
     ps = queue.popleft()
-    # queue.reverse()
-    # print(ps.depth)
 
-    # if len(queue) < in_arg and tmp_q_path.exists():
-    #     # print(len(queue))
-    #     suppl = Chem.SDMolSupplier(str(tmp_q_path), removeHs=False)
-    #     print('Read queue objects from file.')
-    #     # read first elements of tmp file
-    #     for mol in suppl:  # itertools.islice(suppl, int(limit/2)):
-    #         try:
-    #             dummy = mol.GetIntProp('dummy')
-    #             depth = mol.GetIntProp('depth')
-    #             subpockets = mol.GetProp('subpockets').split(' ')
-    #             ps_in = PermutationStep(mol, dummy, depth, subpockets)
-    #             # does this add duplicates to queue? -> No, because they have been in there before and would not have been added
-    #             queue.append(ps_in)
-    #         except (KeyError, AttributeError) as e:
-    #             print('ERROR: ', e)
-    #             continue
-    #     Path.unlink(tmp_q_path)
-    #     # write last part back to file
-    #     tmp_q_file = tmp_q_path.open('a')
-    #     w = Chem.SDWriter(tmp_q_file)
-    #     for mol in itertools.islice(suppl, int(limit / 2), len(suppl)):
-    #         try:
-    #             w.write(mol)
-    #         except ValueError as e:
-    #             print('ERROR: ', e)
-    #             continue
-    #     w.flush()
-    #     tmp_q_file.flush()
+    # read back from tmp queue output file if queue is empty
+    tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_in)+'.sdf')
+    if len(queue) == 0 and tmp_q_path.exists():
+        pickle_in = tmp_q_path.open('rb')
+        for q_object in pickle_loader(pickle_in):
+            queue.append(q_object)
+        print('Read queue objects from file.')
+        pickle_in.close()
+        Path.unlink(tmp_q_path)
+        n_tmp_file_in += 1
 
-    # # if queue has reached limit length write part of it to temp output file:
-    # elif len(queue) >= limit:
-    #     # print(len(queue))
-    #     queue_to_tmp(queue, limit, tmp_q_path)
+    # if queue has reached limit length write part of it to temp output file:
+    elif len(queue) >= limit:
+        tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_out)+'.sdf')
+        n_out = int(limit/2)
+        pickle_out = tmp_q_path.open('wb')
+        print('Write ' + str(n_out) + ' queue objects to file.')
+        for i in range(n_out):
+            ps = queue.pop()  # last element of queue
+            ps.fragment = PropertyMol(ps.fragment)
+            pickle.dump(ps, pickle_out)
+        pickle_out.close()
+        n_tmp_file_out += 1
 
     fragment = ps.fragment
     # dummy atom which is supposed to be replaced with new fragment
@@ -187,8 +204,6 @@ while queue:
         if bond_type_1 != bond_type_2:
             continue
 
-        #dummy_smarts = dummy_atom.GetSmarts()
-        #dummy_2_smarts = dummy_atom_2.GetSmarts()
         dummy_1_id = dummy_atom.GetProp('frag_atom_id')
         dummy_2_id = dummy_atom_2.GetProp('frag_atom_id')
 
@@ -196,10 +211,6 @@ while queue:
         combo = Chem.CombineMols(fragment, fragment_2)
 
         # find dummy atoms of new combined molecule
-        # This can be another atom!! How to make sure it is the same dummy atom as before?
-        #dummy_atom_1 = [a for a in combo.GetAtoms() if a.GetSmarts() == dummy_smarts and a.GetProp('subpocket') == neighboring_subpocket][0]
-        #dummy_atom_2 = [a for a in combo.GetAtoms() if a.GetSmarts() == dummy_2_smarts and a.GetProp('subpocket') == subpocket][0]
-        # Solution: fragment atom ids (set in initialization)
         dummy_atom_1 = [a for a in combo.GetAtoms() if a.GetProp('frag_atom_id') == dummy_1_id][0]
         dummy_atom_2 = [a for a in combo.GetAtoms() if a.GetProp('frag_atom_id') == dummy_2_id][0]
 
@@ -268,9 +279,6 @@ while queue:
 
 
 # ============================= OUTPUT ===============================================
-
-#for frag in frags_in_queue:
-#    print(frag)
 
 # write statistics to file
 runtime = time.time() - start
