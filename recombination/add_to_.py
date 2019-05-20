@@ -59,7 +59,7 @@ def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
     frags_in_queue: set(tuple)
         set of tuples:
         first element: SMILES string of a fragment
-        second element: tuple of subpockets for each atom in the fragment
+        second element: frozenset of dummy atom tuples: (frag_atom_id, subpocket)
     queue: deque(PermutationStep)
         queue containing PermutationStep objects
     subpockets:

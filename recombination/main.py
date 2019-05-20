@@ -36,7 +36,7 @@ subpockets = [str(folder)[-2:] for folder in folders]
 
 results = set()  # result set
 queue = deque()  # queue containing fragmentation sites to be processed
-frags_in_queue = set()  # set containing all fragments that have once been in the queue [as tuples: (smiles, subpockets of atoms)]
+frags_in_queue = set()  # set containing all fragments that have once been in the queue 
 
 data = {}
 for folder, subpocket in zip(folders, subpockets):
@@ -307,7 +307,7 @@ img.save('test.png')
 
 # Problems:
 
-# - Result seems to depend on the order of the queue
+# - Queue and result set explodes from in_arg=10 (52 fragments) on  -> Why??
 
 # - AddBonds does not always actually create a bond -> Output example!
 
