@@ -82,6 +82,23 @@ def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
         return False
 
     # check if fragment is already in queue
+    frag_smiles, atom_subpockets = get_tuple(fragment, dummy_atoms)
+
+    # if fragment already in queue, do nothing
+    if (frag_smiles, atom_subpockets) in frags_in_queue:
+        return True
+
+    # if fragment not yet in queue, add all fragmentation sites of this fragment to queue
+    frags_in_queue.add((frag_smiles, atom_subpockets))
+    for dummy in dummy_atoms:
+        ps_new = PermutationStep(fragment, dummy.GetIdx(), depth, subpockets=subpockets)
+        queue.append(ps_new)
+
+    return True
+
+
+def get_tuple(fragment, dummy_atoms):
+
     frag_smiles = fragment
     # replace dummys with generic dummys (without atom number)
     for dummy in dummy_atoms:
@@ -95,14 +112,4 @@ def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
     # atom_subpockets = tuple([dummy.GetProp('subpocket') for dummy in dummy_atoms])
     # atom_subpockets.append(dummy_atoms[0].GetNeighbors()[0].GetProp('subpocket'))
 
-    # if fragment already in queue, do nothing
-    if (frag_smiles, atom_subpockets) in frags_in_queue:
-        return False
-
-    # if fragment not yet in queue, add all fragmentation sites of this fragment to queue
-    frags_in_queue.add((frag_smiles, atom_subpockets))
-    for dummy in dummy_atoms:
-        ps_new = PermutationStep(fragment, dummy.GetIdx(), depth, subpockets=subpockets)
-        queue.append(ps_new)
-
-    return True
+    return frag_smiles, atom_subpockets

@@ -57,7 +57,7 @@ for folder, subpocket in zip(folders, subpockets):
     suppl = Chem.SDMolSupplier(str(file), removeHs=False)
     mols = [f for f in suppl][:in_arg]
 
-    fragments = []
+    all_fragments = []
     for i, fragment in enumerate(mols):
 
         dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
@@ -97,9 +97,9 @@ for folder, subpocket in zip(folders, subpockets):
 
         # create Fragment object to store in the constant data set with all fragments
         fragment = Fragment(pdb=frag_id, subpocket=subpocket, ports=ports)
-        fragments.append(fragment)
+        all_fragments.append(fragment)
 
-    data[subpocket] = fragments  # constant
+    data[subpocket] = all_fragments  # constant
 
 # queue now contains fragments instead of fragmentation sites
 print('Number of fragments: ', len(queue))
@@ -154,6 +154,7 @@ while queue:
 
             # check if result already in queue
             if result in frags_in_queue:
+                something_added = True
                 continue
 
             # check if combo should be put to result set
@@ -170,12 +171,14 @@ while queue:
 
         # if nothing was added to compound in this step
         if not something_added:
+            result = frozenset([(sp, pdb) for (sp, pdb) in zip(compound.subpockets, compound.pdbs)])
+            if result in frags_in_queue:
+                continue
             # remove current port from compound, as nothing could be attached there
             new_ports = [p for p in compound.ports if p.neighboring_subpocket != neighboring_subpocket]
             compound.ports = new_ports
             # if compound has at least two fragments and no port is left
             if len(compound.pdbs) > 1 and len(compound.ports) == 0:
-                result = frozenset([(sp, pdb) for (sp, pdb) in zip(compound.subpockets, compound.pdbs)])
                 results.add(result)
             # if other ports are present, add new compound without current port to queue
             elif len(compound.ports) > 0:
@@ -184,10 +187,11 @@ while queue:
 
 
 print('Number of results: ', len(results))
-print('Number of fragments in queue: ', len(frags_in_queue))
+print('Number of combined fragments in queue: ', len(frags_in_queue))
 
 
 # ================================= CONSTRUCT FRAGMENTS ========================================
+
 
 data = {}
 
@@ -202,175 +206,103 @@ for folder, subpocket in zip(folders, subpockets):
 
     data[subpocket] = mols
 
+ligands = set()
+
 for result in results:
 
-    fragments = set()
+    print(result)
+
+    all_fragments = []
     for frag in result:
         subpocket = frag[0]
         frag_id = frag[1]
         fragment = data[subpocket][frag_id]
         fragment.SetProp('subpocket', subpocket)
-        fragments.add(fragment)
+        all_fragments.append(fragment)
 
-    queue = deque()
+    n_frags = len(all_fragments)
+    print([f.GetProp('_Name') for f in all_fragments])
+
     # append first fragment to queue
-    fragment = fragments.pop()
-    queue.append(fragment)
+    fragment = all_fragments[0]
+    fragments = [fragment]
 
-    # ligands = set()
+    for i in range(n_frags-1):
 
-    # while queue not empty
-    while queue:
+        fragments_next = []
 
-        fragment = queue.pop()
-        # current subpocket
-        subpocket = fragment.GetProp('subpocket')
-        dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
+        for fragment in fragments:
 
-        for dummy in dummy_atoms:
+            dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
 
-            neighboring_subpocket = dummy.GetProp('subpocket')
-            # fragment in neighboring subpocket (multiple are not possible)
-            fragment_2 = [f for f in fragments if f.GetProp('subpocket') == neighboring_subpocket]
-            if not fragment_2:
-                continue
-            fragment_2 = fragment_2[0]
-            # find matching dummy atom(s)
-            dummy_atoms_2 = [a for a in fragment_2.GetAtoms() if a.GetSymbol() == '*' and a.GetProp('subpocket') == subpocket]
-            if not dummy_atoms_2:
-                continue
+            for dummy in dummy_atoms:
 
-            # bond type to dummy atom
-            atom = dummy.GetNeighbors()[0]
-            bond_type_1 = fragment.GetBondBetweenAtoms(dummy.GetIdx(), atom.GetIdx()).GetBondType()
-
-            for dummy_2 in dummy_atoms_2:
-
-                # check bond types
-                atom_2 = dummy_2.GetNeighbors()[0]
-                bond_type_2 = fragment_2.GetBondBetweenAtoms(dummy_2.GetIdx(), atom_2.GetIdx()).GetBondType()
-                if bond_type_1 != bond_type_2:
+                atom = dummy.GetNeighbors()[0]
+                subpocket = atom.GetProp('subpocket')  # current subpocket
+                neighboring_subpocket = dummy.GetProp('subpocket')
+                # fragment in neighboring subpocket (multiple are not possible)
+                fragment_2 = [f for f in all_fragments if f.GetProp('subpocket') == neighboring_subpocket]
+                # if neighboring subpocket not targeted, move to next dummy
+                if not fragment_2:
+                    continue
+                fragment_2 = fragment_2[0]
+                # find matching dummy atom(s)
+                dummy_atoms_2 = [a for a in fragment_2.GetAtoms() if a.GetSymbol() == '*' and a.GetProp('subpocket') == subpocket]
+                # if there are no matching dummy atoms, move to next dummy
+                if not dummy_atoms_2:
                     continue
 
-                dummy_smarts = dummy.GetSmarts()
-                dummy_2_smarts = dummy_2.GetSmarts()
+                # bond type to dummy atom
+                bond_type_1 = fragment.GetBondBetweenAtoms(dummy.GetIdx(), atom.GetIdx()).GetBondType()
 
-                combo = Chem.CombineMols(fragment, fragment_2)
+                for dummy_2 in dummy_atoms_2:
 
-                # find dummy atoms of new combined molecule
-                dummy_atom_1 = [a for a in combo.GetAtoms() if a.GetSmarts() == dummy_smarts and a.GetProp('subpocket') == neighboring_subpocket][0]
-                dummy_atom_2 = [a for a in combo.GetAtoms() if a.GetSmarts() == dummy_2_smarts and a.GetProp('subpocket') == subpocket][0]
+                    # check bond types
+                    atom_2 = dummy_2.GetNeighbors()[0]
+                    bond_type_2 = fragment_2.GetBondBetweenAtoms(dummy_2.GetIdx(), atom_2.GetIdx()).GetBondType()
+                    if bond_type_1 != bond_type_2:
+                        continue
 
-                # find atoms to be connected
-                atom_1 = dummy_atom_1.GetNeighbors()[0]
-                atom_2 = dummy_atom_2.GetNeighbors()[0]
+                    dummy_smarts = dummy.GetSmarts()
+                    dummy_2_smarts = dummy_2.GetSmarts()
 
-                # add bond between atoms
-                ed_combo = Chem.EditableMol(combo)
-                ed_combo.AddBond(atom_1.GetIdx(), atom_2.GetIdx(), order=bond_type_1)
-                ligand = ed_combo.GetMol()
+                    combo = Chem.CombineMols(fragment, fragment_2)
 
-                # skip this combo if no bond could be created
-                smiles = Chem.MolToSmiles(ligand)
-                if '.' in smiles:
-                    continue
+                    # find dummy atoms of new combined molecule
+                    dummy_atom_1 = [a for a in combo.GetAtoms() if a.GetSmarts() == dummy_smarts and a.GetProp('subpocket') == neighboring_subpocket][0]
+                    dummy_atom_2 = [a for a in combo.GetAtoms() if a.GetSmarts() == dummy_2_smarts and a.GetProp('subpocket') == subpocket][0]
 
-                # remove dummy atoms
-                ligand = Chem.DeleteSubstructs(ligand, Chem.MolFromSmiles(dummy_atom_1.GetSmarts()))
-                ligand = Chem.DeleteSubstructs(ligand, Chem.MolFromSmiles(dummy_atom_2.GetSmarts()))
+                    # find atoms to be connected
+                    atom_1 = dummy_atom_1.GetNeighbors()[0]
+                    atom_2 = dummy_atom_2.GetNeighbors()[0]
 
-                # # skip this fragment if coordinates can not be inferred
-                # try:
-                #     AllChem.EmbedMolecule(ligand, randomSeed=1, maxAttempts=1)
-                # except Exception:
-                #     continue
+                    # add bond between atoms
+                    ed_combo = Chem.EditableMol(combo)
+                    ed_combo.AddBond(atom_1.GetIdx(), atom_2.GetIdx(), order=bond_type_1)
+                    ligand = ed_combo.GetMol()
 
-                queue.append(ligand)
+                    # skip this combo if no bond could be created
+                    smiles = Chem.MolToSmiles(ligand)
+                    if '.' in smiles:
+                        continue
 
-            # remove fragment_2
-            fragments.remove(fragment_2)
+                    # remove dummy atoms
+                    ligand = Chem.DeleteSubstructs(ligand, Chem.MolFromSmiles(dummy_atom_1.GetSmarts()))
+                    ligand = Chem.DeleteSubstructs(ligand, Chem.MolFromSmiles(dummy_atom_2.GetSmarts()))
 
-        if not fragments:
-            break
+                    # # skip this fragment if coordinates can not be inferred
+                    # try:
+                    #     AllChem.EmbedMolecule(ligand, randomSeed=1, maxAttempts=1)
+                    # except Exception:
+                    #     continue
 
-    # queue contains resulting ligand(s) for this result --> mostly 0s :(
-    print(len(queue))
+                    fragments_next.append(ligand)
 
-#
-#     # molecule objects to combine
-#     fragments = []
-#     result = list(result)
-#
-#     i = 0
-#     ligand = result[0]
-#     # first fragment
-#     subpocket_1 = ligand[0]
-#     frag_id_1 = ligand[1]
-#     fragment_1 = data[subpocket_1][frag_id_1]
-#     for i in range(len(result)-1):
-#
-#         # THIS DOES NOT WORK BECAUSE THE SECOND FRAGMENT IS NOT ALWAYS CONNECTED TO THE FIRST ETC.!!!!
-#         # second fragment
-#         tup = result[i+1]
-#         subpocket_2 = tup[0]
-#         frag_id_2 = tup[1]
-#         fragment_2 = data[subpocket_2][frag_id_2]
-#
-#         # matching dummy atoms
-#         dummy_atoms_1 = [a for a in fragment_1.GetAtoms() if a.GetSymbol() == '*'
-#                          and a.GetProp('subpocket') == subpocket_2]
-#
-#         # enumerate all possible fragment combinations (in most cases this will be only 1)
-#
-#         for j, dummy_1 in enumerate(dummy_atoms_1):
-#
-#             dummy_1.SetIntProp('dummy', j)
-#             atom_1 = dummy_1.GetNeighbors()[0]
-#             subpocket_1 = atom_1.GetProp('subpocket')
-#
-#             dummy_atoms_2 = [a for a in fragment_2.GetAtoms() if a.GetSymbol() == '*'
-#                              and a.GetProp('subpocket') == subpocket_1]
-#
-#             for k, dummy_2 in enumerate(dummy_atoms_2):
-#
-#                 dummy_2.SetIntProp('dummy', k)
-#                 atom_2 = dummy_2.GetNeighbors()[0]
-#
-#                 if atom_2.GetProp('subpocket') != subpocket_2:
-#                     print('ERROR: Something wrong!')
-#                     sys.exit()
-#
-#                 # check bond types
-#                 bond_type_1 = fragment_1.GetBondBetweenAtoms(dummy_1.GetIdx(), atom_1.GetIdx()).GetBondType()
-#                 bond_type_2 = fragment_2.GetBondBetweenAtoms(dummy_2.GetIdx(), atom_2.GetIdx()).GetBondType()
-#                 if bond_type_1 == bond_type_2:
-#
-#                     # combine fragments to one molecule object
-#                     combo = Chem.CombineMols(fragment_1, fragment_2)
-#
-#                     # find dummy atoms of new combined molecule
-#                     dummy_atoms = [a for a in combo.GetAtoms() if a.HasProp('dummy')]
-#                     dummy_atom_1 = [a for a in dummy_atoms if a.GetProp('subpocket') == subpocket_2 and a.GetIntProp('dummy') == j][0]
-#                     dummy_atom_2 = [a for a in dummy_atoms if a.GetProp('subpocket') == subpocket_1 and a.GetIntProp('dummy') == k][0]
-#                     # find atoms to be connected
-#                     atom_1 = dummy_atom_1.GetNeighbors()[0]
-#                     atom_2 = dummy_atom_2.GetNeighbors()[0]
-#
-#                     # add bond between atoms
-#                     ed_combo = Chem.EditableMol(combo)
-#                     ed_combo.AddBond(atom_1.GetIdx(), atom_2.GetIdx(), order=bond_type_1)
-#                     combo = ed_combo.GetMol()
-#
-#                     # skip this combination if no bond could be created
-#                     smiles = Chem.MolToSmiles(combo)
-#                     if '.' not in smiles:
-#
-#                         # remove dummy atoms
-#                         combo = Chem.DeleteSubstructs(combo, Chem.MolFromSmiles(dummy_atom_1.GetSmarts()))
-#                         combo = Chem.DeleteSubstructs(combo, Chem.MolFromSmiles(dummy_atom_2.GetSmarts()))
-#
-#                         fragment_1 = combo
-#
+        fragments = fragments_next
 
+    print(len(fragments))
+    for f in fragments:
+        ligands.add(Chem.MolToSmiles(f))
 
-
+img = Draw.MolsToGridImage([Chem.MolFromSmiles(l) for l in ligands], molsPerRow=3)
+img.save('test_opt.png')
