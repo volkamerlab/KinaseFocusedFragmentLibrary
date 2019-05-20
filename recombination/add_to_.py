@@ -70,8 +70,8 @@ def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
     Returns
     -------
     Boolean
-        True if fragment was added to the queue
-        False if not, because it either has no dummy atoms or is already present in the queue
+        True if fragment was added to the queue, or is already in the queue
+        False if not, because it has no dummy atoms
 
     """
 
@@ -99,6 +99,26 @@ def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
 
 def get_tuple(fragment, dummy_atoms):
 
+    """
+    For a given fragment, returns:
+    - smiles string with generic dummy atoms (dummy labels removed)
+    - dummy atoms as tuples of frag_atom_id and subpocket (of the dummy = neighboring subpocket of the fragment)
+
+    Parameters
+    ----------
+    fragment: RDKit Mol object
+    dummy_atoms: list(RDKit Atom objects)
+        list of all dummy atoms of the fragment
+
+    Returns
+    -------
+    String
+        SMILES string of the fragment
+
+    frozenset(tuple)
+        frozenset of tuples for each dummy atom containing the frag_atom_id and the subpocket of the dummy
+    """
+
     frag_smiles = fragment
     # replace dummys with generic dummys (without atom number)
     # dummy tuple: (frag_atom_id, neighboring_subpocket), e.g. (AP_4, FP)
@@ -110,10 +130,5 @@ def get_tuple(fragment, dummy_atoms):
     frag_smiles = Chem.MolToSmiles(frag_smiles)
 
     dummy_set = frozenset(dummy_set)
-
-    # First approach: almost twice as many ligands as result -> Why?? -> Because order of atoms does not stay the same !!!
-    # atom_subpockets = tuple([atom.GetProp('subpocket') for atom in fragment.GetAtoms()])
-    # atom_subpockets = tuple([dummy.GetProp('subpocket') for dummy in dummy_atoms])
-    # atom_subpockets.append(dummy_atoms[0].GetNeighbors()[0].GetProp('subpocket'))
 
     return frag_smiles, dummy_set

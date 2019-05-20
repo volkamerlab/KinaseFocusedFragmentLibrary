@@ -12,8 +12,6 @@ import pickle
 sys.path.append("../fragmentation/")
 
 from add_to_ import add_to_results, add_to_queue, get_tuple
-from PermutationStep import PermutationStep
-from temp_file import queue_to_tmp
 
 start = time.time()
 
@@ -23,29 +21,24 @@ limit = in_arg*20  # if queue has reached limit, write fragments in queue to fil
 count_iterations = 0
 
 
-# queue: 2000 objects ~ 1 MB
-def get_size(obj, seen=None):
-    """Recursively finds size of objects"""
-    size = sys.getsizeof(obj)
-    if seen is None:
-        seen = set()
-    obj_id = id(obj)
-    if obj_id in seen:
-        return 0
-    # Important mark as seen *before* entering recursion to gracefully handle
-    # self-referential objects
-    seen.add(obj_id)
-    if isinstance(obj, dict):
-        size += sum([get_size(v, seen) for v in obj.values()])
-        size += sum([get_size(k, seen) for k in obj.keys()])
-    elif hasattr(obj, '__dict__'):
-        size += get_size(obj.__dict__, seen)
-    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
-        size += sum([get_size(i, seen) for i in obj])
-    return size
-
+# ============================= FUNCTIONS ===============================================
 
 def pickle_loader(pickle_file):
+
+    """
+    Load a pickle file with multiple objects
+
+    Parameters
+    ----------
+    pickle_file: file object
+        input binary pickle file
+
+    Returns
+    -------
+    Generator object with loaded objects
+
+    """
+
     try:
         while True:
             yield pickle.load(pickle_file)
@@ -104,41 +97,21 @@ print('Number of fragments: ', n_frags)
 print('Number of fragmentation sites: ', len(queue))
 
 
-# # ========================== INITIALIZATION ==============================================
-#
-# # iterate over all fragments and add each fragmentation site to queue
-#
-# results = set()  # result set
-# queue = deque()  # queue containing fragmentation sites to be processed
-# frags_in_queue = set()  # set containing all fragments that have once been in the queue [as tuples: (smiles, subpockets of atoms)]
-#
-# for subpocket, fragments in data.items():
-#
-#     for fragment in fragments:
-#
-#         AllChem.Compute2DCoords(fragment, sampleSeed=1)
-#         add_to_queue(fragment, frags_in_queue, queue, [subpocket], depth=1)
-#
-# n_frags = len(frags_in_queue)
-#
-# print('Number of fragments: ', n_frags)
-# print('Number of fragmentation sites: ', len(queue))
-
-
-# temporary output file for storing part of the queue
-
 # ============================= PERMUTATION ===============================================
 
 count_exceptions = 0
 n_tmp_file_out = 0
 n_tmp_file_in = 0
 
+# Size of queue: 2000 objects ~ 1 MB
 # while queue not empty
 while queue:
 
     # first element in queue of fragmentation sites to be processed
     print(len(queue))
     ps = queue.popleft()
+
+    # ========================== TEMP OUTPUT ===============================
 
     # read back from tmp queue output file if queue is empty
     tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_in)+'.sdf')
@@ -163,6 +136,8 @@ while queue:
             pickle.dump(ps, pickle_out)
         pickle_out.close()
         n_tmp_file_out += 1
+
+    # ======================================================================
 
     fragment = ps.fragment
     # dummy atom which is supposed to be replaced with new fragment
@@ -233,19 +208,6 @@ while queue:
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_1.GetSmarts()))
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_2.GetSmarts()))
 
-        # skip this fragment if coordinates can not be inferred
-        #try:
-        #    AllChem.EmbedMolecule(result, randomSeed=1, maxAttempts=1)
-        #except Exception:
-        #    continue
-
-        # TO DO: Store fragment info
-        # Problem: result is stored as smiles in result set -> properties will disappear ...
-        # result.SetProp('subpocket', fragment.GetProp('subpocket')+' '+fragment_2.GetProp('subpocket'))
-        # result.SetProp('kinase', fragment.GetProp('kinase')+' '+fragment_2.GetProp('kinase'))
-        # result.SetProp('complex_pdb', fragment.GetProp('complex_pdb') + ' ' + fragment_2.GetProp('complex_pdb'))
-        # print(result.GetProp('subpocket'))
-
         # dummy atoms of new molecule
         dummy_atoms = [a for a in result.GetAtoms() if a.GetSymbol() == '*']
 
@@ -260,7 +222,6 @@ while queue:
             continue
 
         # else add fragmentation sites of new molecule to queue
-        # ps.subpockets.append(neighboring_subpocket)  # ps was changed inplace and thus also in queue !!!
         something_added = add_to_queue(result, frags_in_queue, queue, ps.subpockets+[neighboring_subpocket], depth=ps.depth+1)
 
     # if nothing was added to ps.fragment: store fragment itself as ligand (if it has depth>1 and no other dummy atoms and was not yet in queue)
