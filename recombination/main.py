@@ -54,12 +54,17 @@ for folder, subpocket in zip(folders, subpockets):
         # ========================== INITIALIZATION ===============================
 
         AllChem.Compute2DCoords(fragment, sampleSeed=1)
+        # store unique atom identifiers
+        for a, atom in enumerate(fragment.GetAtoms()):
+            frag_atom_id = subpocket + '_' + str(a)
+            atom.SetProp('frag_atom_id', frag_atom_id)
+        # add all dummy atoms of this fragment to the queue if it has not been in there yet
         added = add_to_queue(fragment, frags_in_queue, queue, [subpocket], depth=1)
         if added:
+            # store fragment in constant data set
             fragments.append(fragment)
 
     data[subpocket] = fragments
-    print(subpocket, fragments[0].GetProp('_Name'))
 
 n_frags = len(frags_in_queue)
 
@@ -182,16 +187,21 @@ while queue:
         if bond_type_1 != bond_type_2:
             continue
 
-        dummy_smarts = dummy_atom.GetSmarts()
-        dummy_2_smarts = dummy_atom_2.GetSmarts()
+        #dummy_smarts = dummy_atom.GetSmarts()
+        #dummy_2_smarts = dummy_atom_2.GetSmarts()
+        dummy_1_id = dummy_atom.GetProp('frag_atom_id')
+        dummy_2_id = dummy_atom_2.GetProp('frag_atom_id')
 
         # combine fragments to one molecule object
         combo = Chem.CombineMols(fragment, fragment_2)
 
         # find dummy atoms of new combined molecule
         # This can be another atom!! How to make sure it is the same dummy atom as before?
-        dummy_atom_1 = [a for a in combo.GetAtoms() if a.GetSmarts() == dummy_smarts and a.GetProp('subpocket') == neighboring_subpocket][0]
-        dummy_atom_2 = [a for a in combo.GetAtoms() if a.GetSmarts() == dummy_2_smarts and a.GetProp('subpocket') == subpocket][0]
+        #dummy_atom_1 = [a for a in combo.GetAtoms() if a.GetSmarts() == dummy_smarts and a.GetProp('subpocket') == neighboring_subpocket][0]
+        #dummy_atom_2 = [a for a in combo.GetAtoms() if a.GetSmarts() == dummy_2_smarts and a.GetProp('subpocket') == subpocket][0]
+        # Solution: fragment atom ids (set in initialization)
+        dummy_atom_1 = [a for a in combo.GetAtoms() if a.GetProp('frag_atom_id') == dummy_1_id][0]
+        dummy_atom_2 = [a for a in combo.GetAtoms() if a.GetProp('frag_atom_id') == dummy_2_id][0]
 
         # find atoms to be connected
         atom_1 = dummy_atom_1.GetNeighbors()[0]
@@ -208,14 +218,15 @@ while queue:
             continue
 
         # remove dummy atoms
+        # RemoveAtom in editable molecule instead?
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_1.GetSmarts()))
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_2.GetSmarts()))
 
-        # # skip this fragment if coordinates can not be inferred
-        # try:
-        #     AllChem.EmbedMolecule(result, randomSeed=1, maxAttempts=1)
-        # except Exception:
-        #     continue
+        # skip this fragment if coordinates can not be inferred
+        #try:
+        #    AllChem.EmbedMolecule(result, randomSeed=1, maxAttempts=1)
+        #except Exception:
+        #    continue
 
         # TO DO: Store fragment info
         # Problem: result is stored as smiles in result set -> properties will disappear ...
@@ -258,8 +269,8 @@ while queue:
 
 # ============================= OUTPUT ===============================================
 
-for frag in frags_in_queue:
-    print(frag)
+#for frag in frags_in_queue:
+#    print(frag)
 
 # write statistics to file
 runtime = time.time() - start

@@ -82,14 +82,14 @@ def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
         return False
 
     # check if fragment is already in queue
-    frag_smiles, atom_subpockets = get_tuple(fragment, dummy_atoms)
+    frag_smiles, dummy_set = get_tuple(fragment, dummy_atoms)
 
     # if fragment already in queue, do nothing
-    if (frag_smiles, atom_subpockets) in frags_in_queue:
+    if (frag_smiles, dummy_set) in frags_in_queue:
         return True
 
     # if fragment not yet in queue, add all fragmentation sites of this fragment to queue
-    frags_in_queue.add((frag_smiles, atom_subpockets))
+    frags_in_queue.add((frag_smiles, dummy_set))
     for dummy in dummy_atoms:
         ps_new = PermutationStep(fragment, dummy.GetIdx(), depth, subpockets=subpockets)
         queue.append(ps_new)
@@ -101,15 +101,19 @@ def get_tuple(fragment, dummy_atoms):
 
     frag_smiles = fragment
     # replace dummys with generic dummys (without atom number)
+    # dummy tuple: (frag_atom_id, neighboring_subpocket), e.g. (AP_4, FP)
+    dummy_set = []
     for dummy in dummy_atoms:
         frag_smiles = Chem.ReplaceSubstructs(frag_smiles, Chem.MolFromSmiles(dummy.GetSmarts()), Chem.MolFromSmiles('*'))[0]
+        dummy_tuple = (dummy.GetProp('frag_atom_id'), dummy.GetProp('subpocket'))
+        dummy_set.append(dummy_tuple)
     frag_smiles = Chem.MolToSmiles(frag_smiles)
 
-    # First approach: almost twice as many ligands as result -> Why??
+    dummy_set = frozenset(dummy_set)
 
-    atom_subpockets = tuple([atom.GetProp('subpocket') for atom in fragment.GetAtoms()])
-
+    # First approach: almost twice as many ligands as result -> Why?? -> Because order of atoms does not stay the same !!!
+    # atom_subpockets = tuple([atom.GetProp('subpocket') for atom in fragment.GetAtoms()])
     # atom_subpockets = tuple([dummy.GetProp('subpocket') for dummy in dummy_atoms])
     # atom_subpockets.append(dummy_atoms[0].GetNeighbors()[0].GetProp('subpocket'))
 
-    return frag_smiles, atom_subpockets
+    return frag_smiles, dummy_set
