@@ -70,8 +70,11 @@ def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
     Returns
     -------
     Boolean
-        True if fragment was added to the queue, or is already in the queue
+        True if fragment was added to the queue OR is already in the queue
         False if not, because it has no dummy atoms
+    Boolean
+        True if fragment was added to the queue
+        False if not, because it was already in there
 
     """
 
@@ -79,14 +82,14 @@ def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
 
     # if fragment has no open fragmentation sites (fragment = entire ligand), nothing happens
     if not dummy_atoms:
-        return False
+        return False, False
 
     # check if fragment is already in queue
     frag_smiles, dummy_set = get_tuple(fragment, dummy_atoms)
 
     # if fragment already in queue, do nothing
     if (frag_smiles, dummy_set) in frags_in_queue:
-        return True
+        return True, False
 
     # if fragment not yet in queue, add all fragmentation sites of this fragment to queue
     frags_in_queue.add((frag_smiles, dummy_set))
@@ -94,7 +97,7 @@ def add_to_queue(fragment, frags_in_queue, queue, subpockets, depth):
         ps_new = PermutationStep(fragment, dummy.GetIdx(), depth, subpockets=subpockets)
         queue.append(ps_new)
 
-    return True
+    return True, True
 
 
 def get_tuple(fragment, dummy_atoms):

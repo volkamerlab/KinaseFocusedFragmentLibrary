@@ -15,7 +15,10 @@ from add_to_ import add_to_results, add_to_queue, get_tuple
 
 start = time.time()
 
-in_arg = int(sys.argv[1])
+if len(sys.argv) > 1:
+    in_arg = int(sys.argv[1])
+else:
+    in_arg = 5000
 limit = in_arg*20  # if queue has reached limit, write fragments in queue to file
 # limit = 1000
 count_iterations = 0
@@ -84,7 +87,7 @@ for folder, subpocket in zip(folders, subpockets):
             frag_atom_id = subpocket + '_' + str(a)
             atom.SetProp('frag_atom_id', frag_atom_id)
         # add all dummy atoms of this fragment to the queue if it has not been in there yet
-        added = add_to_queue(fragment, frags_in_queue, queue, [subpocket], depth=1)
+        _, added = add_to_queue(fragment, frags_in_queue, queue, [subpocket], depth=1)
         if added:
             # store fragment in constant data set
             fragments.append(fragment)
@@ -222,7 +225,7 @@ while queue:
             continue
 
         # else add fragmentation sites of new molecule to queue
-        something_added = add_to_queue(result, frags_in_queue, queue, ps.subpockets+[neighboring_subpocket], depth=ps.depth+1)
+        something_added, _ = add_to_queue(result, frags_in_queue, queue, ps.subpockets+[neighboring_subpocket], depth=ps.depth+1)
 
     # if nothing was added to ps.fragment: store fragment itself as ligand (if it has depth>1 and no other dummy atoms and was not yet in queue)
     if not something_added:
