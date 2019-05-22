@@ -19,7 +19,7 @@ if len(sys.argv) > 1:
     in_arg = int(sys.argv[1])
 else:
     in_arg = 5000
-limit = 100000 # in_arg*200  # if queue has reached limit, write fragments in queue to file
+limit = 100000  # in_arg*200  # if queue has reached limit, write fragments in queue to file
 n_out = int(limit/2)
 count_iterations = 0
 
@@ -85,6 +85,9 @@ for folder, subpocket in zip(folders, subpockets):
     for fragment in mols:
 
         # ========================== INITIALIZATION ===============================
+
+        # fragment = Chem.AddHs(fragment)
+        fragment = Chem.RemoveHs(fragment)
 
         # AllChem.Compute2DCoords(fragment, sampleSeed=1)
         # store unique atom identifiers
@@ -194,8 +197,8 @@ while queue:
         combo = Chem.CombineMols(fragment, fragment_2)
 
         # find dummy atoms of new combined molecule
-        dummy_atom_1 = [a for a in combo.GetAtoms() if a.GetProp('frag_atom_id') == dummy_1_id][0]
-        dummy_atom_2 = [a for a in combo.GetAtoms() if a.GetProp('frag_atom_id') == dummy_2_id][0]
+        dummy_atom_1 = [a for a in combo.GetAtoms() if a.HasProp('frag_atom_id') if a.GetProp('frag_atom_id') == dummy_1_id][0]
+        dummy_atom_2 = [a for a in combo.GetAtoms() if a.HasProp('frag_atom_id') if a.GetProp('frag_atom_id') == dummy_2_id][0]
 
         # find atoms to be connected
         atom_1 = dummy_atom_1.GetNeighbors()[0]
@@ -217,7 +220,7 @@ while queue:
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_1.GetSmarts()))
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_2.GetSmarts()))
 
-        # Chem.AddHs(result)
+        # result = Chem.AddHs(result, explicitOnly=True)
 
         # dummy atoms of new molecule
         dummy_atoms = [a for a in result.GetAtoms() if a.GetSymbol() == '*']

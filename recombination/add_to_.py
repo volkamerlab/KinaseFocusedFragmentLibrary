@@ -30,6 +30,8 @@ def add_to_results(result, dummy_atoms, results):
     for dummy in dummy_atoms:
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy.GetSmarts()))
 
+    # result = Chem.AddHs(result, explicitOnly=True)
+
     # add molecule to result set as smiles string (to avoid duplicates)
     result_smiles = Chem.MolToSmiles(result)
     if result_smiles not in results:
