@@ -1,7 +1,13 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from pathlib import Path
+import pickle
 
 from PermutationStep import PermutationStep
+
+output_path = Path('../CombinatorialLibrary/combinatorial_library.pickle')
+if output_path.exists():
+    Path.unlink(output_path)
 
 
 def add_to_results(result, dummy_atoms, results):
@@ -25,8 +31,12 @@ def add_to_results(result, dummy_atoms, results):
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy.GetSmarts()))
 
     # add molecule to result set as smiles string (to avoid duplicates)
-    result = Chem.MolToSmiles(result)
-    results.add(result)
+    result_smiles = Chem.MolToSmiles(result)
+    if result_smiles not in results:
+        results.add(result_smiles)
+        with open(output_path, 'ab') as output_file:
+            pickle.dump(result, output_file)
+
     return None
 
 

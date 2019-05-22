@@ -253,19 +253,19 @@ while queue:
 runtime = time.time() - start
 
 count_exceptions = 0
-# write ligands to file
-output_path = Path('../CombinatorialLibrary/combinatorial_library.sdf')
-output_file = output_path.open('w')
-w = Chem.SDWriter(output_file)
-for mol in results:
-    try:
-        w.write(Chem.MolFromSmiles(mol))  # sanitize=False ?
-    except Exception:
-        count_exceptions += 1
-        with open('exceptions.txt', 'a') as exception_file:
-            exception_file.write(mol+'\n')
-w.close()
-output_file.close()
+# # write ligands to file
+# output_path = Path('../CombinatorialLibrary/combinatorial_library.sdf')
+# output_file = output_path.open('w')
+# w = Chem.SDWriter(output_file)
+# for mol in results:
+#     try:
+#         w.write(Chem.MolFromSmiles(mol))  # sanitize=False ?
+#     except Exception:
+#         count_exceptions += 1
+#         with open('exceptions.txt', 'a') as exception_file:
+#             exception_file.write(mol+'\n')
+# w.close()
+# output_file.close()
 
 stat_path = Path('statistics_' + str(in_arg) + '.txt')
 stat_file = stat_path.open('w')
