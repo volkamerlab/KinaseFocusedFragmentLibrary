@@ -7,9 +7,7 @@ from PermutationStep import PermutationStep
 def add_to_results(result, dummy_atoms, results):
 
     """
-    Adds a fragment to the result set after
-    - removing all dummy atoms from the fragment
-    - inferring coordinates of the fragment
+    Adds a fragment to the result set after removing all dummy atoms from the fragment
 
     Parameters
     ----------
@@ -20,27 +18,16 @@ def add_to_results(result, dummy_atoms, results):
     results: set(string)
         result set containing SMILES strings
 
-    Returns
-    -------
-    int
-        0 if fragment was added to the result set
-        1 if not, because the molecule could not be kekulized (or other exceptions)
-
     """
 
     # remove all dummy atoms from finished ligand
     for dummy in dummy_atoms:
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy.GetSmarts()))
-    try:
-        # infer coordinates
-        AllChem.EmbedMolecule(result, randomSeed=1, maxAttempts=1)  # higher number of maxAttempts does not seem to change anything except runtime
-    except Exception:
-        return 1
 
     # add molecule to result set as smiles string (to avoid duplicates)
     result = Chem.MolToSmiles(result)
     results.add(result)
-    return 0
+    return None
 
 
 # add all open fragmentation sites of a fragment to queue, if not already present

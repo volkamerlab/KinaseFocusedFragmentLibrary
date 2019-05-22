@@ -19,9 +19,14 @@ if len(sys.argv) > 1:
     in_arg = int(sys.argv[1])
 else:
     in_arg = 5000
-limit = in_arg*20  # if queue has reached limit, write fragments in queue to file
-# limit = 1000
+limit = 100000 # in_arg*200  # if queue has reached limit, write fragments in queue to file
+n_out = int(limit/2)
 count_iterations = 0
+
+path = Path('./tmp')
+tmp_files = list(path.glob('tmp_queue*'))
+for tmp_file in tmp_files:
+    Path.unlink(tmp_file)
 
 
 # ============================= FUNCTIONS ===============================================
@@ -81,7 +86,7 @@ for folder, subpocket in zip(folders, subpockets):
 
         # ========================== INITIALIZATION ===============================
 
-        AllChem.Compute2DCoords(fragment, sampleSeed=1)
+        # AllChem.Compute2DCoords(fragment, sampleSeed=1)
         # store unique atom identifiers
         for a, atom in enumerate(fragment.GetAtoms()):
             frag_atom_id = subpocket + '_' + str(a)
@@ -102,7 +107,6 @@ print('Number of fragmentation sites: ', len(queue))
 
 # ============================= PERMUTATION ===============================================
 
-count_exceptions = 0
 n_tmp_file_out = 0
 n_tmp_file_in = 0
 
@@ -111,32 +115,33 @@ n_tmp_file_in = 0
 while queue:
 
     # first element in queue of fragmentation sites to be processed
-    print(len(queue))
+    # print(len(queue))
     ps = queue.popleft()
 
     # ========================== TEMP OUTPUT ===============================
 
     # read back from tmp queue output file if queue is empty
-    tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_in)+'.sdf')
+    tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_in)+'.pickle')
     if len(queue) == 0 and tmp_q_path.exists():
         pickle_in = tmp_q_path.open('rb')
         for q_object in pickle_loader(pickle_in):
             queue.append(q_object)
-        print('Read queue objects from file.')
+        print('Read ' + str(n_out) + ' queue objects from tmp file', n_tmp_file_in)
+        print('Size of queue:', len(queue))
         pickle_in.close()
         Path.unlink(tmp_q_path)
         n_tmp_file_in += 1
 
     # if queue has reached limit length write part of it to temp output file:
     elif len(queue) >= limit:
-        tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_out)+'.sdf')
-        n_out = int(limit/2)
+        tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_out)+'.pickle')
         pickle_out = tmp_q_path.open('wb')
-        print('Write ' + str(n_out) + ' queue objects to file.')
+        print('Write ' + str(n_out) + ' queue objects to tmp file', n_tmp_file_out)
         for i in range(n_out):
             ps = queue.pop()  # last element of queue
             ps.fragment = PropertyMol(ps.fragment)
             pickle.dump(ps, pickle_out)
+        print('Size of queue:', len(queue))
         pickle_out.close()
         n_tmp_file_out += 1
 
@@ -160,8 +165,7 @@ while queue:
         dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
         if ps.depth > 1 >= len(dummy_atoms):
             count_iterations += 1
-            count = add_to_results(fragment, dummy_atoms, results)
-            count_exceptions += count
+            add_to_results(fragment, dummy_atoms, results)
         continue
 
     # iterate over fragments that might be attached at the current position
@@ -204,12 +208,15 @@ while queue:
         # skip this fragment if no bond could be created
         smiles = Chem.MolToSmiles(result)
         if '.' in smiles:
+            print('No bond created.', atom_1.GetSymbol(), atom_2.GetSymbol())
             continue
 
         # remove dummy atoms
         # RemoveAtom in editable molecule instead?
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_1.GetSmarts()))
         result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_2.GetSmarts()))
+
+        # Chem.AddHs(result)
 
         # dummy atoms of new molecule
         dummy_atoms = [a for a in result.GetAtoms() if a.GetSymbol() == '*']
@@ -218,10 +225,8 @@ while queue:
         # if max depth is reached, ligand is also finished, because all subpockets are explored
         if (not dummy_atoms) or (ps.depth+1 == len(subpockets)):
             count_iterations += 1
-            count = add_to_results(result, dummy_atoms, results)
-            count_exceptions += count
-            if count == 0:
-                something_added = True
+            add_to_results(result, dummy_atoms, results)
+            something_added = True
             continue
 
         # else add fragmentation sites of new molecule to queue
@@ -234,8 +239,7 @@ while queue:
             continue
         elif ps.depth > 1 >= len(dummy_atoms):
             count_iterations += 1
-            count = add_to_results(fragment, dummy_atoms, results)
-            count_exceptions += count
+            add_to_results(fragment, dummy_atoms, results)
         # if other dummy atoms are present, remove current dummy (as nothing could be attached there) and add fragment to queue
         elif len(dummy_atoms) > 1:
             fragment_stripped = Chem.DeleteSubstructs(fragment, Chem.MolFromSmiles(dummy_atom.GetSmarts()))
@@ -246,6 +250,22 @@ while queue:
 
 # write statistics to file
 runtime = time.time() - start
+
+count_exceptions = 0
+# write ligands to file
+output_path = Path('../CombinatorialLibrary/combinatorial_library.sdf')
+output_file = output_path.open('w')
+w = Chem.SDWriter(output_file)
+for mol in results:
+    try:
+        w.write(Chem.MolFromSmiles(mol))  # sanitize=False ?
+    except Exception:
+        count_exceptions += 1
+        with open('exceptions.txt', 'a') as exception_file:
+            exception_file.write(mol+'\n')
+w.close()
+output_file.close()
+
 stat_path = Path('statistics_' + str(in_arg) + '.txt')
 stat_file = stat_path.open('w')
 stat_file.write('Fragments ' + str(n_frags))
@@ -259,23 +279,14 @@ stat_file.close()
 # print statistics
 print('Number of resulting ligands: ', len(results))
 print('Number of ligands including duplicates: ', count_iterations)
-print('Number of ligands where 3D structure could not be inferred: ', count_exceptions)
+print('Number of ligands with sanitization error: ', count_exceptions)
 print('Overall number of fragments in queue: ', len(frags_in_queue))
 print('Time: ', runtime)
 
-# write ligands to file
-output_path = Path('../CombinatorialLibrary/combinatorial_library.sdf')
-output_file = output_path.open('w')
-w = Chem.SDWriter(output_file)
-for mol in results:
-    w.write(Chem.MolFromSmiles(mol))
-w.close()
-output_file.close()
-
 # draw some ligands
-results = [Chem.RemoveHs(Chem.MolFromSmiles(mol)) for mol in results]
-img = Draw.MolsToGridImage(list(results)[:100], molsPerRow=6)
-img.save('test.png')
+# results = [Chem.RemoveHs(Chem.MolFromSmiles(mol, sanitize=False), sanitize=False) for mol in results]
+# img = Draw.MolsToGridImage(list(results)[:100], molsPerRow=6)
+# img.save('test.png')
 
 # Problems:
 
