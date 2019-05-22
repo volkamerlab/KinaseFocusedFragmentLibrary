@@ -207,6 +207,13 @@ while queue:
         # add bond between atoms
         ed_combo = Chem.EditableMol(combo)
         ed_combo.AddBond(atom_1.GetIdx(), atom_2.GetIdx(), order=bond_type_1)
+
+        # remove dummy atom
+        atomsToRemove = [dummy_atom_1.GetIdx(), dummy_atom_2.GetIdx()]
+        atomsToRemove.sort(reverse=True)
+        for atomToRemove in atomsToRemove:
+            ed_combo.RemoveAtom(atomToRemove)
+
         result = ed_combo.GetMol()
 
         # skip this fragment if no bond could be created
@@ -214,11 +221,6 @@ while queue:
         if '.' in smiles:
             print('No bond created.', atom_1.GetSymbol(), atom_2.GetSymbol())
             continue
-
-        # remove dummy atoms
-        # RemoveAtom in editable molecule instead?
-        result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_1.GetSmarts()))
-        result = Chem.DeleteSubstructs(result, Chem.MolFromSmiles(dummy_atom_2.GetSmarts()))
 
         # result = Chem.AddHs(result, explicitOnly=True)
 
