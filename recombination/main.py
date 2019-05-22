@@ -91,6 +91,7 @@ for folder, subpocket in zip(folders, subpockets):
         for a, atom in enumerate(fragment.GetAtoms()):
             frag_atom_id = subpocket + '_' + str(a)
             atom.SetProp('frag_atom_id', frag_atom_id)
+            atom.SetProp('frag_id', fragment.GetProp('complex_pdb'))
         # add all dummy atoms of this fragment to the queue if it has not been in there yet
         _, added = add_to_queue(fragment, frags_in_queue, queue, [subpocket], depth=1)
         if added:
