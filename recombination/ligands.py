@@ -100,7 +100,7 @@ for meta in pickle_loader(pickle_in):
         fragment = combo
         i += 1
 
-    #ed_combo = Chem.EditableMol(combo)
+    ed_combo = Chem.EditableMol(combo)
     #for bond in bonds:
     #    dummy_1 =
     #    ed_combo.AddBond(atom_1.GetIdx(), atom_2.GetIdx(), order=bond_type_1)
