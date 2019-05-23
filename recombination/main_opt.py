@@ -11,7 +11,6 @@ sys.path.append("../fragmentation/")
 from metaClasses import Combination, PermutationStep, Fragment, Compound, Port
 from add_to_ import get_tuple
 from pickle_loader import pickle_loader
-from results import construct_ligand
 
 start = time.time()
 
@@ -38,6 +37,7 @@ subpockets = [str(folder)[-2:] for folder in folders]
 # create dictionary with all fragments for each subpocket
 # iterate over all fragments and add each fragmentation site to queue
 
+results = set()  # result set
 queue = deque()  # queue containing fragmentation sites to be processed
 frags_in_queue = set()  # set containing all fragments that have once been in the queue
 frag_set = set()  # only used in initialization for avoiding duplicates in fragment data set
@@ -108,9 +108,6 @@ n_tmp_file_in = 0
 limit = 1000000
 n_out = int(limit/2)
 
-# results = set()  # result set
-ligand_smiles = set()
-
 # while queue not empty
 while queue:
 
@@ -162,8 +159,7 @@ while queue:
         if len(compound.subpockets) > 1 >= len(compound.ports):
             count_iterations += 1
             combo = Combination(frag_ids=frozenset(compound.frag_ids), bonds=frozenset(compound.bonds))
-            # results.add(combo)
-            construct_ligand(combo, ligand_smiles)
+            results.add(combo)
         continue
 
     # iterate over fragments that might be attached at the current position
@@ -196,8 +192,7 @@ while queue:
         combo = Combination(frag_ids=frozenset(frag_ids), bonds=frozenset(bonds))
         if len(ports) == 0 or len(subpockets) == 6:
             count_iterations += 1
-            construct_ligand(combo, ligand_smiles)
-            # results.add(combo)
+            results.add(combo)
             something_added = True
             continue
 
@@ -223,8 +218,7 @@ while queue:
 
         elif len(ps.compound.subpockets) > 1 >= len(ps.compound.ports):
             count_iterations += 1
-            # results.add(combo)
-            construct_ligand(combo, data, ligand_smiles)
+            results.add(combo)
         # if other dummy atoms are present, remove current dummy (as nothing could be attached there) and add fragment to queue
         elif len(ps.compound.ports) > 1:
             new_ports = [port for port in ps.compound.ports if port.atom_id != ps.dummy]
@@ -239,10 +233,10 @@ while queue:
 # ============================= OUTPUT ===============================================
 
 # print statistics
-print('Number of resulting ligands: ', len(ligand_smiles))
+print('Number of resulting ligands: ', len(results))
 print('Number of ligands including duplicates: ', count_iterations)
 print('Overall number of fragments in queue: ', len(frags_in_queue))
 
-#with open(output_path, 'wb') as output_file:
-#    for result in results:
-#        pickle.dump(result, output_file)
+with open(output_path, 'wb') as output_file:
+    for result in results:
+        pickle.dump(result, output_file)
