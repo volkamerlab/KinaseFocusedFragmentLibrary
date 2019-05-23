@@ -31,7 +31,7 @@ for folder, subpocket in zip(folders, subpockets):
     # read molecules
     # keep hydrogen atoms
     suppl = Chem.SDMolSupplier(str(file), removeHs=False)
-    mols = [f for f in suppl][:20]
+    mols = [f for f in suppl]
 
     fragments = []
     for i, fragment in enumerate(mols):
@@ -65,7 +65,7 @@ ligand_smiles = set()
 for meta in pickle_loader(pickle_in):
 
     frag_ids = meta.frag_ids
-    bonds = meta.bonds
+    bonds = [tuple(bond) for bond in meta.bonds]
 
     fragments = []
     for frag_id in frag_ids:

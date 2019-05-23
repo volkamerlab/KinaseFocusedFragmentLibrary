@@ -181,7 +181,7 @@ while queue:
         # combine fragments
         frag_ids = compound.frag_ids + [fragment.frag_id]
         subpockets = compound.subpockets + [neighboring_subpocket]
-        bonds = compound.bonds + [(dummy_atom, dummy_atom_2)]
+        bonds = compound.bonds + [frozenset((dummy_atom, dummy_atom_2))]
 
         # remove dummy atoms
         ports = [port for port in compound.ports if port.atom_id != dummy_atom]
