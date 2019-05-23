@@ -10,6 +10,7 @@ sys.path.append("../fragmentation/")
 
 from metaClasses import Combination, PermutationStep, Fragment, Compound, Port
 from add_to_ import get_tuple
+from pickle_loader import pickle_loader
 
 start = time.time()
 
@@ -77,7 +78,8 @@ for folder, subpocket in zip(folders, subpockets):
         combo = Combination(frag_ids=frozenset([frag_id]))
         frags_in_queue.add(combo)
 
-        ports = [Port(atom_id=dummy.GetProp('frag_atom_id'), subpocket=subpocket, neighboring_subpocket=dummy.GetProp('subpocket'))
+        ports = [Port(atom_id=dummy.GetProp('frag_atom_id'), subpocket=subpocket, neighboring_subpocket=dummy.GetProp('subpocket'),
+                      bond_type=fragment.GetBondBetweenAtoms(dummy.GetIdx(), dummy.GetNeighbors()[0].GetIdx()).GetBondType())
                  for dummy in dummy_atoms]
 
         compound = Compound(frag_ids=[frag_id], subpockets=[subpocket], ports=ports, bonds=[])
@@ -101,6 +103,10 @@ print('Number of fragmentation sites: ', len(queue))
 # ============================= PERMUTATION ===============================================
 
 count_iterations = 0
+n_tmp_file_out = 0
+n_tmp_file_in = 0
+limit = 1000000
+n_out = int(limit/2)
 
 # while queue not empty
 while queue:
@@ -108,6 +114,34 @@ while queue:
     # first element in queue of fragmentation sites to be processed
     # print(len(queue))
     ps = queue.popleft()
+
+    # ========================== TEMP OUTPUT ===============================
+
+    # read back from tmp queue output file if queue is empty
+    tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_in)+'.pickle')
+    if len(queue) == 0 and tmp_q_path.exists():
+        pickle_in = tmp_q_path.open('rb')
+        for q_object in pickle_loader(pickle_in):
+            queue.append(q_object)
+        print('Read ' + str(n_out) + ' queue objects from tmp file', n_tmp_file_in)
+        print('Size of queue:', len(queue))
+        pickle_in.close()
+        Path.unlink(tmp_q_path)
+        n_tmp_file_in += 1
+
+    # if queue has reached limit length write part of it to temp output file:
+    elif len(queue) >= limit:
+        tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_out)+'.pickle')
+        pickle_out = tmp_q_path.open('wb')
+        print('Write ' + str(n_out) + ' queue objects to tmp file', n_tmp_file_out)
+        for i in range(n_out):
+            ps = queue.pop()  # last element of queue
+            pickle.dump(ps, pickle_out)
+        print('Size of queue:', len(queue))
+        pickle_out.close()
+        n_tmp_file_out += 1
+
+    # ======================================================================
 
     compound = ps.compound
     # dummy atom which is supposed to be replaced with new fragment
@@ -137,7 +171,12 @@ while queue:
             continue
 
         fragment_port = fragment_ports[0]
+        compound_port = [port for port in compound.ports if port.atom_id == dummy_atom][0]
+        if fragment_port.bond_type != compound_port.bond_type:
+            continue
+
         dummy_atom_2 = fragment_port.atom_id
+
 
         # combine fragments
         frag_ids = compound.frag_ids + [fragment.frag_id]

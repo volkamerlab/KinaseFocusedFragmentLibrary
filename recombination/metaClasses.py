@@ -48,8 +48,9 @@ class Fragment:
 
 class Port:
 
-    def __init__(self, atom_id, subpocket, neighboring_subpocket):
+    def __init__(self, atom_id, subpocket, neighboring_subpocket, bond_type):
 
         self.atom_id = atom_id  # atom ID of this dummy atom
         self.subpocket = subpocket  # subpocket of the current fragment containing the port
         self.neighboring_subpocket = neighboring_subpocket  # neighboring subpocket / subpocket of the dummy atom
+        self.bond_type = bond_type
