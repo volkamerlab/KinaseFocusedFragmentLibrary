@@ -23,6 +23,10 @@ output_path = Path('meta_library.pickle')
 if output_path.exists():
     Path.unlink(output_path)
 
+path = Path('./tmp')
+tmp_files = list(path.glob('tmp_queue*'))
+for tmp_file in tmp_files:
+    Path.unlink(tmp_file)
 
 # ============================= READ DATA ===============================================
 
@@ -37,12 +41,12 @@ subpockets = [str(folder)[-2:] for folder in folders]
 # create dictionary with all fragments for each subpocket
 # iterate over all fragments and add each fragmentation site to queue
 
-results = set()  # result set
-queue = deque()  # queue containing fragmentation sites to be processed
-frags_in_queue = set()  # set containing all fragments that have once been in the queue
-frag_set = set()  # only used in initialization for avoiding duplicates in fragment data set
+results = set()  # result set (Combinations)
+queue = deque()  # queue containing fragmentation sites to be processed (PermutationSteps containing Compounds)
+frags_in_queue = set()  # set containing all fragments that have once been in the queue (Combinations)
+frag_set = set()  # only used in initialization for avoiding duplicates in fragment data set (smiles & dummy atoms)
 
-data = {}
+data = {}  # (Fragments)
 for folder, subpocket in zip(folders, subpockets):
 
     file = folder / (subpocket + '.sdf')
