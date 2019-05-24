@@ -104,7 +104,7 @@ print('Number of fragmentation sites: ', len(queue))
 count_iterations = 0
 n_tmp_file_out = 0
 n_tmp_file_in = 0
-limit = 1000000
+limit = 100000
 n_out = int(limit/2)
 
 # while queue not empty
@@ -176,7 +176,6 @@ while queue:
 
         dummy_atom_2 = fragment_port.atom_id
 
-
         # combine fragments
         frag_ids = compound.frag_ids + [fragment.frag_id]
         subpockets = compound.subpockets + [neighboring_subpocket]
@@ -196,13 +195,13 @@ while queue:
             continue
 
         # check if new molecule is already in queue
-        new_compound = Compound(frag_ids=frag_ids, subpockets=subpockets, ports=ports, bonds=bonds)
-        if new_compound in frags_in_queue:
+        if combo in frags_in_queue:
             continue
 
         # else add ports of new molecule to queue
         frags_in_queue.add(combo)
         for port in ports:
+            new_compound = Compound(frag_ids=frag_ids, subpockets=subpockets, ports=ports, bonds=bonds)
             new_ps = PermutationStep(mol=new_compound, dummy=port.atom_id, subpocket=port.subpocket,
                                      neighboring_subpocket=port.neighboring_subpocket)
             queue.append(new_ps)
@@ -228,6 +227,7 @@ while queue:
                 new_ps = PermutationStep(mol=new_compound, dummy=port.atom_id, subpocket=port.subpocket,
                                          neighboring_subpocket=port.neighboring_subpocket)
                 queue.append(new_ps)
+            frags_in_queue.add(combo)
 
 # ============================= OUTPUT ===============================================
 
@@ -237,6 +237,16 @@ print('Number of resulting ligands: ', len(results))
 print('Number of ligands including duplicates: ', count_iterations)
 print('Overall number of fragments in queue: ', len(frags_in_queue))
 print('Time: ', runtime)
+
+stat_path = Path('statistics/statistics_' + str(in_arg) + '.txt')
+stat_file = stat_path.open('w')
+stat_file.write('Fragments ' + str(n_frags))
+stat_file.write('\nLigands ' + str(len(results)))
+stat_file.write('\nLigands2 ' + str(count_iterations))
+stat_file.write('\nQFragments ' + str(len(frags_in_queue)))
+#stat_file.write('\nErrors ' + str(count_exceptions))
+stat_file.write('\nTime ' + str(runtime))
+stat_file.close()
 
 with open(output_path, 'wb') as output_file:
     for result in results:
