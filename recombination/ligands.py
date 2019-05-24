@@ -2,7 +2,7 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 from rdkit.Chem.PropertyMol import PropertyMol
-Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AllProps)
+Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 
 from pathlib import Path
 import pickle
@@ -44,7 +44,7 @@ for folder, subpocket in zip(folders, subpockets):
         for a, atom in enumerate(fragment.GetAtoms()):
             frag_atom_id = subpocket + '_' + str(a)
             atom.SetProp('frag_atom_id', frag_atom_id)
-            # atom.SetProp('frag_id', frag_id)
+            atom.SetProp('frag_id', fragment.GetProp('complex_pdb'))
 
         fragments.append(fragment)
 
@@ -58,8 +58,8 @@ for folder, subpocket in zip(folders, subpockets):
 
 in_path = Path('meta_library.pickle')
 pickle_in = in_path.open('rb')
+out_file = Path('../CombinatorialLibrary/combinatorial_library.pickle').open('wb')
 
-#ligands = []
 ligand_smiles = set()
 # iterate over ligands
 for meta in pickle_loader(pickle_in):
@@ -113,13 +113,27 @@ for meta in pickle_loader(pickle_in):
         continue
 
     smiles = Chem.MolToSmiles(ligand)
-    #if smiles in ligand_smiles:
-    #    continue
+    if smiles in ligand_smiles:
+        continue
 
-    #ligands.append(ligand)
+    # clear properties
+    for prop in list(ligand.GetPropNames()):
+        ligand.ClearProp(prop)
+    for atom in ligand.GetAtoms():
+        atom.ClearProp('frag_atom_id')
+
+    pickle.dump(PropertyMol(ligand), out_file)
     ligand_smiles.add(smiles)
 
+out_file.close()
 
 runtime = time.time() - start
 print('Number of resulting ligands: ', len(ligand_smiles))
 print('Time: ', runtime)
+
+with open('ligand_smiles.pickle', 'wb') as pickle_out:
+    for smiles in ligand_smiles:
+        pickle.dump(smiles, pickle_out)
+
+
+

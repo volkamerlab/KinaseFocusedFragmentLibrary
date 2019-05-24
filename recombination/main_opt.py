@@ -64,7 +64,6 @@ for folder, subpocket in zip(folders, subpockets):
         for a, atom in enumerate(fragment.GetAtoms()):
             frag_atom_id = subpocket + '_' + str(a)
             atom.SetProp('frag_atom_id', frag_atom_id)
-            # atom.SetProp('frag_id', frag_id)
 
         # add all dummy atoms of this fragment to the queue if it has not been in there yet
         dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
@@ -233,9 +232,11 @@ while queue:
 # ============================= OUTPUT ===============================================
 
 # print statistics
+runtime = time.time() - start
 print('Number of resulting ligands: ', len(results))
 print('Number of ligands including duplicates: ', count_iterations)
 print('Overall number of fragments in queue: ', len(frags_in_queue))
+print('Time: ', runtime)
 
 with open(output_path, 'wb') as output_file:
     for result in results:
