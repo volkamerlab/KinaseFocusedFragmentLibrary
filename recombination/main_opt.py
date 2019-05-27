@@ -11,6 +11,7 @@ sys.path.append("../fragmentation/")
 from metaClasses import Combination, PermutationStep, Fragment, Compound, Port
 from add_to_ import get_tuple
 from pickle_loader import pickle_loader
+from mem_opt import results_to_file, is_in_results, is_in_queue, frags_in_queue_to_file
 
 start = time.time()
 
@@ -105,11 +106,17 @@ print('Number of fragmentation sites: ', len(queue))
 
 # ============================= PERMUTATION ===============================================
 
+# IDEA for frags_in_queue AND results:
+# store in file when certain number is reached
+# when comparing: load files one by one to compare
+
 count_iterations = 0
 n_tmp_file_out = 0
 n_tmp_file_in = 0
-limit = 100000
-n_out = int(limit/2)
+n_results_out = 0
+limit_q = 100000
+limit_r = 100000
+n_out = int(limit_q / 2)
 
 # while queue not empty
 while queue:
@@ -118,7 +125,7 @@ while queue:
     # print(len(queue))
     ps = queue.popleft()
 
-    # ========================== TEMP OUTPUT ===============================
+    # ========================== TEMP INPUT ================================
 
     # read back from tmp queue output file if queue is empty
     tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_in)+'.pickle')
@@ -132,8 +139,10 @@ while queue:
         Path.unlink(tmp_q_path)
         n_tmp_file_in += 1
 
+    # ========================== TEMP OUTPUT ===============================
+
     # if queue has reached limit length write part of it to temp output file:
-    elif len(queue) >= limit:
+    elif len(queue) >= limit_q:
         tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_out)+'.pickle')
         pickle_out = tmp_q_path.open('wb')
         print('Write ' + str(n_out) + ' queue objects to tmp file', n_tmp_file_out)
@@ -163,6 +172,9 @@ while queue:
             count_iterations += 1
             combo = Combination(frag_ids=frozenset(compound.frag_ids), bonds=frozenset(compound.bonds))
             results.add(combo)
+            if len(results) >= limit_r:
+                n_results_out = results_to_file(results, n_results_out)
+                results = set()
         continue
 
     # iterate over fragments that might be attached at the current position
@@ -195,6 +207,9 @@ while queue:
         if len(ports) == 0 or len(subpockets) == 6:
             count_iterations += 1
             results.add(combo)
+            if len(results) >= limit_r:
+                n_results_out = results_to_file(results, n_results_out)
+                results = set()
             something_added = True
             continue
 
@@ -221,6 +236,9 @@ while queue:
         elif len(ps.compound.subpockets) > 1 >= len(ps.compound.ports):
             count_iterations += 1
             results.add(combo)
+            if len(results) >= limit_r:
+                n_results_out = results_to_file(results, n_results_out)
+                results = set()
         # if other dummy atoms are present, remove current dummy (as nothing could be attached there) and add fragment to queue
         elif len(ps.compound.ports) > 1:
             new_ports = [port for port in ps.compound.ports if port.atom_id != ps.dummy]
@@ -235,23 +253,32 @@ while queue:
 
 # ============================= OUTPUT ===============================================
 
+count_results = 0
+for n in range(n_results_out):
+
+    pickle_in = Path('results/results' + str(n) + '.pickle').open('rb')
+    for result in pickle_loader(pickle_in):
+        results.add(result)
+        count_results += 1
+
 # print statistics
 runtime = time.time() - start
+print(count_results + len(results))
 print('Number of resulting ligands: ', len(results))
 print('Number of ligands including duplicates: ', count_iterations)
 print('Overall number of fragments in queue: ', len(frags_in_queue))
 print('Time: ', runtime)
 
-stat_path = Path('statistics/statistics_' + str(in_arg) + '.txt')
-stat_file = stat_path.open('w')
-stat_file.write('Fragments ' + str(n_frags))
-stat_file.write('\nLigands ' + str(len(results)))
-stat_file.write('\nLigands2 ' + str(count_iterations))
-stat_file.write('\nQFragments ' + str(len(frags_in_queue)))
-#stat_file.write('\nErrors ' + str(count_exceptions))
-stat_file.write('\nTime ' + str(runtime))
-stat_file.close()
-
-with open(output_path, 'wb') as output_file:
-    for result in results:
-        pickle.dump(result, output_file)
+# stat_path = Path('statistics/statistics_' + str(in_arg) + '.txt')
+# stat_file = stat_path.open('w')
+# stat_file.write('Fragments ' + str(n_frags))
+# stat_file.write('\nLigands ' + str(len(results)))
+# stat_file.write('\nLigands2 ' + str(count_iterations))
+# stat_file.write('\nQFragments ' + str(len(frags_in_queue)))
+# #stat_file.write('\nErrors ' + str(count_exceptions))
+# stat_file.write('\nTime ' + str(runtime))
+# stat_file.close()
+#
+# with open(output_path, 'wb') as output_file:
+#     for result in results:
+#         pickle.dump(result, output_file)
