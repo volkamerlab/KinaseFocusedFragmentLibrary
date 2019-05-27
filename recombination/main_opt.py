@@ -11,7 +11,7 @@ sys.path.append("../fragmentation/")
 from metaClasses import Combination, PermutationStep, Fragment, Compound, Port
 from add_to_ import get_tuple
 from pickle_loader import pickle_loader
-from mem_opt import results_to_file, is_in_results, is_in_queue, frags_in_queue_to_file
+from mem_opt import results_to_file, add_to_results, add_to_queue, frags_in_queue_to_file
 
 start = time.time()
 
@@ -20,14 +20,19 @@ if len(sys.argv) > 1:
 else:
     in_arg = 5000
 
-output_path = Path('meta_library.pickle')
-if output_path.exists():
-    Path.unlink(output_path)
+# output_path = Path('meta_library.pickle')
+# if output_path.exists():
+#     Path.unlink(output_path)
 
 path = Path('./tmp')
 tmp_files = list(path.glob('tmp_queue*'))
 for tmp_file in tmp_files:
     Path.unlink(tmp_file)
+
+path = Path('./results')
+out_files = list(path.glob('results*'))
+for out_file in out_files:
+    Path.unlink(out_file)
 
 # ============================= READ DATA ===============================================
 
@@ -111,12 +116,15 @@ print('Number of fragmentation sites: ', len(queue))
 # when comparing: load files one by one to compare
 
 count_iterations = 0
+count_results = 0
 n_tmp_file_out = 0
 n_tmp_file_in = 0
 n_results_out = 0
 limit_q = 100000
 limit_r = 100000
 n_out = int(limit_q / 2)
+
+results_temp = set()
 
 # while queue not empty
 while queue:
@@ -171,8 +179,13 @@ while queue:
         if len(compound.subpockets) > 1 >= len(compound.ports):
             count_iterations += 1
             combo = Combination(frag_ids=frozenset(compound.frag_ids), bonds=frozenset(compound.bonds))
-            results.add(combo)
+            # add new result to results
+            results_temp.add(combo)
+            if len(results_temp) >= limit_r:
+                add_to_results(results_temp, results, n_results_out)
+                results_temp = set()
             if len(results) >= limit_r:
+                count_results += len(results)
                 n_results_out = results_to_file(results, n_results_out)
                 results = set()
         continue
@@ -206,8 +219,13 @@ while queue:
         combo = Combination(frag_ids=frozenset(frag_ids), bonds=frozenset(bonds))
         if len(ports) == 0 or len(subpockets) == 6:
             count_iterations += 1
-            results.add(combo)
+            # add new result to results
+            results_temp.add(combo)
+            if len(results_temp) >= limit_r:
+                add_to_results(results_temp, results, n_results_out)
+                results_temp = set()
             if len(results) >= limit_r:
+                count_results += len(results)
                 n_results_out = results_to_file(results, n_results_out)
                 results = set()
             something_added = True
@@ -235,8 +253,13 @@ while queue:
 
         elif len(ps.compound.subpockets) > 1 >= len(ps.compound.ports):
             count_iterations += 1
-            results.add(combo)
+            # add new result to results
+            results_temp.add(combo)
+            if len(results_temp) >= limit_r:
+                add_to_results(results_temp, results, n_results_out)
+                results_temp = set()
             if len(results) >= limit_r:
+                count_results += len(results)
                 n_results_out = results_to_file(results, n_results_out)
                 results = set()
         # if other dummy atoms are present, remove current dummy (as nothing could be attached there) and add fragment to queue
@@ -253,18 +276,26 @@ while queue:
 
 # ============================= OUTPUT ===============================================
 
-count_results = 0
-for n in range(n_results_out):
+# write remaining results to file
+add_to_results(results_temp, results, n_results_out)
+results_temp = set()
+n_results_out = results_to_file(results, n_results_out)
+count_results += len(results)
+results = set()
 
-    pickle_in = Path('results/results' + str(n) + '.pickle').open('rb')
-    for result in pickle_loader(pickle_in):
-        results.add(result)
-        count_results += 1
+runtime = time.time() - start
+
+# count_results = 0
+# for n in range(n_results_out):
+#
+#     pickle_in = Path('results/results' + str(n) + '.pickle').open('rb')
+#     for result in pickle_loader(pickle_in):
+#         results.add(result)
+#         count_results += 1
+
 
 # print statistics
-runtime = time.time() - start
-print(count_results + len(results))
-print('Number of resulting ligands: ', len(results))
+print('Number of resulting ligands: ', count_results)
 print('Number of ligands including duplicates: ', count_iterations)
 print('Overall number of fragments in queue: ', len(frags_in_queue))
 print('Time: ', runtime)
