@@ -1,14 +1,12 @@
+# Construct all ligands from Combination objects in file 'meta_library.pickle'
+
 from rdkit import Chem
-from rdkit.Chem import Draw
-from rdkit.Chem import AllChem
 from rdkit.Chem.PropertyMol import PropertyMol
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 
 from pathlib import Path
 import pickle
-import sys
 import time
-sys.path.append("../fragmentation/")
 
 from pickle_loader import pickle_loader
 from construct_ligand import construct_ligand
