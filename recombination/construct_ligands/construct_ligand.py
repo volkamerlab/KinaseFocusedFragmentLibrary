@@ -3,7 +3,7 @@ from pathlib import Path
 
 # ============================= READ FRAGMENT ===============================================
 
-path_to_library = Path('../FragmentLibrary')
+path_to_library = Path('../../FragmentLibrary')
 
 # list of folders for each subpocket
 folders = list(path_to_library.glob('*'))
