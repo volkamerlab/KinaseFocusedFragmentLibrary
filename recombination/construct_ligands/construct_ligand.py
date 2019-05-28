@@ -23,8 +23,6 @@ for folder, subpocket in zip(folders, subpockets):
     for i, fragment in enumerate(mols):
 
         fragment = Chem.RemoveHs(fragment)
-        # frag_id = subpocket + '_' + str(i)
-        # fragment.SetProp('frag_id', frag_id)
 
         # store unique atom identifiers
         for a, atom in enumerate(fragment.GetAtoms()):
