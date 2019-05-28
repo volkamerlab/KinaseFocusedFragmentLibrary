@@ -19,6 +19,7 @@ start = time.time()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', '--n_frags', type=int, help='Number of input fragments per subpocket', required=False)
+parser.add_argument('-s', '--subpockets', type=str, help='Start from these subpockets only.', required=False, nargs='+')
 args = parser.parse_args()
 
 path = Path('./tmp')
@@ -38,6 +39,11 @@ path_to_library = Path('../FragmentLibrary')
 # list of folders for each subpocket
 folders = list(path_to_library.glob('*'))
 subpockets = [str(folder)[-2:] for folder in folders]
+
+if args.subpockets:
+    start_subpockets = args.subpockets
+else:
+    start_subpockets = subpockets
 
 # read data
 
@@ -84,18 +90,20 @@ for folder, subpocket in zip(folders, subpockets):
             continue
         frag_set.add((frag_smiles, dummy_set))
 
-        combo = Combination(frag_ids=frozenset([frag_id]))
-        frags_in_queue.add(combo)
-
         ports = [Port(atom_id=dummy.GetProp('frag_atom_id'), subpocket=subpocket, neighboring_subpocket=dummy.GetProp('subpocket'),
                       bond_type=fragment.GetBondBetweenAtoms(dummy.GetIdx(), dummy.GetNeighbors()[0].GetIdx()).GetBondType())
                  for dummy in dummy_atoms]
 
-        compound = Compound(frag_ids=[frag_id], subpockets=[subpocket], ports=ports, bonds=[])
-        for dummy in dummy_atoms:
-            ps = PermutationStep(mol=compound, dummy=dummy.GetProp('frag_atom_id'), subpocket=subpocket,
-                                 neighboring_subpocket=dummy.GetProp('subpocket'))
-            queue.append(ps)
+        if subpocket in start_subpockets:
+
+            compound = Compound(frag_ids=[frag_id], subpockets=[subpocket], ports=ports, bonds=[])
+            for dummy in dummy_atoms:
+                ps = PermutationStep(mol=compound, dummy=dummy.GetProp('frag_atom_id'), subpocket=subpocket,
+                                     neighboring_subpocket=dummy.GetProp('subpocket'))
+                queue.append(ps)
+
+            combo = Combination(frag_ids=frozenset([frag_id]))
+            frags_in_queue.add(combo)
 
         # store fragment in constant data set
         fragment = Fragment(frag_id=frag_id, subpocket=subpocket, ports=ports)
@@ -306,10 +314,14 @@ print('Number of ligands including duplicates: ', count_iterations)
 print('Overall number of fragments in queue: ', len(frags_in_queue))
 print('Time: ', runtime)
 
-if args.n_frags:
+if args.n_frags and args.subpockets:
+    stat_path = Path('statistics/statistics_' + str(args.n_frags) + '_' + '_'.join(start_subpockets) + '.txt')
+elif args.n_frags:
     stat_path = Path('statistics/statistics_' + str(args.n_frags) + '.txt')
+elif args.subpockets:
+    stat_path = Path('statistics/statistics_' + '_'.join(start_subpockets) + '.txt')
 else:
-    stat_path = Path('statistics/statistics_all.txt')
+    stat_path = Path('statistics/statistics.txt')
 stat_file = stat_path.open('w')
 stat_file.write('Fragments ' + str(n_frags))
 stat_file.write('\nLigands ' + str(count_results))
