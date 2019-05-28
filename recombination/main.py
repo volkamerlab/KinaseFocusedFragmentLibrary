@@ -4,6 +4,7 @@ Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AllProps)
 from collections import deque  # queue
 import time
 import sys
+import argparse
 from pathlib import Path
 import pickle
 
@@ -14,10 +15,11 @@ from results import results_to_file, add_to_results
 
 start = time.time()
 
-if len(sys.argv) > 1:
-    in_arg = int(sys.argv[1])
-else:
-    in_arg = 5000
+# ============================= COMMAND LINE ARGUMENTS ===================================
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-n', '--n_frags', type=int, help='Number of input fragments per subpocket', required=False)
+args = parser.parse_args()
 
 path = Path('./tmp')
 tmp_files = list(path.glob('tmp_queue*'))
@@ -55,7 +57,10 @@ for folder, subpocket in zip(folders, subpockets):
     # read molecules
     # keep hydrogen atoms
     suppl = Chem.SDMolSupplier(str(file), removeHs=False)
-    mols = [f for f in suppl][:in_arg]
+    if args.n_frags:
+        mols = [f for f in suppl][:args.n_frags]
+    else:
+        mols = [f for f in suppl]
 
     fragments = []
     for i, fragment in enumerate(mols):
@@ -301,7 +306,10 @@ print('Number of ligands including duplicates: ', count_iterations)
 print('Overall number of fragments in queue: ', len(frags_in_queue))
 print('Time: ', runtime)
 
-stat_path = Path('statistics/statistics_' + str(in_arg) + '.txt')
+if args.n_frags:
+    stat_path = Path('statistics/statistics_' + str(args.n_frags) + '.txt')
+else:
+    stat_path = Path('statistics/statistics_all.txt')
 stat_file = stat_path.open('w')
 stat_file.write('Fragments ' + str(n_frags))
 stat_file.write('\nLigands ' + str(count_results))
