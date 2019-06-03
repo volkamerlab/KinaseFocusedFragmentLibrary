@@ -3,12 +3,11 @@ Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AllProps)
 
 from collections import deque  # queue
 import time
-import sys
 import argparse
 from pathlib import Path
 import pickle
 
-from metaClasses import Combination, PermutationStep, Fragment, Compound, Port
+from classes_meta import Combination, PermutationStep, Fragment, Compound, Port
 from get_tuple import get_tuple
 from pickle_loader import pickle_loader
 from results import results_to_file, add_to_results
@@ -78,7 +77,7 @@ for folder, subpocket in zip(folders, subpockets):
 
         # store unique atom identifiers
         for a, atom in enumerate(fragment.GetAtoms()):
-            frag_atom_id = subpocket + '_' + str(a)
+            frag_atom_id = f'{subpocket}_{a}'
             atom.SetProp('frag_atom_id', frag_atom_id)
 
         # add all dummy atoms of this fragment to the queue if it has not been in there yet
@@ -146,12 +145,12 @@ while queue:
     # read back from tmp queue output file if queue is empty
     tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_in)+'.pickle')
     if len(queue) == 0 and tmp_q_path.exists():
-        pickle_in = tmp_q_path.open('rb')
-        for q_object in pickle_loader(pickle_in):
-            queue.append(q_object)
-        print('Read ' + str(n_out) + ' queue objects from tmp file', n_tmp_file_in)
-        print('Size of queue:', len(queue))
-        pickle_in.close()
+        with open(tmp_q_path, 'rb') as pickle_in:
+            for q_object in pickle_loader(pickle_in):
+                queue.append(q_object)
+            print('Read ' + str(n_out) + ' queue objects from tmp file', n_tmp_file_in)
+            print('Size of queue:', len(queue))
+
         Path.unlink(tmp_q_path)
         n_tmp_file_in += 1
 
@@ -160,13 +159,12 @@ while queue:
     # if queue has reached limit length write part of it to temp output file:
     elif len(queue) >= limit_q:
         tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_out)+'.pickle')
-        pickle_out = tmp_q_path.open('wb')
-        print('Write ' + str(n_out) + ' queue objects to tmp file', n_tmp_file_out)
-        for i in range(n_out):
-            ps = queue.pop()  # last element of queue
-            pickle.dump(ps, pickle_out)
-        print('Size of queue:', len(queue))
-        pickle_out.close()
+        with open(tmp_q_path, 'wb') as pickle_out:
+            print('Write ' + str(n_out) + ' queue objects to tmp file', n_tmp_file_out)
+            for i in range(n_out):
+                ps = queue.pop()  # last element of queue
+                pickle.dump(ps, pickle_out)
+            print('Size of queue:', len(queue))
         n_tmp_file_out += 1
 
     # ======================================================================
@@ -209,7 +207,7 @@ while queue:
             continue
 
         fragment_port = fragment_ports[0]
-        compound_port = [port for port in compound.ports if port.atom_id == dummy_atom][0]
+        compound_port = next(port for port in compound.ports if port.atom_id == dummy_atom)
         if fragment_port.bond_type != compound_port.bond_type:
             continue
 

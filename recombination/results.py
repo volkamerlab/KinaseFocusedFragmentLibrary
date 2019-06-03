@@ -25,11 +25,10 @@ def results_to_file(results, n_results_out):
     # write results in result set to output file
     n_out = len(results)
     out_path = Path('results/results' + str(n_results_out) + '.pickle')
-    pickle_out = out_path.open('wb')
-    print('Write ' + str(n_out) + ' results to file', n_results_out)
-    for result in results:
-        pickle.dump(result, pickle_out)
-    pickle_out.close()
+    with open(out_path, 'wb') as pickle_out:
+        print('Write ' + str(n_out) + ' results to file', n_results_out)
+        for result in results:
+            pickle.dump(result, pickle_out)
 
     return n_results_out + 1
 
@@ -56,7 +55,7 @@ def add_to_results(combos, results, n_results_out):
     if n_results_out == 0:
         for combo in combos:
             results.add(combo)
-        return None
+        return
 
     # if results files exist:
     # Check whether new results are already present in these file before adding to result set
@@ -64,14 +63,14 @@ def add_to_results(combos, results, n_results_out):
     for n in range(n_results_out):
 
         in_path = Path('results/results' + str(n) + '.pickle')
-        pickle_in = in_path.open('rb')
-        results_in = set(pickle_loader(pickle_in))
-        for combo in combos:
-            if combo in results_in:
-                duplicates.add(combo)
-        pickle_in.close()
+        with open(in_path, 'rb') as pickle_in:
+            results_in = set(pickle_loader(pickle_in))
+            for combo in combos:
+                if combo in results_in:
+                    duplicates.add(combo)
+
     new_combos = combos - duplicates
     for combo in new_combos:
         results.add(combo)
 
-    return None
+    return

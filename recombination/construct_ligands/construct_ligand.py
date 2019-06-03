@@ -26,7 +26,7 @@ for folder, subpocket in zip(folders, subpockets):
 
         # store unique atom identifiers
         for a, atom in enumerate(fragment.GetAtoms()):
-            frag_atom_id = subpocket + '_' + str(a)
+            frag_atom_id = f'{subpocket}_{a}'
             atom.SetProp('frag_atom_id', frag_atom_id)
             atom.SetProp('frag_id', fragment.GetProp('complex_pdb'))
 
@@ -35,12 +35,30 @@ for folder, subpocket in zip(folders, subpockets):
     data[subpocket] = fragments
 
     n_frags = len(fragments)
-    print('Number of fragments in '+subpocket+' :', n_frags)
+    print('Number of fragments in', subpocket,  ':', n_frags)
 
 
 # ============================= LIGAND CONSTRUCTION ============================================
 
 def construct_ligand(meta, ligand_smiles=None):
+
+    """
+    Construct a ligand by connecting multiple fragments based on a Combination object
+
+    Parameters
+    ----------
+    meta: Combination object
+        Molecule to be constructed
+    ligand_smiles: set(str)
+        set of SMILES strings; if the ligand is already in this set, it will not be returned
+
+    Returns
+    -------
+    ligand: RDKit Molecule or None
+        None if the ligand was not constructed
+        RDKit Molecule else.
+        
+    """
 
     global data
 
@@ -62,12 +80,15 @@ def construct_ligand(meta, ligand_smiles=None):
         fragment = combo
         i += 1
 
+    # for fragment_a, fragment_b in zip(fragments[:-1], fragments[1:]):
+    #     combo = Chem.CombineMols(fragment_a, fragment_b)
+
     bonds_matching = True
     ed_combo = Chem.EditableMol(combo)
     for bond in bonds:
 
-        dummy_1 = [atom for atom in combo.GetAtoms() if atom.GetProp('frag_atom_id') == bond[0]][0]
-        dummy_2 = [atom for atom in combo.GetAtoms() if atom.GetProp('frag_atom_id') == bond[1]][0]
+        dummy_1 = next(atom for atom in combo.GetAtoms() if atom.GetProp('frag_atom_id') == bond[0])
+        dummy_2 = next(atom for atom in combo.GetAtoms() if atom.GetProp('frag_atom_id') == bond[1])
         atom_1 = dummy_1.GetNeighbors()[0]
         atom_2 = dummy_2.GetNeighbors()[0]
 
@@ -89,14 +110,14 @@ def construct_ligand(meta, ligand_smiles=None):
 
     # do not construct this ligand if bond types are not matching
     if not bonds_matching:
-        return None
+        return
 
     smiles = Chem.MolToSmiles(ligand)
     if smiles in ligand_smiles:
-        return None
+        return
 
     # clear properties
-    for prop in list(ligand.GetPropNames()):
+    for prop in ligand.GetPropNames():
         ligand.ClearProp(prop)
     for atom in ligand.GetAtoms():
         atom.ClearProp('frag_atom_id')

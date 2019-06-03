@@ -29,7 +29,7 @@ def get_tuple(fragment, dummy_atoms):
     dummy_set = []
     for dummy in dummy_atoms:
         frag_smiles = Chem.ReplaceSubstructs(frag_smiles, Chem.MolFromSmiles(dummy.GetSmarts()), Chem.MolFromSmiles('*'))[0]
-        dummy_tuple = (dummy.GetProp('frag_atom_id'), dummy.GetProp('subpocket'))
+        dummy_tuple = dummy.GetProp('frag_atom_id'), dummy.GetProp('subpocket')
         dummy_set.append(dummy_tuple)
     frag_smiles = Chem.MolToSmiles(frag_smiles)
 
