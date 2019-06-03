@@ -15,7 +15,9 @@ For each input kinase-ligand complex, the kinase binding pocket is divided into 
 * B1 = Back pocket I
 * B2 = Back pocket II
 
-<img src ="./README_figures/subpocket_centers.jpg" width = "600" align="left">
+<img src ="./README_figures/subpocket_centers.jpg" width = "600" align="left"> 
+
+<br clear="all" />
 
 The ligands are fragmented according to these subpockets, and the fragments are stored in SD files (one SDF per subpocket).
 
