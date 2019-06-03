@@ -21,7 +21,7 @@ The ligands are fragmented according to these subpockets, and the fragments are 
 
 ## Recombination:
 
-Every possible fragment recombination is enumerated. 
+Every possible fragment recombination is enumerated in order to create a virtual combinatorial compound library. The fragments are reconnected only at the broken bonds, while preserving the original subpocket arrangements of each bond. The resulting ligands are stored in a binary file containing the fragment IDs and the bonds (as tuples of atom IDs) between the fragments for each ligand. 
 
 
 
