@@ -1,58 +1,35 @@
 from rdkit import Chem
-from rdkit.Chem import Draw
-from rdkit.Chem import AllChem
-from rdkit.Chem.PropertyMol import PropertyMol
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AllProps)
 
 from collections import deque  # queue
 import time
-import sys
+import argparse
 from pathlib import Path
 import pickle
-sys.path.append("../fragmentation/")
 
-from add_to_ import add_to_results, add_to_queue, get_tuple
+from classes_meta import Combination, PermutationStep, Fragment, Compound, Port
+from get_tuple import get_tuple
+from pickle_loader import pickle_loader
+from results import results_to_file, add_to_results
 
 start = time.time()
 
-if len(sys.argv) > 1:
-    in_arg = int(sys.argv[1])
-else:
-    in_arg = 5000
-limit = 100000  # in_arg*200  # if queue has reached limit, write fragments in queue to file
-n_out = int(limit/2)
-count_iterations = 0
+# ============================= COMMAND LINE ARGUMENTS ===================================
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-n', '--n_frags', type=int, help='Number of input fragments per subpocket', default=None)
+parser.add_argument('-s', '--subpockets', type=str, help='Start from these subpockets only.', required=False, nargs='+')
+args = parser.parse_args()
 
 path = Path('./tmp')
-tmp_files = list(path.glob('tmp_queue*'))
+tmp_files = path.glob('tmp_queue*')
 for tmp_file in tmp_files:
     Path.unlink(tmp_file)
 
-
-# ============================= FUNCTIONS ===============================================
-
-def pickle_loader(pickle_file):
-
-    """
-    Load a pickle file with multiple objects
-
-    Parameters
-    ----------
-    pickle_file: file object
-        input binary pickle file
-
-    Returns
-    -------
-    Generator object with loaded objects
-
-    """
-
-    try:
-        while True:
-            yield pickle.load(pickle_file)
-    except EOFError:
-        pass
-
+path = Path('./results')
+out_files = path.glob('results*')
+for out_file in out_files:
+    Path.unlink(out_file)
 
 # ============================= READ DATA ===============================================
 
@@ -60,18 +37,24 @@ path_to_library = Path('../FragmentLibrary')
 
 # list of folders for each subpocket
 folders = list(path_to_library.glob('*'))
-subpockets = [str(folder)[-2:] for folder in folders]
+subpockets = [folder.name for folder in folders]
+
+if args.subpockets:
+    start_subpockets = args.subpockets
+else:
+    start_subpockets = subpockets
 
 # read data
 
 # create dictionary with all fragments for each subpocket
 # iterate over all fragments and add each fragmentation site to queue
 
-results = set()  # result set
-queue = deque()  # queue containing fragmentation sites to be processed
-frags_in_queue = set()  # set containing all fragments that have once been in the queue
+results = set()  # result set (Combinations)
+queue = deque()  # queue containing fragmentation sites to be processed (PermutationSteps containing Compounds)
+frags_in_queue = set()  # set containing all fragments that have once been in the queue (Combinations)
+frag_set = set()  # only used in initialization for avoiding duplicates in fragment data set (smiles & dummy atoms)
 
-data = {}
+data = {}  # (Fragments)
 for folder, subpocket in zip(folders, subpockets):
 
     file = folder / (subpocket + '.sdf')
@@ -79,27 +62,48 @@ for folder, subpocket in zip(folders, subpockets):
     # read molecules
     # keep hydrogen atoms
     suppl = Chem.SDMolSupplier(str(file), removeHs=False)
-    mols = [f for f in suppl][:in_arg]
+    mols = [f for f in suppl][:args.n_frags]
 
     fragments = []
-    for fragment in mols:
+    for i, fragment in enumerate(mols):
 
         # ========================== INITIALIZATION ===============================
 
-        # fragment = Chem.AddHs(fragment)
         fragment = Chem.RemoveHs(fragment)
+        frag_id = f'{subpocket}_{i}'
 
-        # AllChem.Compute2DCoords(fragment, sampleSeed=1)
         # store unique atom identifiers
         for a, atom in enumerate(fragment.GetAtoms()):
-            frag_atom_id = subpocket + '_' + str(a)
+            frag_atom_id = f'{subpocket}_{a}'
             atom.SetProp('frag_atom_id', frag_atom_id)
-            atom.SetProp('frag_id', fragment.GetProp('complex_pdb'))
+
         # add all dummy atoms of this fragment to the queue if it has not been in there yet
-        _, added = add_to_queue(fragment, frags_in_queue, queue, [subpocket], depth=1)
-        if added:
-            # store fragment in constant data set
-            fragments.append(fragment)
+        dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
+        if not dummy_atoms:
+            continue
+        frag_smiles, dummy_set = get_tuple(fragment, dummy_atoms)
+        if (frag_smiles, dummy_set) in frag_set:
+            continue
+        frag_set.add((frag_smiles, dummy_set))
+
+        ports = [Port(atom_id=dummy.GetProp('frag_atom_id'), subpocket=subpocket, neighboring_subpocket=dummy.GetProp('subpocket'),
+                      bond_type=fragment.GetBondBetweenAtoms(dummy.GetIdx(), dummy.GetNeighbors()[0].GetIdx()).GetBondType())
+                 for dummy in dummy_atoms]
+
+        if subpocket in start_subpockets:
+
+            compound = Compound(frag_ids=[frag_id], subpockets=[subpocket], ports=ports, bonds=[])
+            for dummy in dummy_atoms:
+                ps = PermutationStep(mol=compound, dummy=dummy.GetProp('frag_atom_id'), subpocket=subpocket,
+                                     neighboring_subpocket=dummy.GetProp('subpocket'))
+                queue.append(ps)
+
+            combo = Combination(frag_ids=frozenset([frag_id]))
+            frags_in_queue.add(combo)
+
+        # store fragment in constant data set
+        fragment = Fragment(frag_id=frag_id, subpocket=subpocket, ports=ports)
+        fragments.append(fragment)
 
     data[subpocket] = fragments
 
@@ -111,10 +115,21 @@ print('Number of fragmentation sites: ', len(queue))
 
 # ============================= PERMUTATION ===============================================
 
+# IDEA for frags_in_queue AND results:
+# store in file when certain number is reached
+# when comparing: load files one by one to compare
+
+count_iterations = 0
+count_results = 0
 n_tmp_file_out = 0
 n_tmp_file_in = 0
+n_results_out = 0
+limit_q = 100000
+limit_r = 100000
+n_out = int(limit_q / 2)
 
-# Size of queue: 2000 objects ~ 1 MB
+results_temp = set()
+
 # while queue not empty
 while queue:
 
@@ -122,190 +137,190 @@ while queue:
     # print(len(queue))
     ps = queue.popleft()
 
-    # ========================== TEMP OUTPUT ===============================
+    # ========================== TEMP INPUT ================================
 
     # read back from tmp queue output file if queue is empty
     tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_in)+'.pickle')
     if len(queue) == 0 and tmp_q_path.exists():
-        pickle_in = tmp_q_path.open('rb')
-        for q_object in pickle_loader(pickle_in):
-            queue.append(q_object)
-        print('Read ' + str(n_out) + ' queue objects from tmp file', n_tmp_file_in)
-        print('Size of queue:', len(queue))
-        pickle_in.close()
+        with open(tmp_q_path, 'rb') as pickle_in:
+            for q_object in pickle_loader(pickle_in):
+                queue.append(q_object)
+            print('Read ' + str(n_out) + ' queue objects from tmp file', n_tmp_file_in)
+            print('Size of queue:', len(queue))
+
         Path.unlink(tmp_q_path)
         n_tmp_file_in += 1
 
+    # ========================== TEMP OUTPUT ===============================
+
     # if queue has reached limit length write part of it to temp output file:
-    elif len(queue) >= limit:
+    elif len(queue) >= limit_q:
         tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_out)+'.pickle')
-        pickle_out = tmp_q_path.open('wb')
-        print('Write ' + str(n_out) + ' queue objects to tmp file', n_tmp_file_out)
-        for i in range(n_out):
-            ps = queue.pop()  # last element of queue
-            ps.fragment = PropertyMol(ps.fragment)
-            pickle.dump(ps, pickle_out)
-        print('Size of queue:', len(queue))
-        pickle_out.close()
+        with open(tmp_q_path, 'wb') as pickle_out:
+            print('Write ' + str(n_out) + ' queue objects to tmp file', n_tmp_file_out)
+            for i in range(n_out):
+                ps = queue.pop()  # last element of queue
+                pickle.dump(ps, pickle_out)
+            print('Size of queue:', len(queue))
         n_tmp_file_out += 1
 
     # ======================================================================
 
-    fragment = ps.fragment
+    compound = ps.compound
     # dummy atom which is supposed to be replaced with new fragment
-    dummy_atom = fragment.GetAtomWithIdx(ps.dummy)
-    # connecting atom where the new bond will be made
-    atom = dummy_atom.GetNeighbors()[0]
+    dummy_atom = ps.dummy
     # subpocket to be attached
-    neighboring_subpocket = dummy_atom.GetProp('subpocket')
+    neighboring_subpocket = ps.neighboring_subpocket
     # subpocket of current fragment
-    subpocket = atom.GetProp('subpocket')
+    subpocket = ps.subpocket
 
     something_added = False
 
     # check if subpocket already targeted by this fragment
-    if neighboring_subpocket in ps.subpockets:
+    if neighboring_subpocket in compound.subpockets:
         # store fragment as ligand if no other open fragmentation sites left
-        dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
-        if ps.depth > 1 >= len(dummy_atoms):
+        if len(compound.subpockets) > 1 >= len(compound.ports):
             count_iterations += 1
-            add_to_results(fragment, dummy_atoms, results)
+            combo = Combination(frag_ids=frozenset(compound.frag_ids), bonds=frozenset(compound.bonds))
+            # add new result to results
+            results_temp.add(combo)
+            if len(results_temp) >= limit_r:
+                add_to_results(results_temp, results, n_results_out)
+                results_temp = set()
+            if len(results) >= limit_r:
+                count_results += len(results)
+                n_results_out = results_to_file(results, n_results_out)
+                results = set()
         continue
 
+    # ========================== ITERATION OVER FRAGMENTS ===============================
+
     # iterate over fragments that might be attached at the current position
-    for fragment_2 in data[neighboring_subpocket]:
+    for fragment in data[neighboring_subpocket]:
 
         # check if fragment has matching fragmentation site
-        dummy_atoms_2 = [a for a in fragment_2.GetAtoms() if a.GetSymbol() == '*'
-                         and a.GetProp('subpocket') == subpocket]
-        if not dummy_atoms_2:
+        fragment_ports = [port for port in fragment.ports if port.neighboring_subpocket == subpocket]
+        if not fragment_ports:
             continue
 
-        dummy_atom_2 = dummy_atoms_2[0]
-        atom_2 = dummy_atom_2.GetNeighbors()[0]
-
-        # check bond types
-        bond_type_1 = fragment.GetBondBetweenAtoms(dummy_atom.GetIdx(), atom.GetIdx()).GetBondType()
-        bond_type_2 = fragment_2.GetBondBetweenAtoms(dummy_atom_2.GetIdx(), atom_2.GetIdx()).GetBondType()
-        if bond_type_1 != bond_type_2:
+        fragment_port = fragment_ports[0]
+        compound_port = next(port for port in compound.ports if port.atom_id == dummy_atom)
+        if fragment_port.bond_type != compound_port.bond_type:
             continue
 
-        dummy_1_id = dummy_atom.GetProp('frag_atom_id')
-        dummy_2_id = dummy_atom_2.GetProp('frag_atom_id')
+        dummy_atom_2 = fragment_port.atom_id
 
-        # combine fragments to one molecule object
-        combo = Chem.CombineMols(fragment, fragment_2)
+        # combine fragments
+        frag_ids = compound.frag_ids + [fragment.frag_id]
+        subpockets = compound.subpockets + [neighboring_subpocket]
+        bonds = compound.bonds + [frozenset((dummy_atom, dummy_atom_2))]
 
-        # find dummy atoms of new combined molecule
-        dummy_atom_1 = [a for a in combo.GetAtoms() if a.HasProp('frag_atom_id') if a.GetProp('frag_atom_id') == dummy_1_id][0]
-        dummy_atom_2 = [a for a in combo.GetAtoms() if a.HasProp('frag_atom_id') if a.GetProp('frag_atom_id') == dummy_2_id][0]
+        # remove dummy atoms
+        ports = [port for port in compound.ports if port.atom_id != dummy_atom]
+        ports.extend([port for port in fragment.ports if port.atom_id != dummy_atom_2])
 
-        # find atoms to be connected
-        atom_1 = dummy_atom_1.GetNeighbors()[0]
-        atom_2 = dummy_atom_2.GetNeighbors()[0]
+        # ========================== ADD TO RESULTS ===============================
 
-        # add bond between atoms
-        ed_combo = Chem.EditableMol(combo)
-        ed_combo.AddBond(atom_1.GetIdx(), atom_2.GetIdx(), order=bond_type_1)
-
-        # remove dummy atom
-        atomsToRemove = [dummy_atom_1.GetIdx(), dummy_atom_2.GetIdx()]
-        atomsToRemove.sort(reverse=True)
-        for atomToRemove in atomsToRemove:
-            ed_combo.RemoveAtom(atomToRemove)
-
-        result = ed_combo.GetMol()
-
-        # skip this fragment if no bond could be created
-        smiles = Chem.MolToSmiles(result)
-        if '.' in smiles:
-            print('No bond created.', atom_1.GetSymbol(), atom_2.GetSymbol())
-            continue
-
-        # result = Chem.AddHs(result, explicitOnly=True)
-
-        # dummy atoms of new molecule
-        dummy_atoms = [a for a in result.GetAtoms() if a.GetSymbol() == '*']
-
-        # if no dummy atoms present, ligand is finished
+        # if no ports present, ligand is finished
         # if max depth is reached, ligand is also finished, because all subpockets are explored
-        if (not dummy_atoms) or (ps.depth+1 == len(subpockets)):
+        combo = Combination(frag_ids=frozenset(frag_ids), bonds=frozenset(bonds))
+        if len(ports) == 0 or len(subpockets) == 6:
             count_iterations += 1
-            add_to_results(result, dummy_atoms, results)
+            # add new result to results
+            results_temp.add(combo)
+            if len(results_temp) >= limit_r:
+                add_to_results(results_temp, results, n_results_out)
+                results_temp = set()
+            if len(results) >= limit_r:
+                count_results += len(results)
+                n_results_out = results_to_file(results, n_results_out)
+                results = set()
             something_added = True
             continue
 
-        # else add fragmentation sites of new molecule to queue
-        something_added, _ = add_to_queue(result, frags_in_queue, queue, ps.subpockets+[neighboring_subpocket], depth=ps.depth+1)
+        # ========================== ADD TO QUEUE ===============================
+
+        # check if new molecule is already in queue
+        if combo in frags_in_queue:
+            continue
+
+        # else add ports of new molecule to queue
+        frags_in_queue.add(combo)
+        for port in ports:
+            new_compound = Compound(frag_ids=frag_ids, subpockets=subpockets, ports=ports, bonds=bonds)
+            new_ps = PermutationStep(mol=new_compound, dummy=port.atom_id, subpocket=port.subpocket,
+                                     neighboring_subpocket=port.neighboring_subpocket)
+            queue.append(new_ps)
+        something_added = True
+
+    # ===========================================================================
 
     # if nothing was added to ps.fragment: store fragment itself as ligand (if it has depth>1 and no other dummy atoms and was not yet in queue)
     if not something_added:
-        dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
-        if get_tuple(fragment, dummy_atoms) in frags_in_queue:
-            continue
-        elif ps.depth > 1 >= len(dummy_atoms):
-            count_iterations += 1
-            add_to_results(fragment, dummy_atoms, results)
-        # if other dummy atoms are present, remove current dummy (as nothing could be attached there) and add fragment to queue
-        elif len(dummy_atoms) > 1:
-            fragment_stripped = Chem.DeleteSubstructs(fragment, Chem.MolFromSmiles(dummy_atom.GetSmarts()))
-            add_to_queue(fragment_stripped, frags_in_queue, queue, ps.subpockets, ps.depth)
 
+        combo = Combination(frag_ids=frozenset(ps.compound.frag_ids), bonds=frozenset(ps.compound.bonds))
+        if combo in frags_in_queue:
+            continue
+
+        # ========================== ADD TO RESULTS ===============================
+
+        elif len(ps.compound.subpockets) > 1 >= len(ps.compound.ports):
+            count_iterations += 1
+            # add new result to results
+            results_temp.add(combo)
+            if len(results_temp) >= limit_r:
+                add_to_results(results_temp, results, n_results_out)
+                results_temp = set()
+            if len(results) >= limit_r:
+                count_results += len(results)
+                n_results_out = results_to_file(results, n_results_out)
+                results = set()
+
+        # ========================== ADD TO QUEUE ===============================
+
+        # if other dummy atoms are present, remove current dummy (as nothing could be attached there) and add fragment to queue
+        elif len(ps.compound.ports) > 1:
+            new_ports = [port for port in ps.compound.ports if port.atom_id != ps.dummy]
+            new_compound = Compound(frag_ids=ps.compound.frag_ids, subpockets=ps.compound.subpockets, ports=new_ports, bonds=ps.compound.bonds)
+            for port in new_compound.ports:
+                if port.neighboring_subpocket in new_compound.subpockets:
+                    continue
+                new_ps = PermutationStep(mol=new_compound, dummy=port.atom_id, subpocket=port.subpocket,
+                                         neighboring_subpocket=port.neighboring_subpocket)
+                queue.append(new_ps)
+                something_added = True
+            if something_added:
+                frags_in_queue.add(combo)
 
 # ============================= OUTPUT ===============================================
 
-# write statistics to file
+# write remaining results to file
+add_to_results(results_temp, results, n_results_out)
+results_temp = set()
+n_results_out = results_to_file(results, n_results_out)
+count_results += len(results)
+results = set()
+
 runtime = time.time() - start
 
-count_exceptions = 0
-# # write ligands to file
-# output_path = Path('../CombinatorialLibrary/combinatorial_library.sdf')
-# output_file = output_path.open('w')
-# w = Chem.SDWriter(output_file)
-# for mol in results:
-#     try:
-#         w.write(Chem.MolFromSmiles(mol))  # sanitize=False ?
-#     except Exception:
-#         count_exceptions += 1
-#         with open('exceptions.txt', 'a') as exception_file:
-#             exception_file.write(mol+'\n')
-# w.close()
-# output_file.close()
-
-stat_path = Path('statistics_' + str(in_arg) + '.txt')
-stat_file = stat_path.open('w')
-stat_file.write('Fragments ' + str(n_frags))
-stat_file.write('\nLigands ' + str(len(results)))
-stat_file.write('\nLigands2 ' + str(count_iterations))
-stat_file.write('\nQFragments ' + str(len(frags_in_queue)))
-stat_file.write('\nErrors ' + str(count_exceptions))
-stat_file.write('\nTime ' + str(runtime))
-stat_file.close()
-
 # print statistics
-print('Number of resulting ligands: ', len(results))
+print('Number of resulting ligands: ', count_results)
 print('Number of ligands including duplicates: ', count_iterations)
-print('Number of ligands with sanitization error: ', count_exceptions)
 print('Overall number of fragments in queue: ', len(frags_in_queue))
 print('Time: ', runtime)
 
-# draw some ligands
-# results = [Chem.RemoveHs(Chem.MolFromSmiles(mol, sanitize=False), sanitize=False) for mol in results]
-# img = Draw.MolsToGridImage(list(results)[:100], molsPerRow=6)
-# img.save('test.png')
+if args.n_frags and args.subpockets:
+    stat_path = Path('statistics/statistics_' + str(args.n_frags) + '_' + '_'.join(start_subpockets) + '.txt')
+elif args.n_frags:
+    stat_path = Path('statistics/statistics_' + str(args.n_frags) + '.txt')
+elif args.subpockets:
+    stat_path = Path('statistics/statistics_' + '_'.join(start_subpockets) + '.txt')
+else:
+    stat_path = Path('statistics/statistics.txt')
 
-# Problems:
-
-# - Queue and result set explodes from in_arg=10 (52 fragments) on  -> Why??
-
-# - AddBonds does not always actually create a bond -> Output example!
-
-# - Inferring 3D coordinates does not always work -> Output example!
-
-# - Inferring 3D coordinates takes super long! -> Solution: smaller number of attempts
-
-# TO DO:
-
-# Parallelize? Write part of queue temporarily to hard drive?
-
-# remember fragments of which resulting ligand consists
+with open(stat_path, 'w') as stat_file:
+    stat_file.write('Fragments ' + str(n_frags))
+    stat_file.write('\nLigands ' + str(count_results))
+    stat_file.write('\nLigands2 ' + str(count_iterations))
+    stat_file.write('\nQFragments ' + str(len(frags_in_queue)))
+    stat_file.write('\nTime ' + str(runtime))
