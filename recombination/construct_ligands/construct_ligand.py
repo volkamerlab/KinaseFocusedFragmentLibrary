@@ -57,7 +57,7 @@ def construct_ligand(meta, ligand_smiles=None):
     ligand: RDKit Molecule or None
         None if the ligand was not constructed
         RDKit Molecule else.
-        
+
     """
 
     global data

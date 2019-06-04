@@ -22,12 +22,12 @@ parser.add_argument('-s', '--subpockets', type=str, help='Start from these subpo
 args = parser.parse_args()
 
 path = Path('./tmp')
-tmp_files = list(path.glob('tmp_queue*'))
+tmp_files = path.glob('tmp_queue*')
 for tmp_file in tmp_files:
     Path.unlink(tmp_file)
 
 path = Path('./results')
-out_files = list(path.glob('results*'))
+out_files = path.glob('results*')
 for out_file in out_files:
     Path.unlink(out_file)
 
@@ -73,7 +73,7 @@ for folder, subpocket in zip(folders, subpockets):
         # ========================== INITIALIZATION ===============================
 
         fragment = Chem.RemoveHs(fragment)
-        frag_id = subpocket + '_' + str(i)
+        frag_id = f'{subpocket}_{i}'
 
         # store unique atom identifiers
         for a, atom in enumerate(fragment.GetAtoms()):
@@ -320,10 +320,10 @@ elif args.subpockets:
     stat_path = Path('statistics/statistics_' + '_'.join(start_subpockets) + '.txt')
 else:
     stat_path = Path('statistics/statistics.txt')
-stat_file = stat_path.open('w')
-stat_file.write('Fragments ' + str(n_frags))
-stat_file.write('\nLigands ' + str(count_results))
-stat_file.write('\nLigands2 ' + str(count_iterations))
-stat_file.write('\nQFragments ' + str(len(frags_in_queue)))
-stat_file.write('\nTime ' + str(runtime))
-stat_file.close()
+
+with open(stat_path, 'w') as stat_file:
+    stat_file.write('Fragments ' + str(n_frags))
+    stat_file.write('\nLigands ' + str(count_results))
+    stat_file.write('\nLigands2 ' + str(count_iterations))
+    stat_file.write('\nQFragments ' + str(len(frags_in_queue)))
+    stat_file.write('\nTime ' + str(runtime))
