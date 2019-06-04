@@ -11,14 +11,16 @@ import sys
 sys.path.append('../')
 
 from pickle_loader import pickle_loader
-from construct_ligand import construct_ligand
+from construct_ligand import construct_ligand, read_fragment_library
 
 start = time.time()
+
+data = read_fragment_library(Path('../../FragmentLibrary'))
 
 # ============================= LIGAND CONSTRUCTION ============================================
 
 path_to_library = Path('../results')
-in_paths = list(path_to_library.glob('*.pickle'))
+in_paths = path_to_library.glob('*.pickle')
 
 out_path = '../../CombinatorialLibrary/combinatorial_library.pickle'
 with open(out_path, 'wb') as out_file:
@@ -31,7 +33,7 @@ with open(out_path, 'wb') as out_file:
         with open(in_path, 'rb') as pickle_in:
             for meta in pickle_loader(pickle_in):
 
-                ligand = construct_ligand(meta, ligand_smiles=ligand_smiles)
+                ligand = construct_ligand(meta, data, ligand_smiles=ligand_smiles)
                 if not ligand:
                     continue
                 property_ligand = PropertyMol(ligand)

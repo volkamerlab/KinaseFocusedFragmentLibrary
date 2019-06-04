@@ -1,46 +1,63 @@
 from rdkit import Chem
-from pathlib import Path
+
 
 # ============================= READ FRAGMENT ===============================================
 
-path_to_library = Path('../../FragmentLibrary')
+def read_fragment_library(path_to_library):
 
-# list of folders for each subpocket
-folders = list(path_to_library.glob('*'))
-subpockets = [str(folder)[-2:] for folder in folders]
+    """
+    Read fragment library
 
-data = {}
-for folder, subpocket in zip(folders, subpockets):
+    Parameters
+    ----------
+    path_to_library: PosixPath
+        path to the folder containing
 
-    file = folder / (subpocket + '.sdf')
+    Returns
+    -------
+    data: dict(list(RDKit Molecule))
+        dictionary with list of fragments for each subpocket
 
-    # read molecules
-    # keep hydrogen atoms
-    suppl = Chem.SDMolSupplier(str(file), removeHs=False)
-    mols = [f for f in suppl]
+    """
 
-    fragments = []
-    for i, fragment in enumerate(mols):
+    # list of folders for each subpocket
+    folders = list(path_to_library.glob('*'))
+    subpockets = [folder.name for folder in folders]
 
-        fragment = Chem.RemoveHs(fragment)
+    data = {}
+    for folder, subpocket in zip(folders, subpockets):
 
-        # store unique atom identifiers
-        for a, atom in enumerate(fragment.GetAtoms()):
-            frag_atom_id = f'{subpocket}_{a}'
-            atom.SetProp('frag_atom_id', frag_atom_id)
-            atom.SetProp('frag_id', fragment.GetProp('complex_pdb'))
+        file = folder / (subpocket + '.sdf')
 
-        fragments.append(fragment)
+        # read molecules
+        # keep hydrogen atoms
+        suppl = Chem.SDMolSupplier(str(file), removeHs=False)
+        mols = [f for f in suppl]
 
-    data[subpocket] = fragments
+        fragments = []
+        for i, fragment in enumerate(mols):
 
-    n_frags = len(fragments)
-    print('Number of fragments in', subpocket,  ':', n_frags)
+            fragment = Chem.RemoveHs(fragment)
+
+            # store unique atom identifiers
+            for a, atom in enumerate(fragment.GetAtoms()):
+                frag_atom_id = f'{subpocket}_{a}'
+                atom.SetProp('frag_atom_id', frag_atom_id)
+                atom.SetProp('frag_id', fragment.GetProp('complex_pdb'))
+
+            fragments.append(fragment)
+
+        data[subpocket] = fragments
+
+        n_frags = len(fragments)
+        print('Number of fragments in', subpocket,  ':', n_frags)
+
+    return data
 
 
 # ============================= LIGAND CONSTRUCTION ============================================
 
-def construct_ligand(meta, ligand_smiles=None):
+def construct_ligand(meta, data, ligand_smiles=None):
 
     """
     Construct a ligand by connecting multiple fragments based on a Combination object
@@ -60,8 +77,6 @@ def construct_ligand(meta, ligand_smiles=None):
 
     """
 
-    global data
-
     frag_ids = meta.frag_ids
     bonds = [tuple(bond) for bond in meta.bonds]
 
@@ -72,16 +87,9 @@ def construct_ligand(meta, ligand_smiles=None):
         fragment = data[subpocket][idx]
         fragments.append(fragment)
 
-    # combine fragments
-    i = 0
-    fragment = fragments[i]
-    for j in range(len(fragments) - 1):
-        combo = Chem.CombineMols(fragment, fragments[i + 1])
-        fragment = combo
-        i += 1
-
-    # for fragment_a, fragment_b in zip(fragments[:-1], fragments[1:]):
-    #     combo = Chem.CombineMols(fragment_a, fragment_b)
+    # combine fragments using map reduce model
+    from functools import reduce
+    combo = reduce(Chem.CombineMols, fragments)
 
     bonds_matching = True
     ed_combo = Chem.EditableMol(combo)

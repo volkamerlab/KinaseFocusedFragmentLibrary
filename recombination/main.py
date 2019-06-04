@@ -17,7 +17,7 @@ start = time.time()
 # ============================= COMMAND LINE ARGUMENTS ===================================
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-n', '--n_frags', type=int, help='Number of input fragments per subpocket', required=False)
+parser.add_argument('-n', '--n_frags', type=int, help='Number of input fragments per subpocket', default=None)
 parser.add_argument('-s', '--subpockets', type=str, help='Start from these subpockets only.', required=False, nargs='+')
 args = parser.parse_args()
 
@@ -37,7 +37,7 @@ path_to_library = Path('../FragmentLibrary')
 
 # list of folders for each subpocket
 folders = list(path_to_library.glob('*'))
-subpockets = [str(folder)[-2:] for folder in folders]
+subpockets = [folder.name for folder in folders]
 
 if args.subpockets:
     start_subpockets = args.subpockets
@@ -62,10 +62,7 @@ for folder, subpocket in zip(folders, subpockets):
     # read molecules
     # keep hydrogen atoms
     suppl = Chem.SDMolSupplier(str(file), removeHs=False)
-    if args.n_frags:
-        mols = [f for f in suppl][:args.n_frags]
-    else:
-        mols = [f for f in suppl]
+    mols = [f for f in suppl][:args.n_frags]
 
     fragments = []
     for i, fragment in enumerate(mols):
