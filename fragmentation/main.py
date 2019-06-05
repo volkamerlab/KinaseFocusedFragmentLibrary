@@ -30,6 +30,8 @@ count_multi_ligands = 0
 count_missing_res = 0
 count_structures = 0
 
+phosphate = Chem.MolFromSmiles('O[P](=O)(O)O')
+
 # ============================= DATA PREPARATION ============================================
 
 path_to_library = Path('../FragmentLibrary')
@@ -45,7 +47,7 @@ KLIFSData = KLIFSData[KLIFSData.dfg == 'in']
 after_dfg = len(KLIFSData)
 count_dfg_out = before - after_dfg
 # We are not interested in adenosine phosphates
-KLIFSData = KLIFSData[~KLIFSData.pdb_id.isin(['AMP', 'ADP', 'ATP', 'ACP', 'ANP'])]
+KLIFSData = KLIFSData[~KLIFSData.pdb_id.isin(['AMP', 'ADP', 'ATP', 'ACP', 'ANP', 'ADN', 'AGS'])]
 after_phosphates = len(KLIFSData)
 count_phosphates = after_dfg - after_phosphates
 
@@ -53,6 +55,7 @@ count_phosphates = after_dfg - after_phosphates
 
 
 # clear output files and create output folders
+output_files = {}
 for subpocket in subpockets:
     folderName = path_to_library / subpocket.name
     if not folderName.exists():
@@ -60,6 +63,7 @@ for subpocket in subpockets:
     fileName = folderName / (subpocket.name+'.sdf')
     if fileName.exists():
         Path.unlink(fileName)
+    output_files[subpocket.name] = fileName.open('a')
 
 discardedFragments = []
 discardedLigands = []
@@ -92,8 +96,11 @@ for index, entry in KLIFSData.iterrows():
 
     # multiple ligands in one structure
     if '.' in Chem.MolToSmiles(ligand):
-        # choose largest one
+
         multi_ligands = Chem.GetMolFrags(ligand, asMols=True)
+        # do not use phosphate containing ligands
+        multi_ligands = [l for l in multi_ligands if not l.HasSubstructMatch(phosphate)]
+        # choose largest one
         sizes = [l.GetNumHeavyAtoms() for l in multi_ligands]
         max_size = max(sizes)
 
@@ -110,6 +117,12 @@ for index, entry in KLIFSData.iterrows():
             for l in multi_ligands:
                 if l.GetNumHeavyAtoms() > ligand.GetNumHeavyAtoms():
                     ligand = l
+
+    # do not consider ligands containing phosphates
+    if ligand.HasSubstructMatch(phosphate):
+    	print('Phosphate in', folder)
+    	count_phosphates += 1
+    	continue
 
     lenLigand = ligand.GetNumAtoms()
 
@@ -264,10 +277,8 @@ for index, entry in KLIFSData.iterrows():
         if fragment.mol.GetNumHeavyAtoms() > 29:
             discardedFragments.append(fragment)
         else:
-            output_file = (path_to_library / fragment.subpocket / (fragment.subpocket+'.sdf')).open('a')
-            w = Chem.SDWriter(output_file)
+            w = Chem.SDWriter(output_files[fragment.subpocket])
             w.write(fragment.mol)
-            # output_file.close()
 
     # ================================ DRAW FRAGMENTS ==========================================
 
@@ -282,6 +293,9 @@ for index, entry in KLIFSData.iterrows():
 
     count_structures += 1
 
+
+for subpocket in subpockets:
+	output_files[subpocket.name].close()
 
 # draw discarded fragments
 if discardedFragments:
@@ -309,7 +323,7 @@ if discardedLigands:
 print('Number of fragmented structures: ', count_structures)
 print('\nNumber of discarded structures: ')
 print('DFG-out/out-like conformations: ', count_dfg_out)
-print('A*P ligands: ', count_phosphates)
+print('ATP analogues: ', count_phosphates)
 print('Ligand could not be loaded: ', count_ligand_errors)
 print('Pocket could not be loaded: ', count_pocket_errors)
 print('Multiple ligands in structure: ', count_multi_ligands)
