@@ -30,7 +30,13 @@ count_multi_ligands = 0
 count_missing_res = 0
 count_structures = 0
 
-phosphate = Chem.MolFromSmiles('O[P](=O)(O)O')
+phosphate = Chem.MolFromSmiles('O[P](O)(O)O')
+phosphate2 = Chem.MolFromSmiles('O[P](=O)(O)O')
+phosphatep = Chem.MolFromSmiles('O[P+](O)(O)O')
+def contains_phosphate(mol):
+    return mol.HasSubstructMatch(phosphate) \
+    or mol.HasSubstructMatch(phosphate2) \
+    or mol.HasSubstructMatch(phosphatep)
 
 # ============================= DATA PREPARATION ============================================
 
@@ -47,7 +53,7 @@ KLIFSData = KLIFSData[KLIFSData.dfg == 'in']
 after_dfg = len(KLIFSData)
 count_dfg_out = before - after_dfg
 # We are not interested in adenosine phosphates
-KLIFSData = KLIFSData[~KLIFSData.pdb_id.isin(['AMP', 'ADP', 'ATP', 'ACP', 'ANP', 'ADN', 'AGS'])]
+KLIFSData = KLIFSData[~KLIFSData.pdb_id.isin(['AMP', 'ADP', 'ATP', 'ACP', 'ANP', 'ADN', 'AGS', 'AN2', 'ANK'])]
 after_phosphates = len(KLIFSData)
 count_phosphates = after_dfg - after_phosphates
 
@@ -99,7 +105,7 @@ for index, entry in KLIFSData.iterrows():
 
         multi_ligands = Chem.GetMolFrags(ligand, asMols=True)
         # do not use phosphate containing ligands
-        multi_ligands = [l for l in multi_ligands if not l.HasSubstructMatch(phosphate)]
+        multi_ligands = [l for l in multi_ligands if not contains_phosphate(l)]
         # choose largest one
         sizes = [l.GetNumHeavyAtoms() for l in multi_ligands]
         max_size = max(sizes)
@@ -119,7 +125,7 @@ for index, entry in KLIFSData.iterrows():
                     ligand = l
 
     # do not consider ligands containing phosphates
-    if ligand.HasSubstructMatch(phosphate):
+    if contains_phosphate(ligand):
     	print('Phosphate in', folder)
     	count_phosphates += 1
     	continue
@@ -295,7 +301,9 @@ for index, entry in KLIFSData.iterrows():
 
 
 for subpocket in subpockets:
-	output_files[subpocket.name].close()
+    w = Chem.SDWriter(output_files[fragment.subpocket])
+    output_files[subpocket.name].close()
+    w.close()
 
 # draw discarded fragments
 if discardedFragments:
