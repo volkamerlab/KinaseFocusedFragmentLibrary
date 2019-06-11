@@ -3,6 +3,18 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# folders
+test/
+output/
+recombination/results/
+recombination/obsolete/
+fragmentation/obsolete/
+recombination/statistics/
+recombination/test/
+recombination/tmp/
+FragmentLibrary/
+CombinatorialLibrary/
+
 # C extensions
 *.so
 
