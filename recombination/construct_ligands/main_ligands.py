@@ -30,6 +30,7 @@ with open(out_path, 'wb') as out_file:
     # iterate over ligands
     for in_path in in_paths:
 
+        print(str(in_path))
         with open(in_path, 'rb') as pickle_in:
             for meta in pickle_loader(pickle_in):
 

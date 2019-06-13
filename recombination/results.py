@@ -108,4 +108,4 @@ def process_result(combo, results_temp, results, limit_r, n_results_out, count_r
         n_results_out = results_to_file(results, n_results_out)
         results = set()
 
-    return results, results_temp, n_results_out
+    return results, results_temp, n_results_out, count_results

@@ -211,7 +211,7 @@ while queue:
         if len(ports) == 0 or len(subpockets) == 6:
             count_iterations += 1
             # add new result to results
-            results, results_temp, n_results_out = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
+            results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
             something_added = True
             continue
 
@@ -228,7 +228,7 @@ while queue:
             frags_in_queue.add(combo)
         # if nothing was added to queue because no new subpockets: add to results
         else:
-            results, results_temp, n_results_out = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
+            results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
         something_added = True
 
     # ===========================================================================
@@ -255,7 +255,7 @@ while queue:
         if (len(ps.compound.subpockets) > 1 >= len(ps.compound.ports)) or not something_added:
             count_iterations += 1
             # add new result to results
-            results, results_temp, n_results_out = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
+            results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
 
 # ============================= OUTPUT ===============================================
 
