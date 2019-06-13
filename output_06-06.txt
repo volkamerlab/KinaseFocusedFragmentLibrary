@@ -1,0 +1,133 @@
+Number of fragmented structures:  2761
+
+Number of discarded structures: 
+DFG-out/out-like conformations:  498
+ATP analogues:  379
+Ligand could not be loaded:  18
+Pocket could not be loaded:  3
+Multiple ligands in structure:  7
+Ligands with too large BRICS fragments:  137
+Missing residue position could not be inferred:  4
+
+
+
+
+[14:26:43] 5jrq.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+ERROR in HUMAN/BRAF/5jrq_chainA:
+Ligand 6N9 (HUMAN/BRAF/5jrq_chainA) could not be loaded. 
+
+[14:26:55] HUMAN/CDK2_1h0w_altA_chainA: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/CDK2/1h0w_altA_chainA:
+Pocket HUMAN/CDK2/1h0w_altA_chainA could not be loaded. 
+
+[14:27:03] HUMAN/CDK2_2clx_altB_chainA: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/CDK2/2clx_altB_chainA:
+Pocket HUMAN/CDK2/2clx_altB_chainA could not be loaded. 
+
+ERROR in HUMAN/CDK2/3pxq_chainA:
+Ligand consists of multiple molecules. Structure is skipped. 
+
+ERROR in HUMAN/CK2a1/5clp_altA_chainB:
+Ligand consists of multiple molecules. Structure is skipped. 
+
+ERROR in HUMAN/CK2a1/5mot_altA_chainA:
+Ligand consists of multiple molecules. Structure is skipped. 
+
+[14:28:07] 5otz.A: Warning - no explicit hydrogens in mol2 file but needed for formal charge estimation.
+ERROR in HUMAN/CK2a1/5oul_altA_chainA:
+Ligand consists of multiple molecules. Structure is skipped. 
+
+ERROR in HUMAN/Erk2/6g8x_altB_chainA:
+Ligand consists of multiple molecules. Structure is skipped. 
+
+[14:29:00] 5o4a.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+ERROR in HUMAN/FGFR1/5o4a_altA_chainA:
+Ligand 9K8 (HUMAN/FGFR1/5o4a_altA_chainA) could not be loaded. 
+
+Phosphate in HUMAN/FGFR2/3b2t_chainA
+[14:29:04] 2jld.B: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/GSK3B/2jld_altA_chainB:
+Ligand AG1 (HUMAN/GSK3B/2jld_altA_chainB) could not be loaded. 
+
+[14:29:05] 3m1s.A: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/GSK3B/3m1s_altB_chainA:
+Ligand DW1 (HUMAN/GSK3B/3m1s_altB_chainA) could not be loaded. 
+
+[14:29:05] 3pup.A: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/GSK3B/3pup_chainA:
+Ligand OS1 (HUMAN/GSK3B/3pup_chainA) could not be loaded. 
+
+Phosphate in HUMAN/INSR/1rqq_chainB
+[14:29:54] 2p55.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+ERROR in HUMAN/MAP2K1/2p55_chainA:
+Ligand MRA (HUMAN/MAP2K1/2p55_chainA) could not be loaded. 
+
+[14:29:54] 3eqh.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+ERROR in HUMAN/MAP2K1/3eqh_chainA:
+Ligand 5BM (HUMAN/MAP2K1/3eqh_chainA) could not be loaded. 
+
+[14:29:54] 3v01.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+ERROR in HUMAN/MAP2K1/3v01_chainA:
+Ligand 3V0 (HUMAN/MAP2K1/3v01_chainA) could not be loaded. 
+
+[14:29:54] 3v04.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+ERROR in HUMAN/MAP2K1/3v04_chainA:
+Ligand V04 (HUMAN/MAP2K1/3v04_chainA) could not be loaded. 
+
+ERROR in HUMAN/MASTL/5loh_altB_chainA:
+Important residue 24 is missing in structure. Structure is skipped. 
+
+ERROR in HUMAN/MER/5tc0_chainA:
+Important residue 24 is missing in structure. Structure is skipped. 
+
+ERROR in HUMAN/MPSK1/2buj_chainB:
+Ligand consists of multiple molecules. Structure is skipped. 
+
+[14:30:17] 3fxz.A: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/PAK1/3fxz_altA_chainA:
+Ligand FLL (HUMAN/PAK1/3fxz_altA_chainA) could not be loaded. 
+
+[14:30:17] 3fy0.A: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/PAK1/3fy0_chainA:
+Ligand DW1 (HUMAN/PAK1/3fy0_chainA) could not be loaded. 
+
+[14:30:29] 2bzh.B: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/PIM1/2bzh_altA_chainB:
+Ligand HB1 (HUMAN/PIM1/2bzh_altA_chainB) could not be loaded. 
+
+[14:30:29] 2bzj.A: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/PIM1/2bzj_altA_chainA:
+Ligand ME3 (HUMAN/PIM1/2bzj_altA_chainA) could not be loaded. 
+
+[14:30:33] 3we8.A: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/PIM1/3we8_altB_chainA:
+Ligand RUI (HUMAN/PIM1/3we8_altB_chainA) could not be loaded. 
+
+[14:30:34] 4as0.A: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/PIM1/4as0_altA_chainA:
+Ligand RPS (HUMAN/PIM1/4as0_altA_chainA) could not be loaded. 
+
+[14:30:42] 2iwi.B: Error - C.Cat with bad number of N neighbors.
+ERROR in HUMAN/PIM2/2iwi_chainB:
+Ligand HB1 (HUMAN/PIM2/2iwi_chainB) could not be loaded. 
+
+[14:30:49] 2ivs.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+ERROR in HUMAN/RET/2ivs_altB_chainA:
+Ligand ACK (HUMAN/RET/2ivs_altB_chainA) could not be loaded. 
+
+[14:30:50] HUMAN/RET_5fm3_chainA: warning - O.co2 with non C.2 or S.o2 neighbor.
+ERROR in HUMAN/RET/5fm3_chainA:
+Pocket HUMAN/RET/5fm3_chainA could not be loaded. 
+
+ERROR in HUMAN/RSK1/2z7r_chainA:
+Important residue 24 is missing in structure. Structure is skipped. 
+
+ERROR in HUMAN/RSK1/2z7s_chainA:
+Important residue 24 is missing in structure. Structure is skipped. 
+
+[14:30:56] 1ksw.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+ERROR in HUMAN/SRC/1ksw_chainA:
+Ligand NBS (HUMAN/SRC/1ksw_chainA) could not be loaded. 
+
+ERROR in HUMAN/p38a/4eh8_altA_chainA:
+Ligand consists of multiple molecules. Structure is skipped.
