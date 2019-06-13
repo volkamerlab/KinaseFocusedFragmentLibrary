@@ -10,7 +10,8 @@ import pickle
 from classes_meta import Combination, PermutationStep, Fragment, Compound, Port
 from get_tuple import get_tuple
 from pickle_loader import pickle_loader
-from results import results_to_file, add_to_results
+from results import results_to_file, add_to_results, process_result
+from queue import add_to_queue
 
 start = time.time()
 
@@ -176,23 +177,6 @@ while queue:
 
     something_added = False
 
-    # check if subpocket already targeted by this fragment
-    if neighboring_subpocket in compound.subpockets:
-        # store fragment as ligand if no other open fragmentation sites left
-        if len(compound.subpockets) > 1 >= len(compound.ports):
-            count_iterations += 1
-            combo = Combination(frag_ids=frozenset(compound.frag_ids), bonds=frozenset(compound.bonds))
-            # add new result to results
-            results_temp.add(combo)
-            if len(results_temp) >= limit_r:
-                add_to_results(results_temp, results, n_results_out)
-                results_temp = set()
-            if len(results) >= limit_r:
-                count_results += len(results)
-                n_results_out = results_to_file(results, n_results_out)
-                results = set()
-        continue
-
     # ========================== ITERATION OVER FRAGMENTS ===============================
 
     # iterate over fragments that might be attached at the current position
@@ -227,14 +211,7 @@ while queue:
         if len(ports) == 0 or len(subpockets) == 6:
             count_iterations += 1
             # add new result to results
-            results_temp.add(combo)
-            if len(results_temp) >= limit_r:
-                add_to_results(results_temp, results, n_results_out)
-                results_temp = set()
-            if len(results) >= limit_r:
-                count_results += len(results)
-                n_results_out = results_to_file(results, n_results_out)
-                results = set()
+            results, results_temp, n_results_out = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
             something_added = True
             continue
 
@@ -245,12 +222,13 @@ while queue:
             continue
 
         # else add ports of new molecule to queue
-        frags_in_queue.add(combo)
-        for port in ports:
-            new_compound = Compound(frag_ids=frag_ids, subpockets=subpockets, ports=ports, bonds=bonds)
-            new_ps = PermutationStep(mol=new_compound, dummy=port.atom_id, subpocket=port.subpocket,
-                                     neighboring_subpocket=port.neighboring_subpocket)
-            queue.append(new_ps)
+        new_compound = Compound(frag_ids=frag_ids, subpockets=subpockets, ports=ports, bonds=bonds)
+        added_to_queue = add_to_queue(queue, new_compound)
+        if added_to_queue:
+            frags_in_queue.add(combo)
+        # if nothing was added to queue because no new subpockets: add to results
+        else:
+            results, results_temp, n_results_out = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
         something_added = True
 
     # ===========================================================================
@@ -259,38 +237,25 @@ while queue:
     if not something_added:
 
         combo = Combination(frag_ids=frozenset(ps.compound.frag_ids), bonds=frozenset(ps.compound.bonds))
-        if combo in frags_in_queue:
-            continue
-
-        # ========================== ADD TO RESULTS ===============================
-
-        elif len(ps.compound.subpockets) > 1 >= len(ps.compound.ports):
-            count_iterations += 1
-            # add new result to results
-            results_temp.add(combo)
-            if len(results_temp) >= limit_r:
-                add_to_results(results_temp, results, n_results_out)
-                results_temp = set()
-            if len(results) >= limit_r:
-                count_results += len(results)
-                n_results_out = results_to_file(results, n_results_out)
-                results = set()
 
         # ========================== ADD TO QUEUE ===============================
 
         # if other dummy atoms are present, remove current dummy (as nothing could be attached there) and add fragment to queue
-        elif len(ps.compound.ports) > 1:
+        if len(ps.compound.ports) > 1:
             new_ports = [port for port in ps.compound.ports if port.atom_id != ps.dummy]
             new_compound = Compound(frag_ids=ps.compound.frag_ids, subpockets=ps.compound.subpockets, ports=new_ports, bonds=ps.compound.bonds)
-            for port in new_compound.ports:
-                if port.neighboring_subpocket in new_compound.subpockets:
-                    continue
-                new_ps = PermutationStep(mol=new_compound, dummy=port.atom_id, subpocket=port.subpocket,
-                                         neighboring_subpocket=port.neighboring_subpocket)
-                queue.append(new_ps)
-                something_added = True
+
+            something_added = add_to_queue(queue, new_compound)
+
             if something_added:
                 frags_in_queue.add(combo)
+
+        # ========================== ADD TO RESULTS ===============================
+
+        if (len(ps.compound.subpockets) > 1 >= len(ps.compound.ports)) or not something_added:
+            count_iterations += 1
+            # add new result to results
+            results, results_temp, n_results_out = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
 
 # ============================= OUTPUT ===============================================
 

@@ -74,3 +74,38 @@ def add_to_results(combos, results, n_results_out):
         results.add(combo)
 
     return
+
+
+def process_result(combo, results_temp, results, limit_r, n_results_out, count_results):
+
+    """
+    - adds new result to the temporary result set
+    - adds results from temp result set to final result set if limit is exceeded
+    - writes results to file if limit size is exceeded
+
+    Parameters
+    ----------
+    combo: Combination
+        will be added to results
+    results_temp: set(Combination)
+        temporary result set
+    results: set(Combination)
+        final result set
+    limit_r: int
+        max size of result sets
+    n_results_out: int
+        current number of output files containing results + 1
+    count_results: int
+        current number of results
+    """
+
+    results_temp.add(combo)
+    if len(results_temp) >= limit_r:
+        add_to_results(results_temp, results, n_results_out)
+        results_temp = set()
+    if len(results) >= limit_r:
+        count_results += len(results)
+        n_results_out = results_to_file(results, n_results_out)
+        results = set()
+
+    return results, results_temp, n_results_out
