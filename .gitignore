@@ -12,8 +12,12 @@ fragmentation/obsolete/
 recombination/statistics/
 recombination/test/
 recombination/tmp/
+analysis/KinMap
 FragmentLibrary/
 CombinatorialLibrary/
+pymol/*.png
+ATP_analogues.txt
+riboses.txt
 
 # C extensions
 *.so
