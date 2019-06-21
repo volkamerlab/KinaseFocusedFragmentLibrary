@@ -126,9 +126,9 @@ for index, entry in KLIFSData.iterrows():
 
     # do not consider ligands containing phosphates
     if contains_phosphate(ligand):
-    	print('Phosphate in', folder)
-    	count_phosphates += 1
-    	continue
+        print('Phosphate in', folder)
+        count_phosphates += 1
+        continue
 
     lenLigand = ligand.GetNumAtoms()
 
@@ -301,7 +301,7 @@ for index, entry in KLIFSData.iterrows():
 
 
 for subpocket in subpockets:
-    w = Chem.SDWriter(output_files[fragment.subpocket])
+    w = Chem.SDWriter(output_files[subpocket.name])
     output_files[subpocket.name].close()
     w.close()
 
