@@ -1,0 +1,15 @@
+name: kffl
+channels:
+  - rdkit
+  - schrodinger
+  - conda-forge
+dependencies:
+  - python=3.6.8
+  - biopandas
+  - jupyter
+  - matplotlib
+  - numpy
+  - pandas
+  - rdkit=2019.03.2
+  - pymol
+  - scikit-learn
