@@ -23,6 +23,7 @@ path_to_library = Path('../results')
 in_paths = path_to_library.glob('*.pickle')
 
 out_path = '../../CombinatorialLibrary/combinatorial_library.pickle'
+count_ligands = 0
 with open(out_path, 'wb') as out_file:
 
     ligand_smiles = set()
@@ -34,13 +35,15 @@ with open(out_path, 'wb') as out_file:
         with open(in_path, 'rb') as pickle_in:
             for meta in pickle_loader(pickle_in):
 
-                ligand = construct_ligand(meta, data, ligand_smiles=ligand_smiles)
+                ligand = construct_ligand(meta, data)
                 if not ligand:
                     continue
-                property_ligand = PropertyMol(ligand)
-                pickle.dump(property_ligand, out_file)
-                ligand_smiles.add(Chem.MolToSmiles(ligand))
+
+                count_ligands += 1
+                #property_ligand = PropertyMol(ligand)
+                #pickle.dump(property_ligand, out_file)
+                #ligand_smiles.add(Chem.MolToSmiles(ligand))
 
 runtime = time.time() - start
-print('Number of resulting ligands: ', len(ligand_smiles))
+print('Number of resulting ligands: ', count_ligands)
 print('Time: ', runtime)

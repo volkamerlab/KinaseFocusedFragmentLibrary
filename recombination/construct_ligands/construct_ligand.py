@@ -11,7 +11,7 @@ def read_fragment_library(path_to_library):
     Parameters
     ----------
     path_to_library: PosixPath
-        path to the folder containing
+        path to the folder containing the fragment library
 
     Returns
     -------
@@ -57,7 +57,7 @@ def read_fragment_library(path_to_library):
 
 # ============================= LIGAND CONSTRUCTION ============================================
 
-def construct_ligand(meta, data, ligand_smiles=None):
+def construct_ligand(meta, data):
 
     """
     Construct a ligand by connecting multiple fragments based on a Combination object
@@ -66,8 +66,8 @@ def construct_ligand(meta, data, ligand_smiles=None):
     ----------
     meta: Combination object
         Molecule to be constructed
-    ligand_smiles: set(str)
-        set of SMILES strings; if the ligand is already in this set, it will not be returned
+    data: dict(Mol)
+        dictionary containing a list of fragments for each subpocket
 
     Returns
     -------
@@ -109,6 +109,7 @@ def construct_ligand(meta, data, ligand_smiles=None):
 
         ed_combo.AddBond(atom_1.GetIdx(), atom_2.GetIdx(), order=bond_type_1)
 
+    # remove dummy atoms (necessary for further analysis)
     dummy_atoms = [a.GetIdx() for a in combo.GetAtoms() if a.GetSymbol() == '*']
     dummy_atoms.sort(reverse=True)
     for dummy in dummy_atoms:
@@ -116,12 +117,14 @@ def construct_ligand(meta, data, ligand_smiles=None):
 
     ligand = ed_combo.GetMol()
 
+    # try:
+    #     Chem.SanitizeMol(ligand)
+    # except ValueError:
+    #     return
+    # Chem.SanitizeMol(ligand)
+
     # do not construct this ligand if bond types are not matching
     if not bonds_matching:
-        return
-
-    smiles = Chem.MolToSmiles(ligand)
-    if smiles in ligand_smiles:
         return
 
     # clear properties
