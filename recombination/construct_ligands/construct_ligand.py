@@ -1,4 +1,5 @@
 from rdkit import Chem
+from rdkit.Chem import AllChem
 
 
 # ============================= READ FRAGMENT ===============================================
@@ -93,6 +94,7 @@ def construct_ligand(meta, data):
 
     bonds_matching = True
     ed_combo = Chem.EditableMol(combo)
+    replaced_dummies = []
     for bond in bonds:
 
         dummy_1 = next(atom for atom in combo.GetAtoms() if atom.GetProp('frag_atom_id') == bond[0])
@@ -109,19 +111,24 @@ def construct_ligand(meta, data):
 
         ed_combo.AddBond(atom_1.GetIdx(), atom_2.GetIdx(), order=bond_type_1)
 
-    # remove dummy atoms (necessary for further analysis)
-    dummy_atoms = [a.GetIdx() for a in combo.GetAtoms() if a.GetSymbol() == '*']
-    dummy_atoms.sort(reverse=True)
-    for dummy in dummy_atoms:
+        replaced_dummies.extend([dummy_1.GetIdx(), dummy_2.GetIdx()])
+
+    # remove replaced dummy atoms
+    replaced_dummies.sort(reverse=True)
+    for dummy in replaced_dummies:
         ed_combo.RemoveAtom(dummy)
 
     ligand = ed_combo.GetMol()
 
-    # try:
-    #     Chem.SanitizeMol(ligand)
-    # except ValueError:
-    #     return
-    # Chem.SanitizeMol(ligand)
+    # replace remaining dummy atoms with hydrogens
+    du = Chem.MolFromSmiles('*')
+    h = Chem.MolFromSmiles('[H]', sanitize=False)
+    ligand = AllChem.ReplaceSubstructs(ligand, du, h, replaceAll=True)[0]
+    try:
+        ligand = Chem.RemoveHs(ligand)
+    except ValueError:
+        print(Chem.MolToSmiles(ligand))
+        return
 
     # do not construct this ligand if bond types are not matching
     if not bonds_matching:
