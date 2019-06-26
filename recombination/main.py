@@ -20,7 +20,10 @@ start = time.time()
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', '--n_frags', type=int, help='Number of input fragments per subpocket', default=None)
 parser.add_argument('-s', '--subpockets', type=str, help='Start from these subpockets only.', required=False, nargs='+')
+parser.add_argument('-d', '--depth', type=int, help='Maximum number of fragments per ligand', required=False)
 args = parser.parse_args()
+
+max_depth = args.depth if args.depth else 6
 
 path = Path('./tmp')
 tmp_files = path.glob('tmp_queue*')
@@ -108,10 +111,10 @@ for folder, subpocket in zip(folders, subpockets):
 
     data[subpocket] = fragments
 
-n_frags = len(frags_in_queue)
+n_frags = len(frag_set)
 
 print('Number of fragments: ', n_frags)
-print('Number of fragmentation sites: ', len(queue))
+# print('Number of starting fragmentation sites: ', len(queue))
 
 
 # ============================= PERMUTATION ===============================================
@@ -208,7 +211,7 @@ while queue:
         # if no ports present, ligand is finished
         # if max depth is reached, ligand is also finished, because all subpockets are explored
         combo = Combination(frag_ids=frozenset(frag_ids), bonds=frozenset(bonds))
-        if len(ports) == 0 or len(subpockets) == 6:
+        if len(ports) == 0 or len(subpockets) == max_depth:
             count_iterations += 1
             # add new result to results
             results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
