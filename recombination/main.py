@@ -20,10 +20,9 @@ start = time.time()
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', '--n_frags', type=int, help='Number of input fragments per subpocket', default=None)
 parser.add_argument('-s', '--subpockets', type=str, help='Start from these subpockets only.', required=False, nargs='+')
-parser.add_argument('-d', '--depth', type=int, help='Maximum number of fragments per ligand', required=False)
+parser.add_argument('-d', '--depth', type=int, help='Maximum number of fragments per ligand', default=6)
 args = parser.parse_args()
-
-max_depth = args.depth if args.depth else 6
+max_depth = args.depth
 
 path = Path('./tmp')
 tmp_files = path.glob('tmp_queue*')
@@ -128,8 +127,8 @@ count_results = 0
 n_tmp_file_out = 0
 n_tmp_file_in = 0
 n_results_out = 0
-limit_q = 100000
-limit_r = 100000
+limit_q = 500000
+limit_r = 500000
 n_out = int(limit_q / 2)
 
 results_temp = set()
@@ -277,17 +276,12 @@ print('Number of ligands including duplicates: ', count_iterations)
 print('Overall number of fragments in queue: ', len(frags_in_queue))
 print('Time: ', runtime)
 
-if args.n_frags and args.subpockets:
-    stat_path = Path('statistics/statistics_' + str(args.n_frags) + '_' + '_'.join(start_subpockets) + '.txt')
-elif args.n_frags:
-    stat_path = Path('statistics/statistics_' + str(args.n_frags) + '.txt')
-elif args.subpockets:
-    stat_path = Path('statistics/statistics_' + '_'.join(start_subpockets) + '.txt')
-else:
-    stat_path = Path('statistics/statistics.txt')
+stat_path = Path('statistics/statistics_' + str(args.n_frags) + '.txt')
 
 with open(stat_path, 'w') as stat_file:
     stat_file.write('Fragments ' + str(n_frags))
+    stat_file.write('MaxFragments ' + str(max_depth))
+    stat_file.write('StartSubpockets ' + '_'.join(start_subpockets))
     stat_file.write('\nLigands ' + str(count_results))
     stat_file.write('\nLigands2 ' + str(count_iterations))
     stat_file.write('\nQFragments ' + str(len(frags_in_queue)))
