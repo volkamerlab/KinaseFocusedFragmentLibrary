@@ -280,8 +280,8 @@ stat_path = Path('statistics/statistics_' + str(args.n_frags) + '.txt')
 
 with open(stat_path, 'w') as stat_file:
     stat_file.write('Fragments ' + str(n_frags))
-    stat_file.write('MaxFragments ' + str(max_depth))
-    stat_file.write('StartSubpockets ' + '_'.join(start_subpockets))
+    stat_file.write('\nMaxFragments ' + str(max_depth))
+    stat_file.write('\nStartSubpockets ' + '_'.join(start_subpockets))
     stat_file.write('\nLigands ' + str(count_results))
     stat_file.write('\nLigands2 ' + str(count_iterations))
     stat_file.write('\nQFragments ' + str(len(frags_in_queue)))
