@@ -2,15 +2,17 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 from biopandas.mol2 import PandasMol2
+import pandas as pd
+import sys
+from pathlib import Path
 
 from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center
 from fragmentation import find_brics_fragments, fragmentation
 from classes import Subpocket
-from preprocessing import preprocess_klifs_data, get_folder_name, get_file_name, fix_residue_numbers
+from preprocessing import get_folder_name, get_file_name, fix_residue_numbers
+from main_preprocessing import contains_ribose, contains_phosphate
 from visualization import visual_subpockets
-from covalent import is_covalent
 
-from pathlib import Path
 
 # ============================= INITIALIZATIONS ===============================================
 
@@ -25,36 +27,17 @@ subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # 
               ]
 
 # count discarded structures
-count_ligand_errors = 0
-count_pocket_errors = 0
-count_multi_ligands = 0
 count_missing_res = 0
 
 count_structures = 0
 
-# ============================= DATA PREPARATION ============================================
-
 path_to_library = Path('../FragmentLibrary')
 
 path_to_data = Path('../../data/KLIFS_download')
-path_to_KLIFS_download = path_to_data / 'overview.csv'
-path_to_KLIFS_export = path_to_data / 'KLIFS_export.csv'
 
-KLIFSData = preprocess_klifs_data(path_to_KLIFS_download, path_to_KLIFS_export)
-KLIFSData = KLIFSData[KLIFSData.species == 'Human']
-before = len(KLIFSData)
-KLIFSData = KLIFSData[KLIFSData.dfg == 'in']
-after_dfg = len(KLIFSData)
-count_dfg_out = before - after_dfg
-# We are not interested in substrates
-KLIFSData = KLIFSData[~KLIFSData.pdb_id.isin(['AMP', 'ADP', 'ATP', 'ACP', 'ANP', 'ADN', 'ADE', 'AGS', 'AN2', 'ANK'])]
-after_phosphates = len(KLIFSData)
-count_substrates = after_dfg - after_phosphates
-count_riboses = 0
-count_covalent = 0
+KLIFSData = pd.read_csv(path_to_data / 'filtered_ligands.csv')
 
 # KLIFSData = KLIFSData[KLIFSData.family.isin(['RAF', 'EGFR', 'CDK'])]
-
 
 # clear output files and create output folders
 output_files = {}
@@ -81,21 +64,6 @@ for index, entry in KLIFSData.iterrows():
     ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
     pocket = Chem.MolFromMol2File(str(path_to_data / folder / 'pocket.mol2'), removeHs=False)
 
-    try:
-        ligandConf = ligand.GetConformer()
-    except AttributeError:  # empty molecule
-        print('ERROR in ' + folder + ':')
-        print('Ligand '+entry.pdb_id+' ('+folder+') could not be loaded. \n')
-        count_ligand_errors += 1
-        continue
-    try:
-        pocketConf = pocket.GetConformer()
-    except AttributeError:
-        print('ERROR in ' + folder + ':')
-        print('Pocket '+folder+' could not be loaded. \n')
-        count_pocket_errors += 1
-        continue
-
     # multiple ligands in one structure
     if '.' in Chem.MolToSmiles(ligand):
 
@@ -109,9 +77,8 @@ for index, entry in KLIFSData.iterrows():
         # if multiple ligands have the same largest size, skip this molecule
         if sizes.count(max_size) > 1:
             print('ERROR in ' + folder + ':')
-            print('Ligand consists of multiple molecules. Structure is skipped. \n')
-            count_multi_ligands += 1
-            continue
+            print('Ligand consists of multiple molecules of the same size. \n')
+            sys.exit()
 
         # if there is a unique largest ligand
         else:
@@ -119,23 +86,6 @@ for index, entry in KLIFSData.iterrows():
             for l in multi_ligands:
                 if l.GetNumHeavyAtoms() > ligand.GetNumHeavyAtoms():
                     ligand = l
-
-    # discard ligands containing phosphates
-    if contains_phosphate(ligand):
-        print('Phosphate in', entry.pdb, entry.pdb_id)
-        count_substrates += 1
-        continue
-
-    # discard ligands containing riboses
-    if contains_ribose(ligand):
-        print('Ribose in', entry.pdb, entry.pdb_id)
-        count_riboses += 1
-        continue
-
-    # discard covalent ligands
-    if is_covalent(entry.pdb, entry.pdb_id):
-        count_covalent += 1
-        continue
 
     lenLigand = ligand.GetNumAtoms()
 
@@ -181,34 +131,6 @@ for index, entry in KLIFSData.iterrows():
         center = calc_geo_center(BRICSFragment.mol.GetAtoms(), BRICSFragment.mol.GetConformer())
         BRICSFragment.center = center
 
-    # ========================== SUBPOCKET IDENTIFICATION ========================================
-    #
-    #     # ---------------------------------------
-    #     # instead of getSubpocketFromPos() function in order to find ambiguous fragments
-    #
-    #     # calculate distances from subpockets to fragments
-    #     smallestDistance = sys.maxsize  # set smallest distance as max integer value
-    #     nearestSubpocket = Subpocket('noSubpocket')
-    #     distances = []
-    #     for subpocket in subpockets:
-    #         distance = calculate3DDistance(center, subpocket.center)
-    #         distances.append(distance)
-    #         if distance < smallestDistance:
-    #             nearestSubpocket = subpocket
-    #             smallestDistance = distance
-    #
-    #     # draw ambiguous fragments
-    #     minDist = min(distances)
-    #     for d, dist in enumerate(distances):
-    #         # if there is a value near the minimum distance
-    #         if minDist - 0.7 < dist < minDist + 0.7 and subpockets[d] != nearestSubpocket:
-    #             label = subpockets[d].name+'+'+nearestSubpocket.name
-    #             Draw.MolToFile(BRICSFragment.mol, '../ambiguous_fragments/'+getFileName(entry)+'_'+label+'.png')
-    #
-    #     BRICSFragment.subpocket = nearestSubpocket.name
-    #
-    #     # -------------------------------------------
-
         subpocket = get_subpocket_from_pos(center, subpockets)
         BRICSFragment.subpocket = subpocket
 
@@ -238,24 +160,10 @@ for index, entry in KLIFSData.iterrows():
         firstFragment = [fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
         secondFragment = [fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers][0]
 
-        # # check validity of subpockets
-        # if not checkSubpockets(firstFragment.subpocket, secondFragment.subpocket):
-        #
-        #     print('ERROR in '+folder+':')
-        #     print("Subpockets "+firstFragment.subpocket+" and "+secondFragment.subpocket+" can not be connected."
-        #                                                                                  "Structure is skipped. \n")
-        #     # skip this molecule if subpocket definition is not valid
-        #     skipStructure = True
-        #     break
-
         # check if subpockets differ
         if firstFragment.subpocket != secondFragment.subpocket:
             # store this bond as a bond where we will cleave
             bonds.append((beginAtom, endAtom))
-
-    # # skip this molecule if subpocket definition is not valid
-    # if skipStructure:
-    #     continue
 
     # actual fragmentation
     fragments = fragmentation(ligand, bonds, BRICSFragments)
@@ -281,9 +189,6 @@ for index, entry in KLIFSData.iterrows():
         fragment.mol.SetProp('chain', entry.chain)
 
         # atom properties as fragment property
-        # RemoveHs() does not remove all hydrogens, inconsistency with removeHs=True flag
-        # fragment.mol = Chem.RemoveHs(fragment.mol)  # remove hydrogens for consistency reasons (when using PandasTools.LoadSDF)
-        # create list of atom properties
         Chem.CreateAtomStringPropertyList(fragment.mol, 'subpocket')
 
         # discard large fragments
@@ -337,12 +242,5 @@ if discardedLigands:
 # output statistics
 print('Number of fragmented structures: ', count_structures)
 print('\nNumber of discarded structures: ')
-print('DFG-out/out-like conformations: ', count_dfg_out)
-print('ATP analogs: ', count_substrates)
-print('Ribose derivatives: ', count_riboses)
-print('Covalent ligands: ', count_covalent)
-print('Ligand could not be loaded: ', count_ligand_errors)
-print('Pocket could not be loaded: ', count_pocket_errors)
-print('Multiple ligands in structure: ', count_multi_ligands)
 print('Ligands with too large BRICS fragments: ', len(discardedLigands))
 print('Missing residue position could not be inferred: ', count_missing_res)

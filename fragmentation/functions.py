@@ -1,11 +1,10 @@
 import numpy as np
 
 
-# get CA atom object of a residue number in a pocket
 def get_ca_atom(res, pocket_mol2, pocket):
 
     """
-    Get the C alpha atom of a given residue in the protein/binding pocket
+    Get the C alpha atom of a given residue in the protein binding pocket
 
     Parameters
     ----------
