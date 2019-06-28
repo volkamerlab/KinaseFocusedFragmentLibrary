@@ -8,6 +8,7 @@ from fragmentation import find_brics_fragments, fragmentation
 from classes import Subpocket
 from preprocessing import preprocess_klifs_data, get_folder_name, get_file_name, fix_residue_numbers
 from visualization import visual_subpockets
+from covalent import is_covalent
 
 from pathlib import Path
 
@@ -28,15 +29,8 @@ count_ligand_errors = 0
 count_pocket_errors = 0
 count_multi_ligands = 0
 count_missing_res = 0
-count_structures = 0
 
-phosphate = Chem.MolFromSmiles('O[P](O)(O)O')
-phosphate2 = Chem.MolFromSmiles('O[P](=O)(O)O')
-phosphatep = Chem.MolFromSmiles('O[P+](O)(O)O')
-def contains_phosphate(mol):
-    return mol.HasSubstructMatch(phosphate) \
-    or mol.HasSubstructMatch(phosphate2) \
-    or mol.HasSubstructMatch(phosphatep)
+count_structures = 0
 
 # ============================= DATA PREPARATION ============================================
 
@@ -52,10 +46,12 @@ before = len(KLIFSData)
 KLIFSData = KLIFSData[KLIFSData.dfg == 'in']
 after_dfg = len(KLIFSData)
 count_dfg_out = before - after_dfg
-# We are not interested in adenosine phosphates
-KLIFSData = KLIFSData[~KLIFSData.pdb_id.isin(['AMP', 'ADP', 'ATP', 'ACP', 'ANP', 'ADN', 'AGS', 'AN2', 'ANK'])]
+# We are not interested in substrates
+KLIFSData = KLIFSData[~KLIFSData.pdb_id.isin(['AMP', 'ADP', 'ATP', 'ACP', 'ANP', 'ADN', 'ADE', 'AGS', 'AN2', 'ANK'])]
 after_phosphates = len(KLIFSData)
-count_phosphates = after_dfg - after_phosphates
+count_substrates = after_dfg - after_phosphates
+count_riboses = 0
+count_covalent = 0
 
 # KLIFSData = KLIFSData[KLIFSData.family.isin(['RAF', 'EGFR', 'CDK'])]
 
@@ -105,7 +101,7 @@ for index, entry in KLIFSData.iterrows():
 
         multi_ligands = Chem.GetMolFrags(ligand, asMols=True)
         # do not use phosphate containing ligands
-        multi_ligands = [l for l in multi_ligands if not contains_phosphate(l)]
+        multi_ligands = [l for l in multi_ligands if not contains_phosphate(l) and not contains_ribose(l)]
         # choose largest one
         sizes = [l.GetNumHeavyAtoms() for l in multi_ligands]
         max_size = max(sizes)
@@ -124,10 +120,21 @@ for index, entry in KLIFSData.iterrows():
                 if l.GetNumHeavyAtoms() > ligand.GetNumHeavyAtoms():
                     ligand = l
 
-    # do not consider ligands containing phosphates
+    # discard ligands containing phosphates
     if contains_phosphate(ligand):
-        print('Phosphate in', folder)
-        count_phosphates += 1
+        print('Phosphate in', entry.pdb, entry.pdb_id)
+        count_substrates += 1
+        continue
+
+    # discard ligands containing riboses
+    if contains_ribose(ligand):
+        print('Ribose in', entry.pdb, entry.pdb_id)
+        count_riboses += 1
+        continue
+
+    # discard covalent ligands
+    if is_covalent(entry.pdb, entry.pdb_id):
+        count_covalent += 1
         continue
 
     lenLigand = ligand.GetNumAtoms()
@@ -331,7 +338,9 @@ if discardedLigands:
 print('Number of fragmented structures: ', count_structures)
 print('\nNumber of discarded structures: ')
 print('DFG-out/out-like conformations: ', count_dfg_out)
-print('ATP analogues: ', count_phosphates)
+print('ATP analogs: ', count_substrates)
+print('Ribose derivatives: ', count_riboses)
+print('Covalent ligands: ', count_covalent)
 print('Ligand could not be loaded: ', count_ligand_errors)
 print('Pocket could not be loaded: ', count_pocket_errors)
 print('Multiple ligands in structure: ', count_multi_ligands)
