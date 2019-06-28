@@ -10,7 +10,7 @@ from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_sm
 from fragmentation import find_brics_fragments, fragmentation
 from classes import Subpocket
 from preprocessing import get_folder_name, get_file_name, fix_residue_numbers
-from main_preprocessing import contains_ribose, contains_phosphate
+from discard import contains_ribose, contains_phosphate
 from visualization import visual_subpockets
 
 

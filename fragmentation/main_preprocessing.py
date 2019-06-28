@@ -2,7 +2,7 @@ from pathlib import Path
 from rdkit import Chem
 
 from preprocessing import preprocess_klifs_data, get_folder_name
-from covalent import is_covalent
+from discard import is_covalent, contains_phosphate, contains_ribose
 
 
 path_to_data = Path('../../data/KLIFS_download')
@@ -28,23 +28,6 @@ count_covalent = 0
 count_dfg_out = before - after_dfg
 count_substrates = after_dfg - after_phosphates
 
-phosphate = Chem.MolFromSmiles('O[P](O)(O)O')
-phosphate2 = Chem.MolFromSmiles('O[P](=O)(O)O')
-phosphatep = Chem.MolFromSmiles('O[P+](O)(O)O')
-# ribose = Chem.MolFromSmiles('OC1COC(C1O)CO')
-ribose = Chem.MolFromSmiles('OC1COCC1O')
-
-
-def contains_phosphate(mol):
-    return mol.HasSubstructMatch(phosphate) \
-    or mol.HasSubstructMatch(phosphate2) \
-    or mol.HasSubstructMatch(phosphatep)
-
-
-def contains_ribose(mol):
-    return mol.HasSubstructMatch(ribose)
-
-
 filtered_data = KLIFSData.copy()
 
 # iterate over molecules
@@ -64,7 +47,7 @@ for index, entry in KLIFSData.iterrows():
         print('ERROR in ' + folder + ':')
         print('Ligand '+entry.pdb_id+' ('+folder+') could not be loaded. \n')
         count_ligand_errors += 1
-        filtered_data.drop(index)
+        filtered_data = filtered_data.drop(index)
         continue
     try:
         pocketConf = pocket.GetConformer()
@@ -72,7 +55,7 @@ for index, entry in KLIFSData.iterrows():
         print('ERROR in ' + folder + ':')
         print('Pocket '+folder+' could not be loaded. \n')
         count_pocket_errors += 1
-        filtered_data.drop(index)
+        filtered_data = filtered_data.drop(index)
         continue
 
     # multiple ligands in one structure
@@ -90,7 +73,7 @@ for index, entry in KLIFSData.iterrows():
             print('ERROR in ' + folder + ':')
             print('Ligand consists of multiple molecules. Structure is skipped. \n')
             count_multi_ligands += 1
-            filtered_data.drop(index)
+            filtered_data = filtered_data.drop(index)
             continue
 
         # if there is a unique largest ligand
@@ -104,21 +87,21 @@ for index, entry in KLIFSData.iterrows():
     if contains_phosphate(ligand):
         print('Phosphate in', entry.pdb, entry.pdb_id, '\n')
         count_substrates += 1
-        filtered_data.drop(index)
+        filtered_data = filtered_data.drop(index)
         continue
 
     # discard ligands containing riboses
     if contains_ribose(ligand):
         print('Ribose in', entry.pdb, entry.pdb_id)
         count_riboses += 1
-        filtered_data.drop(index)
+        filtered_data = filtered_data.drop(index)
         continue
 
     # discard covalent ligands
     if is_covalent(entry.pdb, entry.pdb_id, entry.chain):
         print('Covalent inhibitor', entry.pdb, entry.pdb_id, '\n')
         count_covalent += 1
-        filtered_data.drop(index)
+        filtered_data = filtered_data.drop(index)
         continue
 
 

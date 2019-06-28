@@ -1,4 +1,22 @@
 import parmed as pmd
+from rdkit import Chem
+
+
+phosphate = Chem.MolFromSmiles('O[P](O)(O)O')
+phosphate2 = Chem.MolFromSmiles('O[P](=O)(O)O')
+phosphatep = Chem.MolFromSmiles('O[P+](O)(O)O')
+# ribose = Chem.MolFromSmiles('OC1COC(C1O)CO')
+ribose = Chem.MolFromSmiles('OC1COCC1O')
+
+
+def contains_phosphate(mol):
+    return mol.HasSubstructMatch(phosphate) \
+    or mol.HasSubstructMatch(phosphate2) \
+    or mol.HasSubstructMatch(phosphatep)
+
+
+def contains_ribose(mol):
+    return mol.HasSubstructMatch(ribose)
 
 
 aa = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN",
@@ -7,8 +25,6 @@ aa = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN",
 
 
 def is_covalent(pdb, pdb_id, chain):
-
-    global aa
 
     protein_atom_numbers = []
 
@@ -24,7 +40,7 @@ def is_covalent(pdb, pdb_id, chain):
     try:
         ligand_atoms
     except NameError:
-        print('ERROR: Ligand not found in PDB file!\n')
+        print('ERROR: Ligand not found in PDB file: ', pdb, pdb_id)
         return False
 
     # atom_numbers = [atom.idx for atom in ligand_atoms]
