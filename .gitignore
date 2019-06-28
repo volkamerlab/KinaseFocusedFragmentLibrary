@@ -6,6 +6,7 @@ __pycache__/
 # folders
 test/
 output/
+fragmentation/*cif
 recombination/results/
 recombination/obsolete/
 fragmentation/obsolete/
@@ -13,6 +14,7 @@ recombination/statistics/
 recombination/test/
 recombination/tmp/
 analysis/KinMap
+analysis/hinge_scaffolds.ipynb
 FragmentLibrary/
 CombinatorialLibrary/
 pymol/*.png
