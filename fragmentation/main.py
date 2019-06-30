@@ -5,6 +5,7 @@ from biopandas.mol2 import PandasMol2
 import pandas as pd
 import sys
 from pathlib import Path
+import json
 
 from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center
 from fragmentation import find_brics_fragments, fragmentation
@@ -94,8 +95,11 @@ for index, entry in KLIFSData.iterrows():
                                         columns={0: ('atom_id', int), 1: ('atom_name', str), 2: ('x', float), 3: ('y', float), 4: ('z', float),
                                                  5: ('atom_type', str), 6: ('res_id', int), 7: ('res_name', str), 8: ('charge', float),
                                                  9: ('secondary_structure', str)}).df
+
+    # convert string to list
+    missing_residues = json.loads(entry.missing_residues)
     # fix residue IDs
-    pocketMol2 = fix_residue_numbers(pocketMol2, entry.missing_residues)
+    pocketMol2 = fix_residue_numbers(pocketMol2, missing_residues)
 
     # ============================ SUBPOCKET CENTERS =========================================
 
