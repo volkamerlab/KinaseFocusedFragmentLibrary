@@ -10,14 +10,18 @@ path_to_KLIFS_download = path_to_data / 'overview.csv'
 path_to_KLIFS_export = path_to_data / 'KLIFS_export.csv'
 
 KLIFSData = preprocess_klifs_data(path_to_KLIFS_download, path_to_KLIFS_export)
+count_structures = len(KLIFSData)
 KLIFSData = KLIFSData[KLIFSData.species == 'Human']
 before = len(KLIFSData)
 KLIFSData = KLIFSData[KLIFSData.dfg == 'in']
 after_dfg = len(KLIFSData)
 
+# We are not interested in Atypical kinases
+KLIFSData = KLIFSData[KLIFSData.group != 'Atypical']
+count_atypical = after_dfg - len(KLIFSData)
 # We are not interested in substrates
 KLIFSData = KLIFSData[~KLIFSData.pdb_id.isin(['AMP', 'ADP', 'ATP', 'ACP', 'ANP', 'ADN', 'ADE', 'AGS', 'AN2', 'ANK'])]
-after_phosphates = len(KLIFSData)
+count_substrates = after_dfg - count_atypical - len(KLIFSData)
 
 # count discarded structures
 count_ligand_errors = 0
@@ -26,7 +30,6 @@ count_multi_ligands = 0
 count_riboses = 0
 count_covalent = 0
 count_dfg_out = before - after_dfg
-count_substrates = after_dfg - after_phosphates
 
 filtered_data = KLIFSData.copy()
 
@@ -109,8 +112,10 @@ filtered_data.to_csv(path_to_data / 'filtered_ligands.csv')
 
 
 # output statistics
+print('Number of starting structures: ', count_structures)
 print('\nNumber of discarded structures: ')
 print('DFG-out/out-like conformations: ', count_dfg_out)
+print('Atypical kinases: ', count_atypical)
 print('ATP analogs: ', count_substrates)
 print('Ribose derivatives: ', count_riboses)
 print('Covalent ligands: ', count_covalent)

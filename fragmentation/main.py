@@ -186,7 +186,7 @@ for index, entry in KLIFSData.iterrows():
         # set other properties to be stored in the SD file
         fragment.mol.SetProp('kinase', entry.kinase)
         fragment.mol.SetProp('family', entry.family)
-        fragment.mol.SetProp('group', entry.groups)
+        fragment.mol.SetProp('group', entry.group)
         fragment.mol.SetProp('complex_pdb', entry.pdb)
         fragment.mol.SetProp('ligand_pdb', entry.pdb_id)
         fragment.mol.SetProp('alt', entry.alt)

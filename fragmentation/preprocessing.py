@@ -11,7 +11,7 @@ def preprocess_klifs_data(path_to_klifs_download, path_to_klifs_export):
     # read export file
     df_csv = pd.read_csv(path_to_klifs_export)
     # rename columns
-    df_csv.columns = ['kinase', 'family', 'groups', 'pdb', 'chain', 'alt', 'species', 'ligand', 'pdb_id',
+    df_csv.columns = ['kinase', 'family', 'group', 'pdb', 'chain', 'alt', 'species', 'ligand', 'pdb_id',
                       'allosteric_name', 'allosteric_PDB', 'dfg', 'ac_helix']
 
     # sync kinase names for both data frames
@@ -27,7 +27,7 @@ def preprocess_klifs_data(path_to_klifs_download, path_to_klifs_export):
     df_screen = pd.merge(df, df_csv, how='outer', on=['species', 'kinase', 'pdb', 'chain', 'alt', 'allosteric_PDB'])
 
     # loose irrelevant data
-    df_screen = df_screen[['kinase', 'family', 'groups', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix',
+    df_screen = df_screen[['kinase', 'family', 'group', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix',
                            'missing_residues', 'pocket']]
 
     # add column with positions of missing residues (replacing column with number of missing residues)

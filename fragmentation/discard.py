@@ -1,5 +1,6 @@
 import parmed as pmd
 from rdkit import Chem
+from pathlib import Path
 
 
 phosphate = Chem.MolFromSmiles('O[P](O)(O)O')
@@ -23,13 +24,24 @@ aa = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN",
                   "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE",
                   "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
 
+covalent = ['4d9t', '4hct', '4kio']
+
 
 def is_covalent(pdb, pdb_id, chain):
 
+    if pdb in covalent:
+        return True
+
     protein_atom_numbers = []
 
-    parm = pmd.download_PDB(pdb)
-    for res in parm.residues:
+    pdb_file = Path('../../data/PDB/'+pdb+'.cif')
+    if pdb_file.exists():
+        struct = pmd.load_file(str(pdb_file))
+    else:
+        print('Download PDB', pdb, pdb_id)
+        struct = pmd.download_PDB(pdb)
+
+    for res in struct.residues:
         if res.chain == chain:
             if res.name in aa:
                 protein_atom_numbers.extend([atom.idx for atom in res.atoms])

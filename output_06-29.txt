@@ -1,19 +1,20 @@
-Number of fragmented structures:  2647
+Number of fragmented structures:  2518
 
 Number of discarded structures: 
 DFG-out/out-like conformations:  498
-ATP analogs:  382
+Atypical kinases:  147
+ATP analogs:  370
 Ribose derivatives:  22
-Covalent ligands:  89
+Covalent ligands:  85
 Ligand could not be loaded:  18
 Pocket could not be loaded:  3
 Multiple ligands in structure:  7
-Ligands with too large BRICS fragments:  137
+Ligands with too large BRICS fragments:  135
 Missing residue position could not be inferred:  4
 
 
 
-[17:31:24] 5jrq.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+[12:58:58] 5jrq.A: warning - O.co2 with non C.2 or S.o2 neighbor.
 ERROR in HUMAN/BRAF/5jrq_chainA:
 Ligand 6N9 (HUMAN/BRAF/5jrq_chainA) could not be loaded. 
 
@@ -29,14 +30,8 @@ Covalent inhibitor 5p9j 8E8
 <Atom C37 [2250]; In 7G8 271> <Atom SG [740]; In CYS 92>
 Covalent inhibitor 5p9k 7G8 
 
-<Atom C29 [2064]; In 7G9 252> <Atom SG [665]; In CYS 85>
-Covalent inhibitor 5p9l 7G9 
-
 <Atom C19 [2169]; In 7GB 271> <Atom SG [714]; In CYS 92>
 Covalent inhibitor 5p9m 7GB 
-
-<Atom CAT [2219]; In GJD 271> <Atom SG [740]; In CYS 92>
-Covalent inhibitor 6di1 GJD 
 
 <Atom C1 [2160]; In GJ7 271> <Atom SG [710]; In CYS 92>
 Covalent inhibitor 6di5 GJ7 
@@ -47,23 +42,17 @@ Covalent inhibitor 6di9 GJJ
 <Atom C32 [2230]; In KHD 271> <Atom SG [740]; In CYS 92>
 Covalent inhibitor 6n9p KHD 
 
-[17:34:28] HUMAN/CDK2_1h0w_altA_chainA: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/CDK2/1h0w_altA_chainA:
 Pocket HUMAN/CDK2/1h0w_altA_chainA could not be loaded. 
 
+[12:59:46] HUMAN/CDK2_1h0w_altA_chainA: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/CDK2/2clx_altB_chainA:
 Pocket HUMAN/CDK2/2clx_altB_chainA could not be loaded. 
 
-[17:36:48] HUMAN/CDK2_2clx_altB_chainA: Error - C.Cat with bad number of N neighbors.
+[13:00:28] HUMAN/CDK2_2clx_altB_chainA: Error - C.Cat with bad number of N neighbors.
 Ribose in 3my5 RFZ
 ERROR in HUMAN/CDK2/3pxq_chainA:
 Ligand consists of multiple molecules. Structure is skipped. 
-
-<Atom CAQ [8900]; In JYM 1103> <Atom NE2 [1049]; In GLN 130>
-Covalent inhibitor 4cfn JYM 
-
-<Atom C [8966]; In 55S 1110> <Atom NZ [726]; In LYS 89>
-Covalent inhibitor 5cyi 55S 
 
 <Atom C2 [2173]; In 9Z2 278> <Atom SG [589]; In CYS 76>
 Covalent inhibitor 5oo1 9Z2 
@@ -85,7 +74,7 @@ ERROR in HUMAN/CK2a1/5mot_altA_chainA:
 Ligand consists of multiple molecules. Structure is skipped. 
 
 ERROR: Ligand not found in PDB file:  5n9n 8QK
-[17:56:53] 5otz.A: Warning - no explicit hydrogens in mol2 file but needed for formal charge estimation.
+[13:05:46] 5otz.A: Warning - no explicit hydrogens in mol2 file but needed for formal charge estimation.
 ERROR in HUMAN/CK2a1/5oul_altA_chainA:
 Ligand consists of multiple molecules. Structure is skipped. 
 
@@ -198,7 +187,7 @@ Ribose in 2zoq 5ID
 <Atom C31 [5730]; In 6H3 700> <Atom SG [1301]; In CYS 158>
 Covalent inhibitor 6ges 6H3 
 
-<Atom C [2726]; In CQ6 346> <Atom SG [1250]; In CYS 155>
+<Atom C [2722]; In CQ6 346> <Atom SG [1250]; In CYS 155>
 Covalent inhibitor 4zzm CQ6 
 
 <Atom C [2720]; In CQ3 341> <Atom SG [1260]; In CYS 155>
@@ -217,7 +206,7 @@ Covalent inhibitor 6g54 6H3
 ERROR in HUMAN/Erk2/6g8x_altB_chainA:
 Ligand consists of multiple molecules. Structure is skipped. 
 
-[18:13:20] 5o4a.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+[13:10:20] 5o4a.A: warning - O.co2 with non C.2 or S.o2 neighbor.
 ERROR in HUMAN/FGFR1/5o4a_altA_chainA:
 Ligand 9K8 (HUMAN/FGFR1/5o4a_altA_chainA) could not be loaded. 
 
@@ -240,15 +229,15 @@ Covalent inhibitor 5nwz 9CT
 
 Ribose in 4tnb SGV
 Ribose in 3nyn SGV
-[18:14:55] 2jld.B: Error - C.Cat with bad number of N neighbors.
+[13:10:42] 2jld.B: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/GSK3B/2jld_altA_chainB:
 Ligand AG1 (HUMAN/GSK3B/2jld_altA_chainB) could not be loaded. 
 
-[18:15:14] 3m1s.A: Error - C.Cat with bad number of N neighbors.
+[13:10:47] 3m1s.A: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/GSK3B/3m1s_altB_chainA:
 Ligand DW1 (HUMAN/GSK3B/3m1s_altB_chainA) could not be loaded. 
 
-[18:15:14] 3pup.A: Error - C.Cat with bad number of N neighbors.
+[13:10:47] 3pup.A: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/GSK3B/3pup_chainA:
 Ligand OS1 (HUMAN/GSK3B/3pup_chainA) could not be loaded. 
 
@@ -268,13 +257,17 @@ Phosphate in 1rqq 112
 <Atom C28 [2119]; In IAQ 263> <Atom SG [688]; In CYS 86>
 Covalent inhibitor 3t9t IAQ 
 
+Covalent inhibitor 4hct 18R 
+
 <Atom C25 [2139]; In 13L 263> <Atom SG [692]; In CYS 86>
 Covalent inhibitor 4hcu 13L 
 
 <Atom C25 [2139]; In 13J 263> <Atom SG [692]; In CYS 86>
 Covalent inhibitor 4hcv 13J 
 
-<Atom C1 [4488]; In 37Q 646> <Atom SG [2899]; In CYS 363>
+Covalent inhibitor 4kio G5K 
+
+<Atom C1 [4389]; In 37Q 547> <Atom SG [2899]; In CYS 363>
 Covalent inhibitor 4qps 37Q 
 
 <Atom C20 [4380]; In G9B 543> <Atom SG [699]; In CYS 88>
@@ -282,9 +275,6 @@ Covalent inhibitor 4v0g G9B
 
 <Atom CAP [8975]; In 4LH 1100> <Atom SG [7388]; In CYS 914>
 Covalent inhibitor 4z16 4LH 
-
-<Atom C12 [2390]; In 79S 298> <Atom SG [754]; In CYS 95>
-Covalent inhibitor 5lwn 79S 
 
 <Atom C9 [2195]; In 7H4 278> <Atom SG [709]; In CYS 90>
 Covalent inhibitor 5toz 7H4 
@@ -310,28 +300,25 @@ Covalent inhibitor 6db4 G4Y
 <Atom C20 [2158]; In HB4 272> <Atom SG [699]; In CYS 87>
 Covalent inhibitor 6dud HB4 
 
-<Atom C33 [5753]; In CQQ 838> <Atom SG [3646]; In CYS 459>
+<Atom C33 [5613]; In CQQ 698> <Atom SG [3646]; In CYS 459>
 Covalent inhibitor 3v6r CQQ 
 
-<Atom C33 [5658]; In 0F0 802> <Atom SG [3626]; In CYS 458>
+<Atom C33 [5547]; In 0F0 691> <Atom SG [3626]; In CYS 458>
 Covalent inhibitor 3v6s 0F0 
 
-<Atom I17 [5240]; In 3WH 674> <Atom SD [3347]; In MET 435>
-Covalent inhibitor 4x21 3WH 
-
-[18:30:51] 2p55.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+[13:15:24] 2p55.A: warning - O.co2 with non C.2 or S.o2 neighbor.
 ERROR in HUMAN/MAP2K1/2p55_chainA:
 Ligand MRA (HUMAN/MAP2K1/2p55_chainA) could not be loaded. 
 
-[18:30:55] 3eqh.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+[13:15:25] 3eqh.A: warning - O.co2 with non C.2 or S.o2 neighbor.
 ERROR in HUMAN/MAP2K1/3eqh_chainA:
 Ligand 5BM (HUMAN/MAP2K1/3eqh_chainA) could not be loaded. 
 
-[18:30:55] 3v01.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+[13:15:25] 3v01.A: warning - O.co2 with non C.2 or S.o2 neighbor.
 ERROR in HUMAN/MAP2K1/3v01_chainA:
 Ligand 3V0 (HUMAN/MAP2K1/3v01_chainA) could not be loaded. 
 
-[18:30:55] 3v04.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+[13:15:25] 3v04.A: warning - O.co2 with non C.2 or S.o2 neighbor.
 ERROR in HUMAN/MAP2K1/3v04_chainA:
 Ligand V04 (HUMAN/MAP2K1/3v04_chainA) could not be loaded. 
 
@@ -347,11 +334,11 @@ Covalent inhibitor 6ib2 862
 ERROR in HUMAN/MPSK1/2buj_chainB:
 Ligand consists of multiple molecules. Structure is skipped. 
 
-[18:38:00] 3fxz.A: Error - C.Cat with bad number of N neighbors.
+[13:17:31] 3fxz.A: Error - C.Cat with bad number of N neighbors.
+[13:17:31] 3fy0.A: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/PAK1/3fxz_altA_chainA:
 Ligand FLL (HUMAN/PAK1/3fxz_altA_chainA) could not be loaded. 
 
-[18:38:00] 3fy0.A: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/PAK1/3fy0_chainA:
 Ligand DW1 (HUMAN/PAK1/3fy0_chainA) could not be loaded. 
 
@@ -361,34 +348,36 @@ ERROR: Ligand not found in PDB file:  4ks7 X4Z
 <Atom C18 [2282]; In SYP 281> <Atom SG [790]; In CYS 95>
 Covalent inhibitor 3pwy SYP 
 
-[18:41:44] 2bzh.B: Error - C.Cat with bad number of N neighbors.
+[13:18:12] 2bzh.B: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/PIM1/2bzh_altA_chainB:
 Ligand HB1 (HUMAN/PIM1/2bzh_altA_chainB) could not be loaded. 
 
-[18:41:44] 2bzj.A: Error - C.Cat with bad number of N neighbors.
+[13:18:12] 2bzj.A: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/PIM1/2bzj_altA_chainA:
 Ligand ME3 (HUMAN/PIM1/2bzj_altA_chainA) could not be loaded. 
 
-[18:42:58] 3we8.A: Error - C.Cat with bad number of N neighbors.
+[13:18:28] 3we8.A: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/PIM1/3we8_altB_chainA:
 Ligand RUI (HUMAN/PIM1/3we8_altB_chainA) could not be loaded. 
 
-[18:43:05] 4as0.A: Error - C.Cat with bad number of N neighbors.
+[13:18:30] 4as0.A: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/PIM1/4as0_altA_chainA:
 Ligand RPS (HUMAN/PIM1/4as0_altA_chainA) could not be loaded. 
 
-[18:45:24] 2iwi.B: Error - C.Cat with bad number of N neighbors.
+[13:18:59] 2iwi.B: Error - C.Cat with bad number of N neighbors.
 ERROR in HUMAN/PIM2/2iwi_chainB:
 Ligand HB1 (HUMAN/PIM2/2iwi_chainB) could not be loaded. 
 
 Ribose in 3agl A03
-[18:47:26] 2ivs.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+[13:19:31] 2ivs.A: warning - O.co2 with non C.2 or S.o2 neighbor.
 ERROR in HUMAN/RET/2ivs_altB_chainA:
 Ligand ACK (HUMAN/RET/2ivs_altB_chainA) could not be loaded. 
 
+[13:19:33] HUMAN/RET_5fm3_chainA: warning - O.co2 with non C.2 or S.o2 neighbor.
 ERROR in HUMAN/RET/5fm3_chainA:
-[18:47:36] HUMAN/RET_5fm3_chainA: warning - O.co2 with non C.2 or S.o2 neighbor.
 Pocket HUMAN/RET/5fm3_chainA could not be loaded. 
+
+Covalent inhibitor 4d9t 0JG 
 
 <Atom C11 [2413]; In 0JH 307> <Atom SG [200]; In CYS 28>
 Covalent inhibitor 4d9u 0JH 
@@ -402,7 +391,7 @@ Covalent inhibitor 4jg7 1LC
 <Atom C12 [4718]; In 1LE 300> <Atom SG [286]; In CYS 21>
 Covalent inhibitor 4jg8 1LE 
 
-[18:50:20] 1ksw.A: warning - O.co2 with non C.2 or S.o2 neighbor.
+[13:20:28] 1ksw.A: warning - O.co2 with non C.2 or S.o2 neighbor.
 ERROR in HUMAN/SRC/1ksw_chainA:
 Ligand NBS (HUMAN/SRC/1ksw_chainA) could not be loaded. 
 
@@ -412,9 +401,19 @@ Covalent inhibitor 6ate 6H3
 <Atom C42 [2393]; In 1FM 304> <Atom SG [1155]; In CYS 148>
 Covalent inhibitor 4gs6 1FM 
 
-<Atom C2 [7239]; In KKR 886> <Atom SG [5857]; In CYS 715>
-Covalent inhibitor 3zim KKR 
-
 ERROR in HUMAN/p38a/4eh8_altA_chainA:
 Ligand consists of multiple molecules. Structure is skipped. 
 
+
+
+ERROR in HUMAN/MASTL/5loh_altB_chainA:
+Important residue 24 is missing in structure. Structure is skipped. 
+
+ERROR in HUMAN/MER/5tc0_chainA:
+Important residue 24 is missing in structure. Structure is skipped. 
+
+ERROR in HUMAN/RSK1/2z7r_chainA:
+Important residue 24 is missing in structure. Structure is skipped. 
+
+ERROR in HUMAN/RSK1/2z7s_chainA:
+Important residue 24 is missing in structure. Structure is skipped. 
