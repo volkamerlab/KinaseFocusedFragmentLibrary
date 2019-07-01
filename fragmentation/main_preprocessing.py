@@ -1,6 +1,5 @@
 from pathlib import Path
 from rdkit import Chem
-from Bio.PDB import PDBList
 
 from preprocessing import preprocess_klifs_data, get_folder_name
 from discard import is_covalent, contains_phosphate, contains_ribose
@@ -29,8 +28,6 @@ count_covalent = 0
 count_dfg_out = before - after_dfg
 count_substrates = after_dfg - after_phosphates
 
-# KLIFSData = KLIFSData[KLIFSData.family.isin(['RAF'])]
-
 filtered_data = KLIFSData.copy()
 
 # iterate over molecules
@@ -39,7 +36,6 @@ for index, entry in KLIFSData.iterrows():
     # ================================== READ DATA ============================================
 
     folder = get_folder_name(entry)
-    # print(folder)
 
     # load ligand and binding pocket to rdkit molecules
     ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
@@ -101,30 +97,15 @@ for index, entry in KLIFSData.iterrows():
         filtered_data = filtered_data.drop(index)
         continue
 
-    # # discard covalent ligands
-    # if is_covalent(entry.pdb, entry.pdb_id, entry.chain):
-    #     print('Covalent inhibitor', entry.pdb, entry.pdb_id, '\n')
-    #     count_covalent += 1
-    #     filtered_data = filtered_data.drop(index)
-    #     continue
-
-# # get PDB files for filtered ligands
-# pdbs = filtered_data.pdb
-# pdbl = PDBList()
-# pdbl.download_pdb_files(pdb_codes=pdbs, overwrite=True, pdir='PDB')
-
-final_data = filtered_data.copy()
-
-for index, entry in filtered_data.iterrows():
-
+    # discard covalent ligands
     if is_covalent(entry.pdb, entry.pdb_id, entry.chain):
         print('Covalent inhibitor', entry.pdb, entry.pdb_id, '\n')
         count_covalent += 1
-        filtered_data = final_data.drop(index)
+        filtered_data = filtered_data.drop(index)
         continue
 
 
-final_data.to_csv(path_to_data / 'filtered_ligands.csv')
+filtered_data.to_csv(path_to_data / 'filtered_ligands.csv')
 
 
 # output statistics

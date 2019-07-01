@@ -75,7 +75,7 @@ for index, entry in KLIFSData.iterrows():
         sizes = [l.GetNumHeavyAtoms() for l in multi_ligands]
         max_size = max(sizes)
 
-        # if multiple ligands have the same largest size, skip this molecule
+        # if multiple ligands have the same largest size - should not happen if preprocessing was done correctly
         if sizes.count(max_size) > 1:
             print('ERROR in ' + folder + ':')
             print('Ligand consists of multiple molecules of the same size. \n')

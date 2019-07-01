@@ -28,10 +28,8 @@ def is_covalent(pdb, pdb_id, chain):
 
     protein_atom_numbers = []
 
-    # struct = pmd.download_PDB(pdb)
-    struct = pmd.load_file('PDB/'+pdb+'.cif')
-    
-    for res in struct.residues:
+    parm = pmd.download_PDB(pdb)
+    for res in parm.residues:
         if res.chain == chain:
             if res.name in aa:
                 protein_atom_numbers.extend([atom.idx for atom in res.atoms])
