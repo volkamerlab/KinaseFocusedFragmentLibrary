@@ -17,6 +17,7 @@ sys.path.append('../')
 from pickle_loader import pickle_loader
 from construct_ligand import construct_ligand, read_fragment_library
 from drug_likeliness import is_drug_like
+from analyze_results import analyze_result
 
 data = read_fragment_library(Path('../FragmentLibrary'))
 
@@ -53,9 +54,11 @@ for i in range(len(subpockets)):
 n_atoms = {}
 n_atoms_filtered = {}
 
-combinatorial_library_file = combinatorial_library_file.open('wb')
+# combinatorial_library_file = combinatorial_library_file.open('wb')
 
 start = time.time()
+
+ligand_fingerprints = []
 
 # iterate over ligands
 for in_path in in_paths:
@@ -63,6 +66,8 @@ for in_path in in_paths:
     print(str(in_path))
     with open(in_path, 'rb') as pickle_in:
         for meta in pickle_loader(pickle_in):
+
+            # analyze_result(meta, data)
 
             ligand = construct_ligand(meta, data)
             # if ligand could not be constructed, skip
@@ -78,8 +83,8 @@ for in_path in in_paths:
                 n_per_sp[frag_id[:2]] += 1
 
             # store ligand in combinatorial library
-            property_ligand = PropertyMol(ligand)
-            pickle.dump(property_ligand, combinatorial_library_file)
+            # property_ligand = PropertyMol(ligand)
+            # pickle.dump(property_ligand, combinatorial_library_file)
             # ligand_smiles.add(Chem.MolToSmiles(ligand))
 
             # necessary for Lipinski rule
@@ -113,7 +118,7 @@ for in_path in in_paths:
             n = ligand.GetNumHeavyAtoms()
             n_atoms[n] = n_atoms[n] + 1 if n in n_atoms else 1
 
-combinatorial_library_file.close()
+# combinatorial_library_file.close()
 filtered_pains = count_ligands - count_pains
 
 runtime = time.time() - start
