@@ -14,6 +14,6 @@ def is_drug_like(mol):
 
     hba = 1 if Lipinski.NumHAcceptors(mol) <= 10 else 0
 
-    lipinski = True if mol_wt + logp + hbd + hba > 3 else False
+    lipinski = 1 if mol_wt + logp + hbd + hba > 3 else 0
 
     return lipinski, mol_wt, logp, hbd, hba

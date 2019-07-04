@@ -1,29 +1,25 @@
 from rdkit import Chem
-from rdkit.Chem.PropertyMol import PropertyMol
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 from pathlib import Path
 import time
-import sys
 import matplotlib.pyplot as plt
+import sys
 import pickle
 
-from rdkit.Chem.FilterCatalog import *
-params = FilterCatalogParams()
-# Build a catalog from all PAINS (A, B and C)
-params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
-pains = FilterCatalog(params)
+import multiprocessing as mp
 
-sys.path.append('../')
+sys.path.append('../recombination')
+sys.path.append('../recombination/construct_ligands')
+from construct_ligand import read_fragment_library
 from pickle_loader import pickle_loader
-from construct_ligand import construct_ligand, read_fragment_library
-from drug_likeliness import is_drug_like
+from analyze_results import analyze_result
 
 data = read_fragment_library(Path('../FragmentLibrary'))
 
-# =========================================================================
+# ================================ INITIALIZE =========================================
 
 path_to_results = Path('../recombination/results')
-in_paths = path_to_results.glob('*.pickle')
+in_paths = list(path_to_results.glob('*.pickle'))
 
 combinatorial_library_folder = Path('../CombinatorialLibrary/')
 combinatorial_library_file = combinatorial_library_folder / 'combinatorial_library.pickle'
@@ -53,65 +49,71 @@ for i in range(len(subpockets)):
 n_atoms = {}
 n_atoms_filtered = {}
 
-combinatorial_library_file = combinatorial_library_file.open('wb')
-
 start = time.time()
+
+metas = []
+results = []
+
+pool = mp.Pool(4)
+
+# ========================= CONSTRUCT AND ANALYZE LIGANDS ==============================
 
 # iterate over ligands
 for in_path in in_paths:
 
     print(str(in_path))
     with open(in_path, 'rb') as pickle_in:
-        for meta in pickle_loader(pickle_in):
 
-            ligand = construct_ligand(meta, data)
-            # if ligand could not be constructed, skip
-            if not ligand:
-                continue
+        results.extend( pool.starmap(analyze_result, [(meta, data) for meta in pickle_loader(pickle_in)]) )
 
-            count_ligands += 1
 
-            # number of occupied subpockets
-            n_sp[len(meta.frag_ids)] += 1
-            # occupied subpockets
-            for frag_id in meta.frag_ids:
-                n_per_sp[frag_id[:2]] += 1
+# ================================ COMBINE RESULTS ======================================
 
-            # store ligand in combinatorial library
-            property_ligand = PropertyMol(ligand)
-            pickle.dump(property_ligand, combinatorial_library_file)
-            # ligand_smiles.add(Chem.MolToSmiles(ligand))
+print('Process results.')
 
-            # necessary for Lipinski rule
-            # Chem.SanitizeMol(ligand)  # slower
-            Chem.GetSymmSSSR(ligand)
+combinatorial_library_file = combinatorial_library_file.open('wb')
 
-            # Lipinski rule
-            lipinski, wt, logp, hbd, hba = is_drug_like(ligand)
-            if lipinski:
-                lipinski_ligands += 1
-            wt_ligands += wt
-            logp_ligands += logp
-            hbd_ligands += hbd
-            hba_ligands += hba
+# combine results
+for result in results:
 
-            # PAINS substructure search
-            match = pains.GetFirstMatch(ligand)
-            # if pains was found
-            if match is not None:
-                count_pains += 1
-            # if no pains was found AND Lipinski rule fulfilled
-            else:
-                if lipinski:
-                    n_filtered_sp[len(meta.frag_ids)] += 1
-                    n_atoms_filtered[n] = n_atoms_filtered[n] + 1 if n in n_atoms_filtered else 1
-                    for frag_id in meta.frag_ids:
-                        n_filtered_per_sp[frag_id[:2]] += 1
-                    filtered_ligands += 1
+    if result is None:
+        continue
 
-            # number of atoms
-            n = ligand.GetNumHeavyAtoms()
-            n_atoms[n] = n_atoms[n] + 1 if n in n_atoms else 1
+    # store in combinatorial library
+    pickle.dump(result, combinatorial_library_file)
+
+    count_ligands += 1
+
+    # number of subpockets
+    n_sp[result.n_subpockets] += 1
+    # occupied subpockets
+    for frag_id in result.meta.frag_ids:
+        n_per_sp[frag_id[:2]] += 1
+
+    # lipinski rule
+    lipinski_ligands += result.lipinski
+    wt_ligands += result.mwt
+    logp_ligands += result.logp
+    hbd_ligands += result.hbd
+    hba_ligands += result.hba
+
+    n = result.n_atoms
+    # if Lipinski rule fulfilled
+    if result.lipinski == 1:
+        n_filtered_sp[len(result.meta.frag_ids)] += 1
+        n_atoms_filtered[n] = n_atoms_filtered[n] + 1 if n in n_atoms_filtered else 1
+        for frag_id in result.meta.frag_ids:
+            n_filtered_per_sp[frag_id[:2]] += 1
+        filtered_ligands += 1
+
+    # pains
+    count_pains += result.pains
+
+    # number of atoms
+    n_atoms[n] = n_atoms[n] + 1 if n in n_atoms else 1
+
+
+# ==================================== OUTPUT ============================================
 
 combinatorial_library_file.close()
 filtered_pains = count_ligands - count_pains
@@ -133,7 +135,7 @@ rules = [wt_ligands/count_ligands*100, logp_ligands/count_ligands*100, hbd_ligan
 plt.figure()
 ax = plt.bar(range(6), rules)
 plt.ylabel('# Ligands [%]')
-plt.xticks(range(6), [r'MWT $\leq 500$', r'logP $\leq 5$', r'HBD $\leq 5$', r'HBA $\leq 10$', 'Lipinski\nrule of 5', 'No PAINS'])
+plt.xticks(range(6), [r'MWT $\leq 500$', r'logP $\leq 5$', r'HBD $\leq 5$', r'HBA $\leq 10$', 'Rule of 5', 'No PAINS'])
 plt.yticks()
 rects = ax.patches
 # calculate percentages
