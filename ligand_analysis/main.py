@@ -4,16 +4,19 @@ from pathlib import Path
 import time
 import matplotlib.pyplot as plt
 import sys
-import math
+import pickle
+
+import multiprocessing as mp
 
 sys.path.append('../recombination')
 sys.path.append('../recombination/construct_ligands')
 from construct_ligand import read_fragment_library
-from Thread import LigandAnalysisThread
+from pickle_loader import pickle_loader
+from analyze_results import analyze_result
 
 data = read_fragment_library(Path('../FragmentLibrary'))
 
-# =========================================================================
+# ================================ INITIALIZE =========================================
 
 path_to_results = Path('../recombination/results')
 in_paths = list(path_to_results.glob('*.pickle'))
@@ -21,6 +24,7 @@ in_paths = list(path_to_results.glob('*.pickle'))
 combinatorial_library_folder = Path('../CombinatorialLibrary/')
 combinatorial_library_file = combinatorial_library_folder / 'combinatorial_library.pickle'
 
+count_ligands = 0
 count_pains = 0
 lipinski_ligands, filtered_ligands = 0, 0
 wt_ligands = 0
@@ -45,60 +49,40 @@ for i in range(len(subpockets)):
 n_atoms = {}
 n_atoms_filtered = {}
 
-# combinatorial_library_file = combinatorial_library_file.open('wb')
-
 start = time.time()
 
+metas = []
 results = []
 
-# # iterate over ligands
-# for in_path in in_paths:
-#
-#     print(str(in_path))
-#     with open(in_path, 'rb') as pickle_in:
-#         for meta in pickle_loader(pickle_in):
-#
-#             result = analyze_result(meta, data, pains)
-#             if result is not None:
-#                 results.append(result)
+pool = mp.Pool(4)
 
-n_threads = 1
-n_files = len(in_paths)
-step_size = math.ceil(n_files/n_threads)
+# ========================= CONSTRUCT AND ANALYZE LIGANDS ==============================
 
-threadList = []
+# iterate over ligands
+for in_path in in_paths:
 
-for i in range(0, n_files, step_size):
+    print(str(in_path))
+    with open(in_path, 'rb') as pickle_in:
 
-    if i+step_size > n_files:
+        results.extend( pool.starmap(analyze_result, [(meta, data) for meta in pickle_loader(pickle_in)]) )
 
-        files = in_paths[i:]
-        print(files)
-        thread = LigandAnalysisThread(files, data)
-        threadList.append(thread)
 
-    else:
-        files = in_paths[i:i+step_size]
-        print(files)
-        thread = LigandAnalysisThread(files, data)
-        threadList.append(thread)
+# ================================ COMBINE RESULTS ======================================
 
-# start parallel processes
-for thread in threadList:
-    print('start', thread)
-    thread.start()
-# join parallel processes:
-for thread in threadList:
-    print('join', thread)
-    thread.join()
-# join results
-for thread in threadList:
-    results.extend(thread.results)
+print('Process results.')
 
-count_ligands = len(results)
+combinatorial_library_file = combinatorial_library_file.open('wb')
 
 # combine results
 for result in results:
+
+    if result is None:
+        continue
+
+    # store in combinatorial library
+    pickle.dump(result, combinatorial_library_file)
+
+    count_ligands += 1
 
     # number of subpockets
     n_sp[result.n_subpockets] += 1
@@ -129,7 +113,9 @@ for result in results:
     n_atoms[n] = n_atoms[n] + 1 if n in n_atoms else 1
 
 
-# combinatorial_library_file.close()
+# ==================================== OUTPUT ============================================
+
+combinatorial_library_file.close()
 filtered_pains = count_ligands - count_pains
 
 runtime = time.time() - start
