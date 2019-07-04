@@ -1,35 +1,26 @@
 from rdkit import Chem
-from rdkit.Chem.PropertyMol import PropertyMol
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 from pathlib import Path
 import time
-import sys
 import matplotlib.pyplot as plt
-import pickle
+import sys
+import math
 
-from rdkit.Chem.FilterCatalog import *
-params = FilterCatalogParams()
-# Build a catalog from all PAINS (A, B and C)
-params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
-pains = FilterCatalog(params)
-
-sys.path.append('../')
-from pickle_loader import pickle_loader
-from construct_ligand import construct_ligand, read_fragment_library
-from drug_likeliness import is_drug_like
-from analyze_results import analyze_result
+sys.path.append('../recombination')
+sys.path.append('../recombination/construct_ligands')
+from construct_ligand import read_fragment_library
+from Thread import LigandAnalysisThread
 
 data = read_fragment_library(Path('../FragmentLibrary'))
 
 # =========================================================================
 
 path_to_results = Path('../recombination/results')
-in_paths = path_to_results.glob('*.pickle')
+in_paths = list(path_to_results.glob('*.pickle'))
 
 combinatorial_library_folder = Path('../CombinatorialLibrary/')
 combinatorial_library_file = combinatorial_library_folder / 'combinatorial_library.pickle'
 
-count_ligands = 0
 count_pains = 0
 lipinski_ligands, filtered_ligands = 0, 0
 wt_ligands = 0
@@ -58,65 +49,85 @@ n_atoms_filtered = {}
 
 start = time.time()
 
-ligand_fingerprints = []
+results = []
 
-# iterate over ligands
-for in_path in in_paths:
+# # iterate over ligands
+# for in_path in in_paths:
+#
+#     print(str(in_path))
+#     with open(in_path, 'rb') as pickle_in:
+#         for meta in pickle_loader(pickle_in):
+#
+#             result = analyze_result(meta, data, pains)
+#             if result is not None:
+#                 results.append(result)
 
-    print(str(in_path))
-    with open(in_path, 'rb') as pickle_in:
-        for meta in pickle_loader(pickle_in):
+n_threads = 1
+n_files = len(in_paths)
+step_size = math.ceil(n_files/n_threads)
 
-            # analyze_result(meta, data)
+threadList = []
 
-            ligand = construct_ligand(meta, data)
-            # if ligand could not be constructed, skip
-            if not ligand:
-                continue
+for i in range(0, n_files, step_size):
 
-            count_ligands += 1
+    if i+step_size > n_files:
 
-            # number of occupied subpockets
-            n_sp[len(meta.frag_ids)] += 1
-            # occupied subpockets
-            for frag_id in meta.frag_ids:
-                n_per_sp[frag_id[:2]] += 1
+        files = in_paths[i:]
+        print(files)
+        thread = LigandAnalysisThread(files, data)
+        threadList.append(thread)
 
-            # store ligand in combinatorial library
-            # property_ligand = PropertyMol(ligand)
-            # pickle.dump(property_ligand, combinatorial_library_file)
-            # ligand_smiles.add(Chem.MolToSmiles(ligand))
+    else:
+        files = in_paths[i:i+step_size]
+        print(files)
+        thread = LigandAnalysisThread(files, data)
+        threadList.append(thread)
 
-            # necessary for Lipinski rule
-            # Chem.SanitizeMol(ligand)  # slower
-            Chem.GetSymmSSSR(ligand)
+# start parallel processes
+for thread in threadList:
+    print('start', thread)
+    thread.start()
+# join parallel processes:
+for thread in threadList:
+    print('join', thread)
+    thread.join()
+# join results
+for thread in threadList:
+    results.extend(thread.results)
 
-            # Lipinski rule
-            lipinski, wt, logp, hbd, hba = is_drug_like(ligand)
-            if lipinski:
-                lipinski_ligands += 1
-            wt_ligands += wt
-            logp_ligands += logp
-            hbd_ligands += hbd
-            hba_ligands += hba
+count_ligands = len(results)
 
-            # PAINS substructure search
-            match = pains.GetFirstMatch(ligand)
-            # if pains was found
-            if match is not None:
-                count_pains += 1
-            # if no pains was found AND Lipinski rule fulfilled
-            else:
-                if lipinski:
-                    n_filtered_sp[len(meta.frag_ids)] += 1
-                    n_atoms_filtered[n] = n_atoms_filtered[n] + 1 if n in n_atoms_filtered else 1
-                    for frag_id in meta.frag_ids:
-                        n_filtered_per_sp[frag_id[:2]] += 1
-                    filtered_ligands += 1
+# combine results
+for result in results:
 
-            # number of atoms
-            n = ligand.GetNumHeavyAtoms()
-            n_atoms[n] = n_atoms[n] + 1 if n in n_atoms else 1
+    # number of subpockets
+    n_sp[result.n_subpockets] += 1
+    # occupied subpockets
+    for frag_id in result.meta.frag_ids:
+        n_per_sp[frag_id[:2]] += 1
+
+    # lipinski rule
+    lipinski_ligands += result.lipinski
+    wt_ligands += result.mwt
+    logp_ligands += result.logp
+    hbd_ligands += result.hbd
+    hba_ligands += result.hba
+
+    n = result.n_atoms
+    # if Lipinski rule fulfilled
+    if result.lipinski == 1:
+        n_filtered_sp[len(result.meta.frag_ids)] += 1
+        n_atoms_filtered[n] = n_atoms_filtered[n] + 1 if n in n_atoms_filtered else 1
+        for frag_id in result.meta.frag_ids:
+            n_filtered_per_sp[frag_id[:2]] += 1
+        filtered_ligands += 1
+
+    # pains
+    count_pains += result.pains
+
+    # number of atoms
+    n_atoms[n] = n_atoms[n] + 1 if n in n_atoms else 1
+
 
 # combinatorial_library_file.close()
 filtered_pains = count_ligands - count_pains
@@ -138,7 +149,7 @@ rules = [wt_ligands/count_ligands*100, logp_ligands/count_ligands*100, hbd_ligan
 plt.figure()
 ax = plt.bar(range(6), rules)
 plt.ylabel('# Ligands [%]')
-plt.xticks(range(6), [r'MWT $\leq 500$', r'logP $\leq 5$', r'HBD $\leq 5$', r'HBA $\leq 10$', 'Lipinski\nrule of 5', 'No PAINS'])
+plt.xticks(range(6), [r'MWT $\leq 500$', r'logP $\leq 5$', r'HBD $\leq 5$', r'HBA $\leq 10$', 'Rule of 5', 'No PAINS'])
 plt.yticks()
 rects = ax.patches
 # calculate percentages
