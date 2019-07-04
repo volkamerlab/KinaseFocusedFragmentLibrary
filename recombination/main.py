@@ -10,8 +10,8 @@ import pickle
 from classes_meta import Combination, PermutationStep, Fragment, Compound, Port
 from get_tuple import get_tuple
 from pickle_loader import pickle_loader
-from results import results_to_file, add_to_results, process_result
-from queue import add_to_queue
+from process_results import results_to_file, add_to_results, process_result
+from process_queue import add_to_queue
 
 start = time.time()
 
