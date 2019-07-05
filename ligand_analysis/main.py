@@ -13,8 +13,11 @@ sys.path.append('../recombination/construct_ligands')
 from construct_ligand import read_fragment_library
 from pickle_loader import pickle_loader
 from analyze_results import analyze_result
+from original_ligands import read_original_ligands
 
 data = read_fragment_library(Path('../FragmentLibrary'))
+
+original_ligands = read_original_ligands(data)
 
 # ================================ INITIALIZE =========================================
 
@@ -31,6 +34,8 @@ wt_ligands = 0
 logp_ligands = 0
 hbd_ligands = 0
 hba_ligands = 0
+originals = 0
+original_subs = 0
 # with open(out_path, 'wb') as out_file:
 # ligand_smiles = set()
 
@@ -64,7 +69,7 @@ for in_path in in_paths:
     print(str(in_path))
     with open(in_path, 'rb') as pickle_in:
 
-        results.extend( pool.starmap(analyze_result, [(meta, data) for meta in pickle_loader(pickle_in)]) )
+        results.extend( pool.starmap(analyze_result, [(meta, data, original_ligands) for meta in pickle_loader(pickle_in)]) )
 
 
 # ================================ COMBINE RESULTS ======================================
@@ -109,6 +114,10 @@ for result in results:
     # pains
     count_pains += result.pains
 
+    # original ligands
+    originals += result.original
+    original_subs += result.original_sub
+
     # number of atoms
     n_atoms[n] = n_atoms[n] + 1 if n in n_atoms else 1
 
@@ -120,6 +129,8 @@ filtered_pains = count_ligands - count_pains
 
 runtime = time.time() - start
 print('Number of resulting ligands:', count_ligands)
+print('Esact match in original ligands:', originals)
+print('Substructures of original ligands:', original_subs)
 print('Lipinski rule of 5 fulfilled:', lipinski_ligands, lipinski_ligands/count_ligands)
 print('No PAINS found:', filtered_pains, filtered_pains/count_ligands)
 print('Molecular weight <= 500:', wt_ligands, wt_ligands/count_ligands)

@@ -10,7 +10,7 @@ params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
 pains = FilterCatalog(params)
 
 
-def analyze_result(meta, data):
+def analyze_result(meta, data, original_ligands):
 
     global pains
 
@@ -34,7 +34,24 @@ def analyze_result(meta, data):
     # number of atoms
     n = ligand.GetNumHeavyAtoms()
 
+    smiles = Chem.MolToSmiles(ligand)
+    # search in original ligands
+    original = 0
+    original_sub = 0
+    # for l in original_ligands:
+    #     s = Chem.MolToSmiles(l)
+    #     found exact match
+    #     if s == smiles:
+    #         original = 1
+    #         break
+    #     elif ligand.HasSubstructMatch(l):
+    #         original_sub = 1
+    #         break
+
+    # chembl
+    chembl_match = 0
+
     # construct Result object
-    result = Result(meta, lipinski, wt, logp, hbd, hba, pains_found, n)
+    result = Result(meta, lipinski, wt, logp, hbd, hba, pains_found, n, original, original_sub)
 
     return result
