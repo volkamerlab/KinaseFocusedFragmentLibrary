@@ -35,23 +35,25 @@ def analyze_result(meta, data, original_ligands):
     n = ligand.GetNumHeavyAtoms()
 
     smiles = Chem.MolToSmiles(ligand)
+    #inchi = Chem.MolToInchi(ligand)
+
     # search in original ligands
     original = 0
     original_sub = 0
-    # for l in original_ligands:
-    #     s = Chem.MolToSmiles(l)
-    #     found exact match
-    #     if s == smiles:
-    #         original = 1
-    #         break
-    #     elif ligand.HasSubstructMatch(l):
-    #         original_sub = 1
-    #         break
+
+    if not original_ligands[original_ligands['smiles'] == smiles].empty:
+        original = 1
+
+    if not original_ligands[original_ligands['mol'] >= ligand].empty:
+        original_sub = 1
 
     # chembl
     chembl_match = 0
 
+    #if not chembl[chembl.standard_inchi == inchi].empty:
+    #    chembl_match = 1
+
     # construct Result object
-    result = Result(meta, lipinski, wt, logp, hbd, hba, pains_found, n, original, original_sub)
+    result = Result(meta, lipinski, wt, logp, hbd, hba, pains_found, n, original, original_sub, chembl_match)
 
     return result
