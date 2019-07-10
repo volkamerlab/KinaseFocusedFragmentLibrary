@@ -5,8 +5,11 @@ import time
 import matplotlib.pyplot as plt
 import sys
 import pickle
+import joblib
 
 import multiprocessing as mp
+# from dask.distributed import Client
+# client = Client(processes=True)
 
 sys.path.append('../recombination')
 sys.path.append('../recombination/construct_ligands')
@@ -14,13 +17,14 @@ from construct_ligand import read_fragment_library
 from pickle_loader import pickle_loader
 from analyze_results import analyze_result
 from original_ligands import read_original_ligands
-from chembl import read_chembl
+from chembl import read_smiles
 
 data = read_fragment_library(Path('../FragmentLibrary'), 20)
 
 original_ligands = read_original_ligands(data)
 
-chembl = read_chembl('/home/paula/Downloads/chembl_25_chemreps.txt')
+# chembl = read_chembl('/home/paula/Downloads/chembl_25_chemreps.txt')
+chembl = read_smiles('../../chembl/chembl.txt')
 
 # ================================ INITIALIZE =========================================
 
@@ -75,6 +79,11 @@ for in_path in in_paths:
     with open(in_path, 'rb') as pickle_in:
 
         results.extend(pool.starmap(analyze_result, [(meta, data, original_ligands) for meta in pickle_loader(pickle_in)]))
+        #with joblib.parallel_backend('dask'):
+
+        #    joblib.Parallel()(
+        #        joblib.delayed(analyze_result)(meta, data, original_ligands) for meta in pickle_loader(pickle_in)
+        #    )
 
 
 # ================================ COMBINE RESULTS ======================================
