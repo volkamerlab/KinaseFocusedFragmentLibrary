@@ -3,17 +3,17 @@ import dask.dataframe as dd
 import pandas as pd
 
 
-def read_smiles(file):
+def read_mols(file):
 
     print('Read', file)
 
-    smiles = pd.read_csv(file, header=None, names=['smiles'])
+    mols = pd.read_csv(file, header=None, names=['string'])
 
     # print(smiles[smiles.smiles.str.find('+') != -1])
 
-    print('Number of ChEMBL molecules:', smiles.shape[0])
+    print('Number of ChEMBL molecules:', mols.shape[0])
 
-    return smiles
+    return mols
 
 
 def inchi_to_smiles(inchi):
@@ -38,13 +38,13 @@ def read_chembl(file):
     # convert to canonical rdkit smiles
     mols = mols.drop(['canonical_smiles', 'chembl_id', 'standard_inchi_key'], axis='columns')
 
-    mols['smiles'] = mols.standard_inchi.apply(inchi_to_smiles, meta=('smiles', str))
-    print('Number of ChEMBL molecules:', mols['smiles'].compute().shape[0])
+    # mols['smiles'] = mols.standard_inchi.apply(inchi_to_smiles, meta=('smiles', str))
+    print('Number of ChEMBL molecules:', mols['standard_inchi'].compute().shape[0])
     mols = mols.dropna(how='any')
-    print('Number of filtered ChEMBL molecules:', mols['smiles'].compute().shape[0])
+    print('Number of filtered ChEMBL molecules:', mols['standard_inchi'].compute().shape[0])
 
     # write to file
-    mols['smiles'].compute().to_csv(out_file, header=0, index=0)
+    mols['standard_inchi'].compute().to_csv(out_file, header=0, index=0)
 
     return out_file
 
