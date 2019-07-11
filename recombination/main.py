@@ -205,6 +205,8 @@ while queue:
         ports = [port for port in compound.ports if port.atom_id != dummy_atom]
         ports.extend([port for port in fragment.ports if port.atom_id != dummy_atom_2])
 
+        something_added = True
+
         # ========================== ADD TO RESULTS ===============================
 
         # if no ports present, ligand is finished
@@ -214,7 +216,6 @@ while queue:
             count_iterations += 1
             # add new result to results
             results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
-            something_added = True
             continue
 
         # ========================== ADD TO QUEUE ===============================
@@ -231,7 +232,6 @@ while queue:
         # if nothing was added to queue because no new subpockets: add to results
         else:
             results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
-        something_added = True
 
     # ===========================================================================
 
