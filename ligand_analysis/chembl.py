@@ -1,15 +1,17 @@
 from rdkit import Chem
 import dask.dataframe as dd
-# import pandas as pd
+import pandas as pd
 
 
 def read_smiles(file):
 
     print('Read', file)
 
-    smiles = dd.read_csv(file, header=None, names=['smiles'])
+    smiles = pd.read_csv(file, header=None, names=['smiles'])
 
-    print('Number of ChEMBL molecules:', smiles.compute().shape[0])
+    # print(smiles[smiles.smiles.str.find('+') != -1])
+
+    print('Number of ChEMBL molecules:', smiles.shape[0])
 
     return smiles
 

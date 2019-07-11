@@ -5,11 +5,8 @@ import time
 import matplotlib.pyplot as plt
 import sys
 import pickle
-import joblib
 
 import multiprocessing as mp
-# from dask.distributed import Client
-# client = Client(processes=True)
 
 sys.path.append('../recombination')
 sys.path.append('../recombination/construct_ligands')
@@ -78,7 +75,7 @@ for in_path in in_paths:
     print(str(in_path))
     with open(in_path, 'rb') as pickle_in:
 
-        results.extend(pool.starmap(analyze_result, [(meta, data, original_ligands) for meta in pickle_loader(pickle_in)]))
+        results.extend(pool.starmap(analyze_result, [(meta, data, original_ligands, chembl) for meta in pickle_loader(pickle_in)]))
         #with joblib.parallel_backend('dask'):
 
         #    joblib.Parallel()(
