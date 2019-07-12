@@ -2,7 +2,7 @@
 
 class Result:
 
-    def __init__(self, meta, lipinski, mwt, logp, hbd, hba, pains, n_atoms, original, original_sub, chembl_match):
+    def __init__(self, meta, lipinski, mwt, logp, hbd, hba, pains, n_atoms, original, original_sub, chembl_match, scaffold):
 
         self.meta = meta
         # list of occupied subpockets
@@ -21,3 +21,4 @@ class Result:
         self.original = original
         self.original_sub = original_sub
         self.chembl_match = chembl_match
+        self.scaffold = scaffold

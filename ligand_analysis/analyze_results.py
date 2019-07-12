@@ -11,7 +11,7 @@ params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
 pains = FilterCatalog(params)
 
 
-def analyze_result(meta, data, original_ligands, chembl):
+def analyze_result(meta, data, original_ligands, chembl, scaffolds):
 
     global pains
 
@@ -44,18 +44,20 @@ def analyze_result(meta, data, original_ligands, chembl):
 
     pdb = list(set(pdbs))
 
+    # exact match in original ligand
     if not original_ligands[original_ligands.inchi == inchi].empty:
         original = 1
 
+    # recombined original ligand
     elif len(pdb) == 1:
         print('Original ligand not found:', fragpdbs, pdbs, inchi, smiles)
 
-    if not original_ligands[original_ligands.mol >= ligand].empty:
+    # true substructure of original ligands?
+    elif not original_ligands[original_ligands.mol >= ligand].empty:
         original_sub = 1
 
-    # chembl
+    # exact chembl match
     chembl_match = 0
-
     chembl_matches = chembl[chembl == inchi]
     if not chembl_matches.empty:
         chembl_match = 1
@@ -63,7 +65,12 @@ def analyze_result(meta, data, original_ligands, chembl):
         if original == 1:
             print('Original but not ChEMBL:', fragpdbs, pdbs, inchi)
 
+    scaffold = 0
+    # Does ligand contain a Hu and Bajorath scaffold as substructure?
+    if not scaffolds[scaffolds.mol <= ligand].empty:
+        scaffold = 1
+
     # construct Result object
-    result = Result(meta, lipinski, wt, logp, hbd, hba, pains_found, n, original, original_sub, chembl_match)
+    result = Result(meta, lipinski, wt, logp, hbd, hba, pains_found, n, original, original_sub, chembl_match, scaffold)
 
     return result
