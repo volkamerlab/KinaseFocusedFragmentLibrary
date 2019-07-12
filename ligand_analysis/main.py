@@ -14,14 +14,14 @@ from construct_ligand import read_fragment_library
 from pickle_loader import pickle_loader
 from analyze_results import analyze_result
 from original_ligands import read_original_ligands
-from chembl import read_mols
+from chembl import read_inchis
 
 data = read_fragment_library(Path('../FragmentLibrary'), 20)
 
 original_ligands = read_original_ligands(data)
 
 # chembl = read_chembl('/home/paula/Downloads/chembl_25_chemreps.txt')
-chembl = read_mols('../../chembl/chembl.txt')
+chembl = read_inchis('../../chembl/chembl.txt')
 
 # ================================ INITIALIZE =========================================
 

@@ -1,6 +1,7 @@
 from construct_ligand import construct_ligand
 from drug_likeliness import is_drug_like
 from Result import Result
+from rdkit.Chem import Draw
 
 # global pains
 from rdkit.Chem.FilterCatalog import *
@@ -35,14 +36,19 @@ def analyze_result(meta, data, original_ligands, chembl):
     n = ligand.GetNumHeavyAtoms()
 
     smiles = Chem.MolToSmiles(ligand)
-    inchi = Chem.MolToInchi(ligand)
+    inchi = Chem.MolToInchi(ligand).replace('/p+1', '')
 
     # search in original ligands
     original = 0
     original_sub = 0
 
-    if not original_ligands[original_ligands.smiles == smiles].empty:
+    pdb = list(set(pdbs))
+
+    if not original_ligands[original_ligands.inchi == inchi].empty:
         original = 1
+
+    elif len(pdb) == 1:
+        print('Original ligand not found:', fragpdbs, pdbs, inchi, smiles)
 
     if not original_ligands[original_ligands.mol >= ligand].empty:
         original_sub = 1
@@ -50,8 +56,12 @@ def analyze_result(meta, data, original_ligands, chembl):
     # chembl
     chembl_match = 0
 
-    if not chembl[chembl.string == inchi].empty:
+    chembl_matches = chembl[chembl == inchi]
+    if not chembl_matches.empty:
         chembl_match = 1
+    else:
+        if original == 1:
+            print('Original but not ChEMBL:', fragpdbs, pdbs, inchi)
 
     # construct Result object
     result = Result(meta, lipinski, wt, logp, hbd, hba, pains_found, n, original, original_sub, chembl_match)

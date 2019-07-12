@@ -3,17 +3,19 @@ import dask.dataframe as dd
 import pandas as pd
 
 
-def read_mols(file):
+def read_inchis(file):
 
     print('Read', file)
 
-    mols = pd.read_csv(file, header=None, names=['string'])
+    inchis = pd.read_csv(file, header=None, names=['inchi'], squeeze=True)
 
-    # print(smiles[smiles.smiles.str.find('+') != -1])
+    # remove all protonations
+    inchis = inchis.str.replace(r'/p\+1', '')
+    # print(inchis[inchis.str.find('/p+1') != -1].values)
 
-    print('Number of ChEMBL molecules:', mols.shape[0])
+    print('Number of ChEMBL molecules:', inchis.shape[0])
 
-    return mols
+    return inchis
 
 
 def inchi_to_smiles(inchi):
