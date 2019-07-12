@@ -5,8 +5,8 @@ channels:
   - rdkit
   - schrodinger
 dependencies:
-  - python=3.6.8
   - biopandas
+  - dask
   - jupyter
   - matplotlib
   - numpy
@@ -14,5 +14,6 @@ dependencies:
   - rdkit=2019.03.2
   - parmed  
   - pymol
+  - python=3.6.8
   - scikit-learn
   - seaborn
