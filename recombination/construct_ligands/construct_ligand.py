@@ -1,10 +1,11 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from rdkit.Chem.PropertyMol import PropertyMol
 
 
 # ============================= READ FRAGMENT ===============================================
 
-def read_fragment_library(path_to_library):
+def read_fragment_library(path_to_library, n=None):
 
     """
     Read fragment library
@@ -28,12 +29,12 @@ def read_fragment_library(path_to_library):
     data = {}
     for folder, subpocket in zip(folders, subpockets):
 
-        file = folder / (subpocket + '_reduced_0.7.sdf')
+        file = folder / (subpocket + '.sdf')
 
         # read molecules
         # keep hydrogen atoms
         suppl = Chem.SDMolSupplier(str(file), removeHs=False)
-        mols = [f for f in suppl]
+        mols = [f for f in suppl][:n]
 
         fragments = []
         for i, fragment in enumerate(mols):
@@ -45,6 +46,8 @@ def read_fragment_library(path_to_library):
                 frag_atom_id = f'{subpocket}_{a}'
                 atom.SetProp('frag_atom_id', frag_atom_id)
                 atom.SetProp('frag_id', fragment.GetProp('complex_pdb'))
+
+            fragment = PropertyMol(fragment)
 
             fragments.append(fragment)
 
@@ -140,4 +143,7 @@ def construct_ligand(meta, data):
     for atom in ligand.GetAtoms():
         atom.ClearProp('frag_atom_id')
 
-    return ligand
+    pdbs = [frag.GetProp('complex_pdb') for frag in fragments]
+    fragpdbs = [frag.GetProp('ligand_pdb') for frag in fragments]
+
+    return ligand, pdbs, fragpdbs
