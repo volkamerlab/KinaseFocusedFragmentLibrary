@@ -14,7 +14,6 @@ recombination/statistics/
 recombination/test/
 recombination/tmp/
 analysis/KinMap
-analysis/hinge_scaffolds.ipynb
 FragmentLibrary/
 CombinatorialLibrary/
 pymol/*.png
