@@ -1,5 +1,5 @@
 from rdkit import Chem
-import dask.dataframe as dd
+# import dask.dataframe as dd
 import pandas as pd
 from rdkit.Chem import PandasTools
 
@@ -50,7 +50,7 @@ def read_original_ligands(frag_dict):
     smiles = []
     inchis = []
     for kinase, pdb in kinases_pdbs:
-        f = '/home/paula/Masterarbeit/data/KLIFS_download/HUMAN/' + kinase + '/' + pdb + '/ligand.mol2'
+        f = '../../data/KLIFS_download/HUMAN/' + kinase + '/' + pdb + '/ligand.mol2'
         ligand = Chem.MolFromMol2File(f)
         # ligand.SetProp('complex_pdb', pdb)
         smiles.append(Chem.MolToSmiles(ligand))
@@ -79,27 +79,27 @@ def inchi_to_smiles(inchi):
     return smiles
 
 
-def read_chembl(file):
+# def read_chembl(file):
 
-    print('Read ChEMBL.')
+#     print('Read ChEMBL.')
 
-    out_file = '../../data/chembl/chembl.txt'
+#     out_file = '../../data/chembl/chembl.txt'
 
-    # chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
+#     # chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
 
-    mols = dd.read_csv(file, sep='\t')
-    # convert to canonical rdkit smiles
-    mols = mols.drop(['canonical_smiles', 'chembl_id', 'standard_inchi_key'], axis='columns')
+#     mols = dd.read_csv(file, sep='\t')
+#     # convert to canonical rdkit smiles
+#     mols = mols.drop(['canonical_smiles', 'chembl_id', 'standard_inchi_key'], axis='columns')
 
-    # mols['smiles'] = mols.standard_inchi.apply(inchi_to_smiles, meta=('smiles', str))
-    print('Number of ChEMBL molecules:', mols['standard_inchi'].compute().shape[0])
-    mols = mols.dropna(how='any')
-    print('Number of filtered ChEMBL molecules:', mols['standard_inchi'].compute().shape[0])
+#     # mols['smiles'] = mols.standard_inchi.apply(inchi_to_smiles, meta=('smiles', str))
+#     print('Number of ChEMBL molecules:', mols['standard_inchi'].compute().shape[0])
+#     mols = mols.dropna(how='any')
+#     print('Number of filtered ChEMBL molecules:', mols['standard_inchi'].compute().shape[0])
 
-    # write to file
-    mols['standard_inchi'].compute().to_csv(out_file, header=0, index=0)
+#     # write to file
+#     mols['standard_inchi'].compute().to_csv(out_file, header=0, index=0)
 
-    return out_file
+#     return out_file
 
 
 # print(read_chembl('/home/paula/Downloads/chembl_25_chemreps.txt'))

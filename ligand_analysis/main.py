@@ -15,7 +15,7 @@ from pickle_loader import pickle_loader
 from analyze_results import analyze_result
 from novelty import read_inchis, read_scaffolds, read_original_ligands
 
-data = read_fragment_library(Path('../FragmentLibrary'), 20)
+data = read_fragment_library(Path('../FragmentLibrary'))
 
 original_ligands = read_original_ligands(data)
 
@@ -68,7 +68,9 @@ start = time.time()
 metas = []
 results = []
 
-pool = mp.Pool(4)
+n_processes = mp.cpu_count()
+print("Number of processors: ", n_processes)
+pool = mp.Pool(n_processes)
 
 # ========================= CONSTRUCT AND ANALYZE LIGANDS ==============================
 
@@ -148,7 +150,7 @@ print('Exact match in original ligands:', originals)
 print('Substructures of original ligands:', original_subs)
 print('Exact match in ChEMBL:', chembl_match)
 print('Novel ligand:', novel)
-print('Kinase inhibitor scaffold contained:', scaffold)
+# print('Kinase inhibitor scaffold contained:', scaffold)
 print('Lipinski rule of 5 fulfilled:', lipinski_ligands, lipinski_ligands/count_ligands)
 print('Molecular weight <= 500:', wt_ligands, wt_ligands/count_ligands)
 print('LogP <= 5:', logp_ligands, logp_ligands/count_ligands)
@@ -157,22 +159,22 @@ print('HB acceptors <= 10:', hba_ligands, hba_ligands/count_ligands)
 print('Time: ', runtime)
 
 
-# plot novelty statistics
-y = [originals/count_ligands*100, original_subs/count_ligands*100, scaffold/count_ligands*100,
-     chembl_match/count_ligands*100, novel/count_ligands*100]
-plt.figure()
-ax = plt.bar(range(5), y)
-plt.ylabel('# Ligands [%]')
-plt.xticks(range(5), ['Original\nligand', 'Substr. of\noriginal ligand', 'Scaffold\ncontained',  'ChEMBL\nmatch', 'Novel\nligand'])
-plt.yticks()
-rects = ax.patches
-# calculate percentages
-labels = [str(round(n, 2))+'%' for n in y]
-for rect, label in zip(rects, labels):
-    height = rect.get_height()
-    if height != 100 and height != 0:
-        plt.text(rect.get_x() + rect.get_width() / 2, height + 0.2, label, ha='center', va='bottom')
-plt.savefig(combinatorial_library_folder / 'novelty.png')
+# # plot novelty statistics
+# y = [originals/count_ligands*100, original_subs/count_ligands*100, scaffold/count_ligands*100,
+#      chembl_match/count_ligands*100, novel/count_ligands*100]
+# plt.figure()
+# ax = plt.bar(range(5), y)
+# plt.ylabel('# Ligands [%]')
+# plt.xticks(range(5), ['Original\nligand', 'Substr. of\noriginal ligand', 'Scaffold\ncontained',  'ChEMBL\nmatch', 'Novel\nligand'])
+# plt.yticks()
+# rects = ax.patches
+# # calculate percentages
+# labels = [str(round(n, 2))+'%' for n in y]
+# for rect, label in zip(rects, labels):
+#     height = rect.get_height()
+#     if height != 100 and height != 0:
+#         plt.text(rect.get_x() + rect.get_width() / 2, height + 0.2, label, ha='center', va='bottom')
+# plt.savefig(combinatorial_library_folder / 'novelty.png')
 
 
 # plot Lipinski rule
