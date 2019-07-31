@@ -29,7 +29,7 @@ def read_fragment_library(path_to_library, n=None):
     data = {}
     for folder, subpocket in zip(folders, subpockets):
 
-        file = folder / (subpocket + '.sdf')
+        file = folder / (subpocket + '_reduced_0.6.sdf')
 
         # read molecules
         # keep hydrogen atoms
