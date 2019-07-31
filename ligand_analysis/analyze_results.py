@@ -49,8 +49,8 @@ def analyze_result(meta, data, original_ligands, chembl, scaffolds):
         original = 1
 
     # recombined original ligand
-    elif len(pdb) == 1:
-        print('Original ligand not found:', fragpdbs, pdbs, inchi, smiles)
+    # elif len(pdb) == 1:
+    #     print('Original ligand not found:', fragpdbs, pdbs, inchi, smiles)
 
     # true substructure of original ligands?
     elif not original_ligands[original_ligands.mol >= ligand].empty:
@@ -61,14 +61,14 @@ def analyze_result(meta, data, original_ligands, chembl, scaffolds):
     chembl_matches = chembl[chembl == inchi]
     if not chembl_matches.empty:
         chembl_match = 1
-    else:
-        if original == 1:
-            print('Original but not ChEMBL:', fragpdbs, pdbs, inchi)
+    # else:
+    #     if original == 1:
+    #         print('Original but not ChEMBL:', fragpdbs, pdbs, inchi)
 
     scaffold = 0
     # Does ligand contain a Hu and Bajorath scaffold as substructure?
-    if not scaffolds[scaffolds.mol <= ligand].empty:
-        scaffold = 1
+    #if not scaffolds[scaffolds.mol <= ligand].empty:
+    #    scaffold = 1
 
     # construct Result object
     result = Result(meta, lipinski, wt, logp, hbd, hba, pains_found, n, original, original_sub, chembl_match, scaffold)
