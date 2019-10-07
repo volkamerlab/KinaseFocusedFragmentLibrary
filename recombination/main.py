@@ -12,6 +12,7 @@ from get_tuple import get_tuple
 from pickle_loader import pickle_loader
 from process_results import results_to_file, add_to_results, process_result
 from process_queue import add_to_queue
+from brics_rules import is_brics_bond
 
 start = time.time()
 
@@ -196,9 +197,9 @@ while queue:
         if fragment_port.bond_type != compound_port.bond_type:
             continue
 
-        # TODO: check environment types
-        # if not is_brics_bond(env_1, env_2):
-        #     continue
+        # check environment types
+        if not is_brics_bond(fragment_port.environment, compound_port.environment):
+            continue
 
         dummy_atom_2 = fragment_port.atom_id
 
