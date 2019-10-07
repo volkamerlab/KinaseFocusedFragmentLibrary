@@ -61,10 +61,10 @@ def find_neighboring_fragments(fragment, fragments, bonds):
     neighboring_fragments = []
     for bond in bonds:
         if bond[0] in fragment.atomNumbers:
-            neighboring_fragment = [fragment for fragment in fragments if bond[1] in fragment.atomNumbers][0]
+            neighboring_fragment = next(fragment for fragment in fragments if bond[1] in fragment.atomNumbers)
             neighboring_fragments.append(neighboring_fragment)
         elif bond[1] in fragment.atomNumbers:
-            neighboring_fragment = [fragment for fragment in fragments if bond[0] in fragment.atomNumbers][0]
+            neighboring_fragment = next(fragment for fragment in fragments if bond[0] in fragment.atomNumbers)
             neighboring_fragments.append(neighboring_fragment)
     return neighboring_fragments
 

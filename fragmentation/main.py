@@ -161,8 +161,8 @@ for index, entry in KLIFSData.iterrows():
     for (beginAtom, endAtom), (env_1, env_2) in BRICSBonds:
 
         # find corresponding fragments
-        firstFragment = [fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
-        secondFragment = [fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers][0]
+        firstFragment = next(fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers)
+        secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
 
         # check if subpockets differ
         if firstFragment.subpocket != secondFragment.subpocket:
