@@ -123,9 +123,10 @@ class Port:
         Type of the bond connecting the dummy to its adjacent atom
     """
 
-    def __init__(self, atom_id, subpocket, neighboring_subpocket, bond_type):
+    def __init__(self, atom_id, subpocket, neighboring_subpocket, bond_type, environment):
 
         self.atom_id = atom_id
         self.subpocket = subpocket
         self.neighboring_subpocket = neighboring_subpocket
         self.bond_type = bond_type
+        self.environment = environment
