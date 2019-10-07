@@ -38,7 +38,7 @@ path_to_data = Path('../../data/KLIFS_download')
 
 KLIFSData = pd.read_csv(path_to_data / 'filtered_ligands.csv')
 
-# KLIFSData = KLIFSData[KLIFSData.family.isin(['RAF', 'EGFR', 'CDK'])]
+KLIFSData = KLIFSData[KLIFSData.family.isin(['EGFR'])]
 
 # clear output files and create output folders
 output_files = {}
@@ -148,7 +148,7 @@ for index, entry in KLIFSData.iterrows():
         continue
 
     # Deal with small fragments
-    fix_small_fragments(BRICSFragments, BRICSBonds)
+    fix_small_fragments(BRICSFragments, [bond[0] for bond in BRICSBonds])
 
     # ================================== FRAGMENTATION ==========================================
 
@@ -158,7 +158,7 @@ for index, entry in KLIFSData.iterrows():
     bonds = []
 
     # iterate over BRICS bonds
-    for beginAtom, endAtom in BRICSBonds:
+    for (beginAtom, endAtom), (env_1, env_2) in BRICSBonds:
 
         # find corresponding fragments
         firstFragment = [fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
@@ -167,7 +167,7 @@ for index, entry in KLIFSData.iterrows():
         # check if subpockets differ
         if firstFragment.subpocket != secondFragment.subpocket:
             # store this bond as a bond where we will cleave
-            bonds.append((beginAtom, endAtom))
+            bonds.append( ((beginAtom, endAtom), (env_1, env_2)) )
 
     # actual fragmentation
     fragments = fragmentation(ligand, bonds, BRICSFragments)
@@ -194,53 +194,54 @@ for index, entry in KLIFSData.iterrows():
 
         # atom properties as fragment property
         Chem.CreateAtomStringPropertyList(fragment.mol, 'subpocket')
+        Chem.CreateAtomStringPropertyList(fragment.mol, 'environment')
 
-        # discard large fragments
-        if fragment.mol.GetNumHeavyAtoms() > 29:
-            discardedFragments.append(fragment)
-        else:
-            w = Chem.SDWriter(output_files[fragment.subpocket])
-            w.write(fragment.mol)
-
-    # ================================ DRAW FRAGMENTS ==========================================
-
-    # remove Hs and convert to 2D molecules for drawing
-    for fragment in fragments:
-        fragment.mol = Chem.RemoveHs(fragment.mol)
-        tmp = AllChem.Compute2DCoords(fragment.mol)
-    img = Draw.MolsToGridImage([fragment.mol for fragment in fragments],
-                               legends=[fragment.subpocket for fragment in fragments],
-                               subImgSize=(400, 400))
-    img.save('../output/fragmented_molecules/' + get_file_name(entry) + '.png')
+    #     # discard large fragments
+    #     if fragment.mol.GetNumHeavyAtoms() > 29:
+    #         discardedFragments.append(fragment)
+    #     else:
+    #         w = Chem.SDWriter(output_files[fragment.subpocket])
+    #         w.write(fragment.mol)
+    #
+    # # ================================ DRAW FRAGMENTS ==========================================
+    #
+    # # remove Hs and convert to 2D molecules for drawing
+    # for fragment in fragments:
+    #     fragment.mol = Chem.RemoveHs(fragment.mol)
+    #     tmp = AllChem.Compute2DCoords(fragment.mol)
+    # img = Draw.MolsToGridImage([fragment.mol for fragment in fragments],
+    #                            legends=[fragment.subpocket for fragment in fragments],
+    #                            subImgSize=(400, 400))
+    # img.save('../output/fragmented_molecules/' + get_file_name(entry) + '.png')
 
     count_structures += 1
 
 
-for subpocket in subpockets:
-    w = Chem.SDWriter(output_files[subpocket.name])
-    output_files[subpocket.name].close()
-    w.close()
-
-# draw discarded fragments
-if discardedFragments:
-    for fragment in discardedFragments:
-        fragment.mol = Chem.RemoveHs(fragment.mol)
-        tmp = AllChem.Compute2DCoords(fragment.mol)
-    img = Draw.MolsToGridImage([fragment.mol for fragment in discardedFragments],
-                               legends=[fragment.structure+' '+fragment.subpocket+' '+str(fragment.mol.GetNumHeavyAtoms())
-                                        for fragment in discardedFragments],
-                               subImgSize=(400, 400), molsPerRow=6)
-    img.save('../output/discarded_fragments.png')
-
-# draw discarded ligands
-if discardedLigands:
-    discardedLigands = [(Chem.RemoveHs(ligand), legend) for ligand, legend in discardedLigands]
-    for ligand in discardedLigands:
-        tmp = AllChem.Compute2DCoords(ligand[0])
-    img = Draw.MolsToGridImage([ligand for ligand, legend in discardedLigands],
-                               legends=[legend for ligand, legend in discardedLigands],
-                               subImgSize=(400, 400), molsPerRow=6)
-    img.save('../output/discarded_ligands.png')
+# for subpocket in subpockets:
+#     w = Chem.SDWriter(output_files[subpocket.name])
+#     output_files[subpocket.name].close()
+#     w.close()
+#
+# # draw discarded fragments
+# if discardedFragments:
+#     for fragment in discardedFragments:
+#         fragment.mol = Chem.RemoveHs(fragment.mol)
+#         tmp = AllChem.Compute2DCoords(fragment.mol)
+#     img = Draw.MolsToGridImage([fragment.mol for fragment in discardedFragments],
+#                                legends=[fragment.structure+' '+fragment.subpocket+' '+str(fragment.mol.GetNumHeavyAtoms())
+#                                         for fragment in discardedFragments],
+#                                subImgSize=(400, 400), molsPerRow=6)
+#     img.save('../output/discarded_fragments.png')
+#
+# # draw discarded ligands
+# if discardedLigands:
+#     discardedLigands = [(Chem.RemoveHs(ligand), legend) for ligand, legend in discardedLigands]
+#     for ligand in discardedLigands:
+#         tmp = AllChem.Compute2DCoords(ligand[0])
+#     img = Draw.MolsToGridImage([ligand for ligand, legend in discardedLigands],
+#                                legends=[legend for ligand, legend in discardedLigands],
+#                                subImgSize=(400, 400), molsPerRow=6)
+#     img.save('../output/discarded_ligands.png')
 
 
 # output statistics

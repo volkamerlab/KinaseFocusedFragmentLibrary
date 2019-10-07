@@ -23,7 +23,10 @@ def find_brics_fragments(mol):
 
     """
 
-    atom_tuples = [bond[0] for bond in BRICS.FindBRICSBonds(mol)]
+    brics_bonds = list(BRICS.FindBRICSBonds(mol))
+    atom_tuples = [bond[0] for bond in brics_bonds]
+    # env_types = [bond[1] for bond in brics_bonds]
+
     # if mol was not fragmented:
     if len(atom_tuples) == 0:
         fragments = [Fragment(atomNumbers=range(mol.GetNumAtoms()), mol=mol)]
@@ -37,10 +40,10 @@ def find_brics_fragments(mol):
 
     fragments = [Fragment(atomNumbers=n, mol=m) for (n, m) in zip(fragment_atoms, fragment_mols)]
 
-    return fragments, atom_tuples
+    return fragments, brics_bonds
 
 
-def fragmentation(ligand, atom_tuples, brics_fragments):
+def fragmentation(ligand, brics_bonds, brics_fragments):
 
     """
     - Carries out a fragmentation of the given molecule at the given bonds (which should be a subsection of its BRICS bonds)
@@ -51,8 +54,10 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
     ----------
     ligand: RDKit Mol object
         molecule to be fragmented
-    atom_tuples: list(tuple(int))
-        list of atom index tuples, where each tuple represents a bond between two atoms in the ligand
+    brics_bonds: list(tuple(tuple(int), tuple(str)))
+        list of tuples, where each tuple represents a bond between two atoms in the ligand
+        - first tuple: atom indices
+        - second tuple: BRICS environment types
     brics_fragments: list(Fragment)
         list of BRICS fragments of the ligand as Fragment objects
 
@@ -62,6 +67,9 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
         list of the resulting fragments as Fragment objects
 
     """
+
+    atom_tuples = [bond[0] for bond in brics_bonds]
+    env_types = [bond[0] for bond in brics_bonds]
 
     # get rdkit bonds (NOT BRICS bonds but custom bonds already)
     bonds = [ligand.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atom_tuples]
@@ -78,6 +86,8 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
     fragment_atoms = Chem.GetMolFrags(fragmented_ligand)
 
     fragments = []
+
+    # TODO: store respective environment types at atom positions
 
     # iterate over new fragments
     for (atomNumbers, mol, smile) in zip(fragment_atoms, fragment_mols, fragment_smiles):
