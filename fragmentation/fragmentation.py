@@ -33,7 +33,7 @@ def find_brics_fragments(mol):
         return fragments, atom_tuples
     # else:
     bonds = [mol.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atom_tuples]
-    broken_mol = Chem.FragmentOnBonds(mol, bonds, addDummies=False)
+    broken_mol = Chem.FragmentOnBonds(mol, bonds)  # addDummies=False) # dummy atoms are needed since storing the environment types
 
     fragment_atoms = Chem.GetMolFrags(broken_mol)
     fragment_mols = Chem.GetMolFrags(broken_mol, asMols=True)
@@ -100,12 +100,16 @@ def fragmentation(ligand, bonds, brics_fragments):
         # set atom properties for the created fragment
         for atom, atomNumber in zip(fragment.mol.GetAtoms(), fragment.atomNumbers):
 
+            # get environment type of the brics fragment that the current atom belongs to
+            env_type = next(brics_fragment.environment for brics_fragment in brics_fragments if atomNumber in brics_fragment.atomNumbers)
+
             # if atom is not a dummy atom
             if atom.GetSymbol() != '*':
                 # set atom number within the entire molecule as property of the fragment atom
                 # IS THIS ALWAYS TRUE? (Does order of atoms always stay the same after fragmentation?)
                 atom.SetIntProp('atomNumber', atomNumber)
                 atom.SetProp('subpocket', subpocket)
+                atom.SetProp('environment', env_type)
 
             # if atom = dummy atom
             else:
@@ -122,6 +126,7 @@ def fragmentation(ligand, bonds, brics_fragments):
                 neighboring_subpocket = next(BRICSFragment.subpocket for BRICSFragment in brics_fragments
                                              if dummy_atom in BRICSFragment.atomNumbers)
                 atom.SetProp('subpocket', neighboring_subpocket)
+                atom.SetProp('environment', env_type)
 
         fragments.append(fragment)
 

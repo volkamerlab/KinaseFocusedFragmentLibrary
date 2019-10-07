@@ -164,11 +164,16 @@ for index, entry in KLIFSData.iterrows():
         firstFragment = next(fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers)
         secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
 
+        # get environment types of the brics fragments
+        firstFragment.environment = env_1
+        secondFragment.environment = env_2
+
         # check if subpockets differ
         if firstFragment.subpocket != secondFragment.subpocket:
             # store this bond as a bond where we will cleave
             bonds.append( ((beginAtom, endAtom), (env_1, env_2)) )
 
+    # print(BRICSFragments[0].environment, Chem.MolToSmiles(BRICSFragments[0].mol))
     # actual fragmentation
     fragments = fragmentation(ligand, bonds, BRICSFragments)
 
