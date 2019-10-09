@@ -23,8 +23,9 @@ original_ligands = read_original_ligands(data)
 chembl = read_inchis('../../data/chembl/chembl.txt')
 
 # kinase inhibitor scaffolds identified by Hu and Bajorath (dx.doi.org/10.1021/jm501237k | J. Med. Chem. 2015, 58, 315−332)
-scaffolds = read_scaffolds(['../../data/Kinase_Inhibitors_And_Scaffolds/Ki_Subset/Kinase_Based_Scaffold_Sets_Ki.dat',
-                            '../../data/Kinase_Inhibitors_And_Scaffolds/IC50_Subset/Kinase_Based_Scaffold_Sets_IC50.dat'])
+# scaffolds = read_scaffolds(['../../data/Kinase_Inhibitors_And_Scaffolds/Ki_Subset/Kinase_Based_Scaffold_Sets_Ki.dat',
+#                             '../../data/Kinase_Inhibitors_And_Scaffolds/IC50_Subset/Kinase_Based_Scaffold_Sets_IC50.dat'])
+scaffolds = None
 
 # ================================ INITIALIZE =========================================
 
@@ -68,7 +69,7 @@ start = time.time()
 metas = []
 results = []
 
-n_processes = mp.cpu_count()
+n_processes = 8  # mp.cpu_count()
 print("Number of processors: ", n_processes)
 pool = mp.Pool(n_processes)
 
