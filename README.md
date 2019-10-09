@@ -2,7 +2,7 @@
 
 Master Thesis Paula Junge, 2019
 
-### Design of a kinase inhibitor fragment library
+### A novel computational method for subpocket-based fragmentation and recombination of kinase inhibitors
 
 ## Fragmentation:
 
