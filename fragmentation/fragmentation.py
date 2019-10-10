@@ -33,7 +33,7 @@ def find_brics_fragments(mol):
         return fragments, atom_tuples
     # else:
     bonds = [mol.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atom_tuples]
-    broken_mol = Chem.FragmentOnBonds(mol, bonds)  # addDummies=False) # dummy atoms are needed since storing the environment types
+    broken_mol = Chem.FragmentOnBonds(mol, bonds, addDummies=False)  # dummy atoms are needed since storing the environment types
 
     fragment_atoms = Chem.GetMolFrags(broken_mol)
     fragment_mols = Chem.GetMolFrags(broken_mol, asMols=True)
@@ -93,11 +93,10 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
         # set atom properties for the created fragment
         for atom, atomNumber in zip(fragment.mol.GetAtoms(), fragment.atomNumbers):
 
-            # get environment type of the brics fragment that the current atom belongs to
-            env_type = next(brics_fragment.environment for brics_fragment in brics_fragments if atomNumber in brics_fragment.atomNumbers)
-
             # if atom is not a dummy atom
             if atom.GetSymbol() != '*':
+                # get environment type of the brics fragment that the current atom belongs to
+                env_type = next(brics_fragment.environment for brics_fragment in brics_fragments if atomNumber in brics_fragment.atomNumbers)
                 # set atom number within the entire molecule as property of the fragment atom
                 # IS THIS ALWAYS TRUE? (Does order of atoms always stay the same after fragmentation?)
                 atom.SetIntProp('atomNumber', atomNumber)
@@ -111,6 +110,8 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
 
                 # -> This works only because dummy atoms are always last in the iteration
                 neighbor_atom = neighbor.GetIntProp('atomNumber')
+                # get environment type of the brics fragment that the current atom belongs to
+                env_type = 'na'
                 # get and set atom number w.r.t ligand of the dummy atom
                 bond_atoms = next(atomTuple for atomTuple in atom_tuples if neighbor_atom in atomTuple)
                 dummy_atom = next(atomNumber for atomNumber in bond_atoms if atomNumber != neighbor_atom)
