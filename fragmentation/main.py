@@ -171,11 +171,7 @@ for index, entry in KLIFSData.iterrows():
         # check if subpockets differ
         if firstFragment.subpocket != secondFragment.subpocket:
             # store this bond as a bond where we will cleave
-            bonds.append( ((beginAtom, endAtom), (env_1, env_2)) )
-
-    # environment is not specified if the ligand consists of one BRICS fragment only
-    if len(BRICSFragments) == 1:
-        BRICSFragments[0].environment = 'na'
+            bonds.append((beginAtom, endAtom))
 
     # actual fragmentation
     fragments = fragmentation(ligand, bonds, BRICSFragments)
