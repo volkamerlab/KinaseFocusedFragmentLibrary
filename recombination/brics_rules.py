@@ -66,6 +66,21 @@ brics_rules = [{'1', '3'},
 
 def is_brics_bond(env_1, env_2):
 
+    """
+    Checks if two given BRICS environment types are allowed to be connected according to the BRICS algorithm
+
+    Parameters
+    ----------
+    env_1, env_2: str
+        BRICS environment types
+
+    Returns
+    -------
+    True if the given environments are allowed to be connected
+    False otherwise
+
+    """
+
     if {env_1, env_2} in brics_rules:
         return True
 

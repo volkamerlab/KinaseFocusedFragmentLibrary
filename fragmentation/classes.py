@@ -1,23 +1,56 @@
 
 class Fragment:
 
+    """
+    Represents a molecular fragment
+
+    Attributes
+    ----------
+    mol: Mol
+        RDKit molecule representation of the fragment
+    atomNumbers: list(int)
+        atom numbers of the fragment atoms within the fragmented molecule
+    subpocket: str
+        Subpocket in which the fragment lies
+    smiles: str
+        SMILES representation of the fragment molecule
+    structure: str
+        PDB code + alt + chain of corresponding structure
+    environment: str
+        BRICS environment type of the fragment (based on RDKit definitions)
+    """
+
     def __init__(self, mol=None, atomNumbers=None, subpocket=None, smiles=None, structure=None, center=None, environment=None):
 
-        self.mol = mol  # rdkit molecule representation of the fragment
-        self.atomNumbers = atomNumbers  # atom numbers of the fragment atoms within the fragmented molecule
+        self.mol = mol
+        self.atomNumbers = atomNumbers
         self.center = center
         self.subpocket = subpocket
         self.smiles = smiles
-        self.structure = structure  # PDB code + alt + chain of corresponding structure
-        self.environment = environment  # environment type of a BRICS fragment
+        self.structure = structure
+        self.environment = environment
 
 
 class Subpocket:
 
+    """
+    Represents a subpocket of the kinase binding site
+
+    Attributes
+    ----------
+    name: str
+    residues: list(int)
+        Residues (as KLIFS IDs) used to calculate the subpocket center
+    center: list(int)
+        3D point representing the geometric center of the subpocket
+    color: str
+        Color of the subpocket center in PyMol, e.g. '0.0, 1.0, 1.0' (cyan)
+    """
+
     def __init__(self, name, residues=None, center=None, color=None):
 
         self.name = name
-        self.residues = residues    # residues used to calculate the subpocket center
+        self.residues = residues
         self.center = center
         self.color = color
 

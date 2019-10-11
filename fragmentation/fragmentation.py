@@ -33,7 +33,7 @@ def find_brics_fragments(mol):
         return fragments, atom_tuples
     # else:
     bonds = [mol.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atom_tuples]
-    broken_mol = Chem.FragmentOnBonds(mol, bonds, addDummies=False)  # dummy atoms are needed since storing the environment types
+    broken_mol = Chem.FragmentOnBonds(mol, bonds, addDummies=False)
 
     fragment_atoms = Chem.GetMolFrags(broken_mol)
     fragment_mols = Chem.GetMolFrags(broken_mol, asMols=True)
