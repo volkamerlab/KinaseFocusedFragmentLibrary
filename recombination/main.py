@@ -12,6 +12,7 @@ from get_tuple import get_tuple
 from pickle_loader import pickle_loader
 from process_results import results_to_file, add_to_results, process_result
 from process_queue import add_to_queue
+from brics_rules import is_brics_bond
 
 start = time.time()
 
@@ -60,7 +61,7 @@ frag_set = set()  # only used in initialization for avoiding duplicates in fragm
 data = {}  # (Fragments)
 for folder, subpocket in zip(folders, subpockets):
 
-    file = folder / (subpocket + '_reduced_0.6.sdf')
+    file = folder / (subpocket + '.sdf')
 
     # read molecules
     # keep hydrogen atoms
@@ -90,7 +91,8 @@ for folder, subpocket in zip(folders, subpockets):
         frag_set.add((frag_smiles, dummy_set))
 
         ports = [Port(atom_id=dummy.GetProp('frag_atom_id'), subpocket=subpocket, neighboring_subpocket=dummy.GetProp('subpocket'),
-                      bond_type=fragment.GetBondBetweenAtoms(dummy.GetIdx(), dummy.GetNeighbors()[0].GetIdx()).GetBondType())
+                      bond_type=fragment.GetBondBetweenAtoms(dummy.GetIdx(), dummy.GetNeighbors()[0].GetIdx()).GetBondType(),
+                      environment=dummy.GetNeighbors()[0].GetProp('environment'))
                  for dummy in dummy_atoms]
 
         if subpocket in start_subpockets:
@@ -191,7 +193,12 @@ while queue:
 
         fragment_port = fragment_ports[0]
         compound_port = next(port for port in compound.ports if port.atom_id == dummy_atom)
+        # check bond types
         if fragment_port.bond_type != compound_port.bond_type:
+            continue
+
+        # check environment types
+        if not is_brics_bond(fragment_port.environment, compound_port.environment):
             continue
 
         dummy_atom_2 = fragment_port.atom_id

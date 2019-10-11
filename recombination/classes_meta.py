@@ -121,11 +121,14 @@ class Port:
         Subpocket of the dummy atom
     bond_type: str
         Type of the bond connecting the dummy to its adjacent atom
+    environment: str
+        Type of the environment of the current fragment (of the adjacent atom)
     """
 
-    def __init__(self, atom_id, subpocket, neighboring_subpocket, bond_type):
+    def __init__(self, atom_id, subpocket, neighboring_subpocket, bond_type, environment):
 
         self.atom_id = atom_id
         self.subpocket = subpocket
         self.neighboring_subpocket = neighboring_subpocket
         self.bond_type = bond_type
+        self.environment = environment

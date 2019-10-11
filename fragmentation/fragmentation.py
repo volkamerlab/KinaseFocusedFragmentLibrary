@@ -18,15 +18,18 @@ def find_brics_fragments(mol):
     -------
     fragments: list(Fragment)
         list of the resulting BRICS fragments as Fragment objects
-    atom_tuples: list(tuple(int))
-        list of atom index tuples, where each tuple represents the BRICS bond between two atoms in mol
-
+    brics_bonds: list(tuple(tuple(int), tuple(str)))
+        list of tuples, where each tuple represents a BRICS bond between two atoms in the ligand
+        - first tuple: atom indices
+        - second tuple: BRICS environment types
     """
 
-    atom_tuples = [bond[0] for bond in BRICS.FindBRICSBonds(mol)]
+    brics_bonds = list(BRICS.FindBRICSBonds(mol))  # convert generator to list for later purposes
+    atom_tuples = [bond[0] for bond in brics_bonds]
+
     # if mol was not fragmented:
     if len(atom_tuples) == 0:
-        fragments = [Fragment(atomNumbers=range(mol.GetNumAtoms()), mol=mol)]
+        fragments = [Fragment(atomNumbers=range(mol.GetNumAtoms()), mol=mol, environment='na')]
         return fragments, atom_tuples
     # else:
     bonds = [mol.GetBondBetweenAtoms(x, y).GetIdx() for x, y in atom_tuples]
@@ -37,7 +40,7 @@ def find_brics_fragments(mol):
 
     fragments = [Fragment(atomNumbers=n, mol=m) for (n, m) in zip(fragment_atoms, fragment_mols)]
 
-    return fragments, atom_tuples
+    return fragments, brics_bonds
 
 
 def fragmentation(ligand, atom_tuples, brics_fragments):
@@ -52,7 +55,7 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
     ligand: RDKit Mol object
         molecule to be fragmented
     atom_tuples: list(tuple(int))
-        list of atom index tuples, where each tuple represents a bond between two atoms in the ligand
+            list of atom index tuples, where each tuple represents a bond between two atoms in the ligand
     brics_fragments: list(Fragment)
         list of BRICS fragments of the ligand as Fragment objects
 
@@ -83,7 +86,7 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
     for (atomNumbers, mol, smile) in zip(fragment_atoms, fragment_mols, fragment_smiles):
 
         # get subpocket corresponding to fragment (Is there a better way?)
-        subpocket = [brics_fragment.subpocket for brics_fragment in brics_fragments if atomNumbers[0] in brics_fragment.atomNumbers][0]
+        subpocket = next(brics_fragment.subpocket for brics_fragment in brics_fragments if atomNumbers[0] in brics_fragment.atomNumbers)
         # create Fragment object
         fragment = Fragment(mol=mol, smiles=smile, atomNumbers=atomNumbers, subpocket=subpocket)
 
@@ -92,10 +95,13 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
 
             # if atom is not a dummy atom
             if atom.GetSymbol() != '*':
+                # get environment type of the brics fragment that the current atom belongs to
+                env_type = next(brics_fragment.environment for brics_fragment in brics_fragments if atomNumber in brics_fragment.atomNumbers)
                 # set atom number within the entire molecule as property of the fragment atom
                 # IS THIS ALWAYS TRUE? (Does order of atoms always stay the same after fragmentation?)
                 atom.SetIntProp('atomNumber', atomNumber)
                 atom.SetProp('subpocket', subpocket)
+                atom.SetProp('environment', env_type)
 
             # if atom = dummy atom
             else:
@@ -104,14 +110,17 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
 
                 # -> This works only because dummy atoms are always last in the iteration
                 neighbor_atom = neighbor.GetIntProp('atomNumber')
+                # get environment type of the brics fragment that the current atom belongs to
+                env_type = 'na'
                 # get and set atom number w.r.t ligand of the dummy atom
-                bond_atoms = [atomTuple for atomTuple in atom_tuples if neighbor_atom in atomTuple][0]
-                dummy_atom = [atomNumber for atomNumber in bond_atoms if atomNumber != neighbor_atom][0]
+                bond_atoms = next(atomTuple for atomTuple in atom_tuples if neighbor_atom in atomTuple)
+                dummy_atom = next(atomNumber for atomNumber in bond_atoms if atomNumber != neighbor_atom)
                 atom.SetIntProp('atomNumber', dummy_atom)
                 # get and set subpocket of the dummy atom
-                neighboring_subpocket = [BRICSFragment.subpocket for BRICSFragment in brics_fragments
-                                         if dummy_atom in BRICSFragment.atomNumbers][0]
+                neighboring_subpocket = next(BRICSFragment.subpocket for BRICSFragment in brics_fragments
+                                             if dummy_atom in BRICSFragment.atomNumbers)
                 atom.SetProp('subpocket', neighboring_subpocket)
+                atom.SetProp('environment', env_type)
 
         fragments.append(fragment)
 

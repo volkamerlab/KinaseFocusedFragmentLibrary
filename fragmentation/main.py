@@ -38,7 +38,7 @@ path_to_data = Path('../../data/KLIFS_download')
 
 KLIFSData = pd.read_csv(path_to_data / 'filtered_ligands.csv')
 
-# KLIFSData = KLIFSData[KLIFSData.family.isin(['RAF', 'EGFR', 'CDK'])]
+# KLIFSData = KLIFSData[KLIFSData.family.isin(['EGFR'])]
 
 # clear output files and create output folders
 output_files = {}
@@ -147,8 +147,8 @@ for index, entry in KLIFSData.iterrows():
     if skipStructure:
         continue
 
-    # Deal with small fragments
-    fix_small_fragments(BRICSFragments, BRICSBonds)
+    # Adjust subpocket assignments in order to keep small fragments uncleaved
+    fix_small_fragments(BRICSFragments, [bond[0] for bond in BRICSBonds])
 
     # ================================== FRAGMENTATION ==========================================
 
@@ -156,13 +156,17 @@ for index, entry in KLIFSData.iterrows():
 
     # list to store the bonds where we will cleave (as atom tuples)
     bonds = []
-
+    count = 0
     # iterate over BRICS bonds
-    for beginAtom, endAtom in BRICSBonds:
+    for (beginAtom, endAtom), (env_1, env_2) in BRICSBonds:
 
         # find corresponding fragments
-        firstFragment = [fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers][0]
-        secondFragment = [fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers][0]
+        firstFragment = next(fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers)
+        secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
+
+        # get environment types of the brics fragments
+        firstFragment.environment = env_1
+        secondFragment.environment = env_2
 
         # check if subpockets differ
         if firstFragment.subpocket != secondFragment.subpocket:
@@ -194,6 +198,7 @@ for index, entry in KLIFSData.iterrows():
 
         # atom properties as fragment property
         Chem.CreateAtomStringPropertyList(fragment.mol, 'subpocket')
+        Chem.CreateAtomStringPropertyList(fragment.mol, 'environment')
 
         # discard large fragments
         if fragment.mol.GetNumHeavyAtoms() > 29:
