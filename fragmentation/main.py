@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 import json
 
-from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center
+from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center, is_valid_subpocket_connection
 from fragmentation import find_brics_fragments, fragmentation
 from classes import Subpocket
 from preprocessing import get_folder_name, get_file_name, fix_residue_numbers
@@ -149,6 +149,19 @@ for index, entry in KLIFSData.iterrows():
 
     # Adjust subpocket assignments in order to keep small fragments uncleaved
     fix_small_fragments(BRICSFragments, [bond[0] for bond in BRICSBonds])
+
+    # check validity of subpocket connections
+    for (beginAtom, endAtom), _ in BRICSBonds:
+
+        firstFragment = next(fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers)
+        secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
+
+        sp_1 = firstFragment.subpocket
+        sp_2 = secondFragment.subpocket
+
+        if not is_valid_subpocket_connection(sp_1, sp_2) and sp_1 != sp_2:
+
+            print(folder, sp_1, sp_2)
 
     # ================================== FRAGMENTATION ==========================================
 
