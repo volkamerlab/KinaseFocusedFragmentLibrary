@@ -28,7 +28,7 @@ def preprocess_klifs_data(path_to_klifs_download, path_to_klifs_export):
 
     # loose irrelevant data
     df_screen = df_screen[['kinase', 'family', 'group', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix',
-                           'missing_residues', 'pocket']]
+                           'missing_residues', 'pocket', 'full_ifp']]
 
     # add column with positions of missing residues (replacing column with number of missing residues)
     df_screen = add_missing_residues(df_screen)

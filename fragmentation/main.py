@@ -1,11 +1,14 @@
 from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
+from rdkit import RDConfig
+from rdkit.Chem import ChemicalFeatures
 from biopandas.mol2 import PandasMol2
 import pandas as pd
 import sys
 from pathlib import Path
 import json
+import os
 
 from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center
 from fragmentation import find_brics_fragments, fragmentation
@@ -13,6 +16,7 @@ from classes import Subpocket
 from preprocessing import get_folder_name, get_file_name, fix_residue_numbers
 from discard import contains_ribose, contains_phosphate
 from visualization import visual_subpockets
+from h_bonds import infer_h_bonds
 
 
 # ============================= INITIALIZATIONS ===============================================
@@ -121,6 +125,16 @@ for index, entry in KLIFSData.iterrows():
 
     # visualize subpocket centers using PyMOL
     visual_subpockets(subpockets, folder)
+
+    # =========================== INFER HYDROGEN BONDS ==========================================
+
+    print(folder)
+    fdefName = os.path.join(RDConfig.RDDataDir, 'BaseFeatures.fdef')
+    factory = ChemicalFeatures.BuildFeatureFactory(fdefName)
+
+    h_bond_atoms = infer_h_bonds(ligand, pocket, pocketMol2, entry.full_ifp, factory)
+    if h_bond_atoms == set():
+        print(folder, 'No H bonds to hinge region.')
 
     # ================================ BRICS FRAGMENTS ==========================================
 

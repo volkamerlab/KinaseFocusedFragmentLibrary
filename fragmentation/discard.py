@@ -34,12 +34,20 @@ def is_covalent(pdb, pdb_id, chain):
 
     protein_atom_numbers = []
 
-    pdb_file = Path('../../data/PDB/'+pdb+'.cif')
+    pdb_file = Path('../../data/PDB/'+pdb+'.pdb')
     if pdb_file.exists():
+        # print('Load PDB', pdb, pdb_id)
         struct = pmd.load_file(str(pdb_file))
     else:
         print('Download PDB', pdb, pdb_id)
-        struct = pmd.download_PDB(pdb)
+        # pmd.download_CIF(pdb).save(str(pdb_file))
+        # struct = pmd.load_file(str(pdb_file))
+        try:
+            struct = pmd.download_PDB(pdb)
+        except OSError:
+            print('ERROR: PDB not found: ', pdb, pdb_id)
+            return False
+        struct.save(str(pdb_file))
 
     for res in struct.residues:
         if res.chain == chain:
