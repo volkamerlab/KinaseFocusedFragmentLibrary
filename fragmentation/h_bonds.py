@@ -27,8 +27,9 @@ def infer_h_bonds(ligand, pocket, pocket_mol2, ifp, factory):
 
     # get ligand acceptors and donors
     feats = factory.GetFeaturesForMol(ligand)
-    hbds = find_hbds(feats)
-    hbas = find_hbas(feats)
+    hbds = list(find_hbds(feats))
+    hbas = list(find_hbas(feats))
+    print(hbds, hbas)
 
     # calculate distances and infer atoms hydrogen bonding to the hinge region
 
@@ -54,7 +55,7 @@ def infer_h_bonds(ligand, pocket, pocket_mol2, ifp, factory):
                 l_pos = ligand_conf.GetAtomPosition(l_atom)
                 dist = np.linalg.norm(p_pos - l_pos)
                 if dist <= 4.5:
-                    print(res, res_mol.GetAtomWithIdx(p_atom).GetSymbol(), l_atom, ligand.GetAtomWithIdx(l_atom).GetSymbol(), dist)
+                    print('donor:', res, p_atom, res_mol.GetAtomWithIdx(p_atom).GetSymbol(), 'acceptor:', l_atom, ligand.GetAtomWithIdx(l_atom).GetSymbol(), dist)
                     h_bond_atoms.add(l_atom)
 
     # protein as H bond acceptor:
@@ -79,7 +80,7 @@ def infer_h_bonds(ligand, pocket, pocket_mol2, ifp, factory):
                 l_pos = ligand_conf.GetAtomPosition(l_atom)
                 dist = np.linalg.norm(p_pos - l_pos)
                 if dist <= 4.5:
-                    print(res, res_mol.GetAtomWithIdx(p_atom).GetSymbol(), l_atom, ligand.GetAtomWithIdx(l_atom).GetSymbol(), dist)
+                    print('acceptor:', res, p_atom, res_mol.GetAtomWithIdx(p_atom).GetSymbol(), 'donor:', l_atom, ligand.GetAtomWithIdx(l_atom).GetSymbol(), dist)
                     h_bond_atoms.add(l_atom)
 
     return h_bond_atoms
