@@ -173,7 +173,15 @@ for index, entry in KLIFSData.iterrows():
             else:
                 invalid_subpocket_connections[conn] = [folder]
 
-            # print(folder, sp_1, sp_2)
+        # check special cases SE-FP and FP-GA
+        elif {sp_1, sp_2} == {'SE', 'FP'} or {sp_1, sp_2} == {'FP', 'GA'}:
+
+            conn = frozenset((sp_1, sp_2))
+            if conn in invalid_subpocket_connections:
+                invalid_subpocket_connections[conn].append(folder)
+            else:
+                invalid_subpocket_connections[conn] = [folder]
+
 
     # ================================== FRAGMENTATION ==========================================
 
@@ -284,3 +292,9 @@ for conn in invalid_subpocket_connections:
     print([sp for sp in conn], len(invalid_subpocket_connections[conn]), len(invalid_subpocket_connections[conn])/count_structures*100)
     for struct in invalid_subpocket_connections[conn]:
         print(struct)
+
+print('\nSE-FP-GA')
+for struct in invalid_subpocket_connections[frozenset(('SE', 'FP'))]:
+    for struct2 in invalid_subpocket_connections[frozenset(('FP', 'GA'))]:
+        if struct == struct2:
+            print(struct)
