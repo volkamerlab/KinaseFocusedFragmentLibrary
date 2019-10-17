@@ -38,7 +38,7 @@ path_to_data = Path('../../data/KLIFS_download')
 
 KLIFSData = pd.read_csv(path_to_data / 'filtered_ligands.csv')
 
-# KLIFSData = KLIFSData[KLIFSData.family.isin(['EGFR'])]
+# KLIFSData = KLIFSData[KLIFSData.kinase.isin(['EGFR', 'AKT1'])]
 
 # clear output files and create output folders
 output_files = {}
@@ -53,6 +53,8 @@ for subpocket in subpockets:
 
 discardedFragments = []
 discardedLigands = []
+
+invalid_subpocket_connections = {}
 
 # iterate over molecules
 for index, entry in KLIFSData.iterrows():
@@ -161,7 +163,13 @@ for index, entry in KLIFSData.iterrows():
 
         if not is_valid_subpocket_connection(sp_1, sp_2) and sp_1 != sp_2:
 
-            print(folder, sp_1, sp_2)
+            conn = frozenset((sp_1, sp_2))
+            if conn in invalid_subpocket_connections:
+                invalid_subpocket_connections[conn].append(folder)
+            else:
+                invalid_subpocket_connections[conn] = [folder]
+
+            # print(folder, sp_1, sp_2)
 
     # ================================== FRAGMENTATION ==========================================
 
@@ -266,3 +274,9 @@ print('Number of fragmented structures: ', count_structures)
 print('\nNumber of discarded structures: ')
 print('Ligands with too large BRICS fragments: ', len(discardedLigands))
 print('Missing residue position could not be inferred: ', count_missing_res)
+
+# print invalid subpocket connections
+for conn in invalid_subpocket_connections:
+    print([sp for sp in conn], len(invalid_subpocket_connections[conn]), len(invalid_subpocket_connections[conn])/count_structures*100)
+    for struct in invalid_subpocket_connections[conn]:
+        print(struct)
