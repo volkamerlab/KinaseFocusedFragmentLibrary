@@ -63,6 +63,10 @@ for index, entry in KLIFSData.iterrows():
 
     folder = get_folder_name(entry)
 
+    # special case where AP and GA can not be disconnected by BRICS which leads to an unreasonable AP-B1 connection
+    if entry.pdb == '5x5o':
+        continue
+
     # load ligand and binding pocket to rdkit molecules
     ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
     pocket = Chem.MolFromMol2File(str(path_to_data / folder / 'pocket.mol2'), removeHs=False)
