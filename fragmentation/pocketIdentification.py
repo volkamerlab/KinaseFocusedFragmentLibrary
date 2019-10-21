@@ -96,7 +96,7 @@ def fix_small_fragments(fragments, bonds):
         for BRICSFragment in fragments:
 
             # small fragments
-            if BRICSFragment.mol.GetNumHeavyAtoms() <= 3:
+            if BRICSFragment.mol.GetNumHeavyAtoms() < 3:
                 # find neighboring fragments and fragments in same subpocket
                 neighboring_fragments = find_neighboring_fragments(BRICSFragment, fragments, bonds)
                 fragments_in_same_subpocket = [f for f in neighboring_fragments if f.subpocket == BRICSFragment.subpocket]
@@ -112,10 +112,10 @@ def fix_small_fragments(fragments, bonds):
                 else:
                     subpocket_size = BRICSFragment.mol.GetNumHeavyAtoms() + sum([f.mol.GetNumHeavyAtoms() for f in fragments_in_same_subpocket])
                     # if those fragments build up a large enough fragment, do nothing
-                    if subpocket_size > 3:
+                    if subpocket_size >= 3:
                         continue
                     # else check further neighboring fragments
-                    # (1 round is enough because that would make 3 fragments which should always have a combined size of > 3)
+                    # (1 round is enough because that would make 3 fragments which should always have a combined size of >= 3)
                     else:
                         # find more fragments in the same subpocket
                         for fragment_2 in fragments_in_same_subpocket:
@@ -127,7 +127,7 @@ def fix_small_fragments(fragments, bonds):
                                                    - fragment_2.mol.GetNumHeavyAtoms())
 
                         # if combined fragments in this subpocket are large enough, do nothing
-                        if subpocket_size > 3:
+                        if subpocket_size >= 3:
                             continue
                         else:
                             # if this is a terminal fragment, do nothing

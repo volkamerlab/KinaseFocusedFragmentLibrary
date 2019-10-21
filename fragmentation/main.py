@@ -20,11 +20,11 @@ from visualization import visual_subpockets
 # define the 6 subpockets
 subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # leave out 2? (1m17 will improve)
               Subpocket('AP', residues=[46, 51, 75, 15], color='0.6, 0.1, 0.6'),  # deep purple
-              Subpocket('FP', residues=[72, 51, 4, 81], color='0.2, 0.6, 0.2'),  # forest # substituted 4 for 7 and 72 for 74
-              Subpocket('GA', residues=[45, 17, 80], color='1.0, 0.5, 0.0'),  # orange
+              Subpocket('FP', residues=[72, 51, 10, 81], color='0.2, 0.6, 0.2'),  # forest # 4 -> 10
+              Subpocket('GA', residues=[45, 17, 82], color='1.0, 0.5, 0.0'),  # orange  # 80 -> 82
               # Subpocket('BP', residues=[82, 24, 43], color='0.5, 0.0, 1.0')  # purple blue
               Subpocket('B1', residues=[81, 28, 43, 38], color='0.0, 0.5, 1.0'),  # marine
-              Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0')  # purple blue # [24, 83, 8, 42] removed 8 because often missing
+              Subpocket('B2', residues=[18, 24, 83], color='0.5, 0.0, 1.0')  # purple blue # -70
               ]
 
 # count discarded structures
@@ -64,7 +64,7 @@ for index, entry in KLIFSData.iterrows():
     folder = get_folder_name(entry)
 
     # special case where AP and GA can not be disconnected by BRICS which leads to an unreasonable AP-B1 connection
-    if entry.pdb == '5x5o':
+    if entry.pdb in ['5x5o', '4umt', '4umu', '5mai']:
         continue
 
     # load ligand and binding pocket to rdkit molecules
