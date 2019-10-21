@@ -100,7 +100,7 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
                 # set atom number within the entire molecule as property of the fragment atom
                 # IS THIS ALWAYS TRUE? (Does order of atoms always stay the same after fragmentation?)
                 atom.SetIntProp('atomNumber', atomNumber)
-                atom.SetProp('subpocket', subpocket)
+                atom.SetProp('subpocket', subpocket.name)
                 atom.SetProp('environment', env_type)
 
             # if atom = dummy atom
@@ -119,7 +119,7 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
                 # get and set subpocket of the dummy atom
                 neighboring_subpocket = next(BRICSFragment.subpocket for BRICSFragment in brics_fragments
                                              if dummy_atom in BRICSFragment.atomNumbers)
-                atom.SetProp('subpocket', neighboring_subpocket)
+                atom.SetProp('subpocket', neighboring_subpocket.name)
                 atom.SetProp('environment', env_type)
 
         fragments.append(fragment)

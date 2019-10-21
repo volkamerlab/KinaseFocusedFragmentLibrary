@@ -7,12 +7,14 @@ import sys
 from pathlib import Path
 import json
 
-from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center, is_valid_subpocket_connection
+from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center, \
+    is_valid_subpocket_connection, find_neighboring_fragments
 from fragmentation import find_brics_fragments, fragmentation
 from classes import Subpocket
 from preprocessing import get_folder_name, get_file_name, fix_residue_numbers
 from discard import contains_ribose, contains_phosphate
 from visualization import visual_subpockets
+from functions import calc_3d_dist
 
 
 # ============================= INITIALIZATIONS ===============================================
@@ -26,6 +28,10 @@ subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # 
               Subpocket('B1', residues=[81, 28, 43, 38], color='0.0, 0.5, 1.0'),  # marine
               Subpocket('B2', residues=[18, 24, 83], color='0.5, 0.0, 1.0')  # purple blue # -70
               ]
+
+fp = subpockets[2]
+ga = subpockets[3]
+b2 = subpockets[5]
 
 # count discarded structures
 count_missing_res = 0
@@ -63,8 +69,8 @@ for index, entry in KLIFSData.iterrows():
 
     folder = get_folder_name(entry)
 
-    # special case where AP and GA can not be disconnected by BRICS which leads to an unreasonable AP-B1 connection
-    if entry.pdb in ['5x5o', '4umt', '4umu', '5mai']:
+    # special cases where GA can not be disconnected by BRICS which leads to an unreasonable connections
+    if entry.pdb in ['5x5o', '4umt', '4umu', '5mai', '4uyn', '4uzd']:
         continue
 
     # load ligand and binding pocket to rdkit molecules
@@ -153,6 +159,8 @@ for index, entry in KLIFSData.iterrows():
     if skipStructure:
         continue
 
+    # ============================= FIX SUBPOCKET ASSIGNMENTS ====================================
+
     # Adjust subpocket assignments in order to keep small fragments uncleaved
     fix_small_fragments(BRICSFragments, [bond[0] for bond in BRICSBonds])
 
@@ -167,21 +175,21 @@ for index, entry in KLIFSData.iterrows():
 
         if not is_valid_subpocket_connection(sp_1, sp_2) and sp_1 != sp_2:
 
-            conn = frozenset((sp_1, sp_2))
+            # store invalid subpocket connections
+            conn = frozenset((sp_1.name, sp_2.name))
             if conn in invalid_subpocket_connections:
                 invalid_subpocket_connections[conn].append(folder)
             else:
                 invalid_subpocket_connections[conn] = [folder]
 
         # check special cases SE-FP and FP-GA
-        elif {sp_1, sp_2} == {'SE', 'FP'} or {sp_1, sp_2} == {'FP', 'GA'}:
+        elif {sp_1.name, sp_2.name} == {'SE', 'FP'} or {sp_1.name, sp_2.name} == {'FP', 'GA'}:
 
-            conn = frozenset((sp_1, sp_2))
+            conn = frozenset((sp_1.name, sp_2.name))
             if conn in invalid_subpocket_connections:
                 invalid_subpocket_connections[conn].append(folder)
             else:
                 invalid_subpocket_connections[conn] = [folder]
-
 
     # ================================== FRAGMENTATION ==========================================
 
@@ -237,7 +245,7 @@ for index, entry in KLIFSData.iterrows():
         if fragment.mol.GetNumHeavyAtoms() > 29:
             discardedFragments.append(fragment)
         else:
-            w = Chem.SDWriter(output_files[fragment.subpocket])
+            w = Chem.SDWriter(output_files[fragment.subpocket.name])
             w.write(fragment.mol)
 
     # ================================ DRAW FRAGMENTS ==========================================
@@ -247,7 +255,7 @@ for index, entry in KLIFSData.iterrows():
         fragment.mol = Chem.RemoveHs(fragment.mol)
         tmp = AllChem.Compute2DCoords(fragment.mol)
     img = Draw.MolsToGridImage([fragment.mol for fragment in fragments],
-                               legends=[fragment.subpocket for fragment in fragments],
+                               legends=[fragment.subpocket.name for fragment in fragments],
                                subImgSize=(400, 400))
     img.save('../output/fragmented_molecules/' + get_file_name(entry) + '.png')
 
@@ -265,7 +273,7 @@ if discardedFragments:
         fragment.mol = Chem.RemoveHs(fragment.mol)
         tmp = AllChem.Compute2DCoords(fragment.mol)
     img = Draw.MolsToGridImage([fragment.mol for fragment in discardedFragments],
-                               legends=[fragment.structure+' '+fragment.subpocket+' '+str(fragment.mol.GetNumHeavyAtoms())
+                               legends=[fragment.structure+' '+fragment.subpocket.name+' '+str(fragment.mol.GetNumHeavyAtoms())
                                         for fragment in discardedFragments],
                                subImgSize=(400, 400), molsPerRow=6)
     img.save('../output/discarded_fragments.png')

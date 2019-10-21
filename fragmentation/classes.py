@@ -10,7 +10,7 @@ class Fragment:
         RDKit molecule representation of the fragment
     atomNumbers: list(int)
         atom numbers of the fragment atoms within the fragmented molecule
-    subpocket: str
+    subpocket: Subpocket
         Subpocket in which the fragment lies
     smiles: str
         SMILES representation of the fragment molecule
@@ -54,3 +54,8 @@ class Subpocket:
         self.center = center
         self.color = color
 
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __ne__(self, other):
+        return self.name != other.name

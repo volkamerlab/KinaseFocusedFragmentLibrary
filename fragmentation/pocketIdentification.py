@@ -34,7 +34,7 @@ def get_subpocket_from_pos(pos, subpockets):
             nearest_subpocket = subpocket
             smallest_distance = distance
 
-    return nearest_subpocket.name
+    return nearest_subpocket
 
 
 def find_neighboring_fragments(fragment, fragments, bonds):
@@ -247,8 +247,8 @@ def is_valid_subpocket_connection(sp_1, sp_2):
 
     Parameters
     ----------
-    sp_1, sp_2: str
-        two subpockets
+    sp_1, sp_2: Subpocket
+        two subpocket objects
 
     Returns
     -------
@@ -257,7 +257,7 @@ def is_valid_subpocket_connection(sp_1, sp_2):
 
     """
 
-    if {sp_1, sp_2} in valid_subpocket_connections:
+    if {sp_1.name, sp_2.name} in valid_subpocket_connections:
         return True
     else:
         return False
