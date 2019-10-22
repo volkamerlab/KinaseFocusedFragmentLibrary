@@ -31,6 +31,9 @@ subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # 
               Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0')  # purple blue # [24, 83, 8, 42] removed 8 because often missing
               ]
 
+fdefName = os.path.join(RDConfig.RDDataDir, 'BaseFeatures.fdef')
+factory = ChemicalFeatures.BuildFeatureFactory(fdefName)
+
 # count discarded structures
 count_missing_res = 0
 
@@ -128,13 +131,7 @@ for index, entry in KLIFSData.iterrows():
 
     # =========================== INFER HYDROGEN BONDS ==========================================
 
-    print(folder)
-    fdefName = os.path.join(RDConfig.RDDataDir, 'BaseFeatures.fdef')
-    factory = ChemicalFeatures.BuildFeatureFactory(fdefName)
-
     h_bond_atoms = infer_h_bonds(ligand, pocket, pocketMol2, entry.full_ifp, factory)
-    if h_bond_atoms == set():
-        print(folder, 'No H bonds to hinge region.')
 
     # ================================ BRICS FRAGMENTS ==========================================
 
