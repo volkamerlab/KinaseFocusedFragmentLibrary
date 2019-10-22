@@ -67,6 +67,7 @@ for index, entry in KLIFSData.iterrows():
     folder = get_folder_name(entry)
 
     # special cases where GA can not be disconnected by BRICS which leads to unreasonable connections
+    # (but BRICS fragment not large enough to get discarded automatically by the chosen threshold)
     if entry.pdb in ['5x5o', '4umt', '4umu', '5mai', '4uyn', '4uzd']:
         continue
 
