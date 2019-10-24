@@ -124,12 +124,4 @@ def fragmentation(ligand, atom_tuples, brics_fragments):
 
         fragments.append(fragment)
 
-        # solve linker problem here?
-        # 1. get all brics fragments for this fragment
-        # 2. identify ambiguous brics fragment(s)
-        # 3. remove this substructure from current fragment
-        # 4. store resulting fragment additionally, set 'stripped' property?
-        # What if resulting fragment is too small? -> check for that; do not strip
-        # Will atom properties be kept after editing molecule?
-
     return fragments
