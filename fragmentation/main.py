@@ -23,7 +23,7 @@ from functions import calc_3d_dist
 subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # leave out 2? (1m17 will improve)
               Subpocket('AP', residues=[46, 51, 75, 15], color='0.6, 0.1, 0.6'),  # deep purple
               Subpocket('FP', residues=[72, 51, 10, 81], color='0.2, 0.6, 0.2'),  # forest # 4 -> 10
-              Subpocket('GA', residues=[45, 17, 82], color='1.0, 0.5, 0.0'),  # orange  # 80 -> 82
+              Subpocket('GA', residues=[45, 17, 81], color='1.0, 0.5, 0.0'),  # orange  # 80 -> 82 -> 81
               # Subpocket('BP', residues=[82, 24, 43], color='0.5, 0.0, 1.0')  # purple blue
               Subpocket('B1', residues=[81, 28, 43, 38], color='0.0, 0.5, 1.0'),  # marine
               Subpocket('B2', residues=[18, 24, 83], color='0.5, 0.0, 1.0')  # purple blue # -70
@@ -57,7 +57,7 @@ for subpocket in subpockets:
 discardedFragments = []
 discardedLigands = []
 
-# invalid_subpocket_connections = {}
+invalid_subpocket_connections = {}
 
 # iterate over molecules
 for index, entry in KLIFSData.iterrows():
@@ -68,7 +68,8 @@ for index, entry in KLIFSData.iterrows():
 
     # special cases where GA can not be disconnected by BRICS which leads to unreasonable connections
     # (but BRICS fragment not large enough to get discarded automatically by the chosen threshold)
-    if entry.pdb in ['5x5o', '4umt', '4umu', '5mai', '4uyn', '4uzd']:
+    # move to preprocessing
+    if entry.pdb in ['5x5o', '4umt', '4umu', '5mai', '4uyn', '4uzd', '5w5q', '2ycq']:
         continue
 
     # load ligand and binding pocket to rdkit molecules
@@ -173,20 +174,12 @@ for index, entry in KLIFSData.iterrows():
 
         if not is_valid_subpocket_connection(sp_1, sp_2) and sp_1 != sp_2:
 
-            if {sp_1.name, sp_2.name} == {'SE', 'GA'}:
-
-                firstFragment.subpocket = ap
-                secondFragment.subpocket = ap
-
-                if firstFragment.mol.GetNumHeavyAtoms() + secondFragment.mol.GetNumHeavyAtoms() < 3:
-                    print(folder, 'GA too small')
-
-            # # store invalid subpocket connections
-            # conn = frozenset((sp_1.name, sp_2.name))
-            # if conn in invalid_subpocket_connections:
-            #     invalid_subpocket_connections[conn].append(folder)
-            # else:
-            #     invalid_subpocket_connections[conn] = [folder]
+            # store invalid subpocket connections
+            conn = frozenset((sp_1.name, sp_2.name))
+            if conn in invalid_subpocket_connections:
+                invalid_subpocket_connections[conn].append(folder)
+            else:
+                invalid_subpocket_connections[conn] = [folder]
 
             # # fix invalid subpocket connection
             # # fp-b2 # fp-b1 # ap-b1 # ap-b2 # #se-ga # se-b2
@@ -279,6 +272,15 @@ for index, entry in KLIFSData.iterrows():
 
             print(folder, 'Invalid subpocket connection:', sp_1.name, '-', sp_2.name)
 
+        # discard this ligand if SE and GA subpockets are connected
+        if {sp_1.name, sp_2.name} == {'SE', 'GA'}:
+
+            skipStructure = True
+            break
+
+    if skipStructure:
+        continue
+
     # actual fragmentation
     fragments = fragmentation(ligand, bonds, BRICSFragments)
 
@@ -360,12 +362,12 @@ print('\nNumber of discarded structures: ')
 print('Ligands with too large BRICS fragments: ', len(discardedLigands))
 print('Missing residue position could not be inferred: ', count_missing_res)
 
-# # print invalid subpocket connections
-# for conn in invalid_subpocket_connections:
-#     print([sp for sp in conn], len(invalid_subpocket_connections[conn]), len(invalid_subpocket_connections[conn])/count_structures*100)
-#     for struct in invalid_subpocket_connections[conn]:
-#         print(struct)
-#
+# print invalid subpocket connections
+for conn in invalid_subpocket_connections:
+    print([sp for sp in conn], len(invalid_subpocket_connections[conn]), len(invalid_subpocket_connections[conn])/count_structures*100)
+    for struct in invalid_subpocket_connections[conn]:
+        print(struct)
+
 # print('\nSE-FP-GA')
 # for struct in invalid_subpocket_connections[frozenset(('SE', 'FP'))]:
 #     for struct2 in invalid_subpocket_connections[frozenset(('FP', 'GA'))]:
