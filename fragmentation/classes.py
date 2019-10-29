@@ -20,13 +20,12 @@ class Fragment:
         BRICS environment type of the fragment (based on RDKit definitions)
     """
 
-    def __init__(self, mol=None, atomNumbers=None, subpocket=None, smiles=None, structure=None, center=None, environment=None):
+    def __init__(self, mol=None, atomNumbers=None, subpocket=None, structure=None, center=None, environment=None):
 
         self.mol = mol
         self.atomNumbers = atomNumbers
         self.center = center
         self.subpocket = subpocket
-        self.smiles = smiles
         self.structure = structure
         self.environment = environment
 

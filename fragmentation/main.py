@@ -9,7 +9,7 @@ import json
 
 from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center, \
     is_valid_subpocket_connection, find_neighboring_fragments
-from fragmentation import find_brics_fragments, fragmentation
+from fragmentation import find_brics_fragments, fragment_between_atoms, create_fragment_object
 from classes import Subpocket
 from preprocessing import get_folder_name, get_file_name, fix_residue_numbers
 from discard import contains_ribose, contains_phosphate
@@ -68,7 +68,7 @@ for index, entry in KLIFSData.iterrows():
 
     # special cases where GA can not be disconnected by BRICS which leads to unreasonable connections
     # (but BRICS fragment not large enough to get discarded automatically by the chosen threshold)
-    # '3ovv', '3oxt', '3p0m', '3poo': large FP fragment should be in AP, rest is only in FP-II
+    # '3ovv', '3oxt', '3p0m', '3poo': large FP fragment should be in AP (but gets assigned to FP), rest is only in FP-II
     if entry.pdb in ['5x5o', '4umt', '4umu', '5mai', '4uyn', '4uzd', '4o0y', '5w5q', '2ycq', '3ovv', '3oxt', '3p0m', '3poo']:
         continue
 
@@ -236,12 +236,12 @@ for index, entry in KLIFSData.iterrows():
         #     else:
         #         invalid_subpocket_connections[conn] = [folder]
 
-    # ================================== FRAGMENTATION ==========================================
+    # ================================== FINAL FRAGMENTATION ==========================================
 
     skipStructure = False
 
-    # list to store the bonds where we will cleave (as atom tuples)
-    bonds = []
+    # list to store the bonds where we will cleave
+    atom_tuples = []
     count = 0
     # iterate over BRICS bonds
     for (beginAtom, endAtom), (env_1, env_2) in BRICSBonds:
@@ -250,17 +250,22 @@ for index, entry in KLIFSData.iterrows():
         firstFragment = next(fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers)
         secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
 
-        # get environment types of the brics fragments
+        # set environment types of the brics fragments
         firstFragment.environment = env_1
         secondFragment.environment = env_2
 
         # check if subpockets differ
         if firstFragment.subpocket != secondFragment.subpocket:
             # store this bond as a bond where we will cleave
-            bonds.append((beginAtom, endAtom))
+            atom_tuples.append((beginAtom, endAtom))
+
+    # fragmentation of the ligand at the calculated bonds that separate two subpockets
+    fragment_mols, fragment_atoms = fragment_between_atoms(ligand, atom_tuples)
+
+    # ============================= SUBPOCKET ASSIGNMENTS ====================================
 
     # check validity of subpocket connections
-    for (beginAtom, endAtom) in bonds:
+    for (beginAtom, endAtom) in atom_tuples:
 
         firstFragment = next(fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers)
         secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
@@ -281,8 +286,11 @@ for index, entry in KLIFSData.iterrows():
     if skipStructure:
         continue
 
-    # actual fragmentation
-    fragments = fragmentation(ligand, bonds, BRICSFragments)
+    # iterate over new fragments, create Fragment objects and assign atom and fragment properties
+    fragments = []
+    for (atomNumbers, mol) in zip(fragment_atoms, fragment_mols):
+
+        fragments.append(create_fragment_object(mol, atomNumbers, atom_tuples, BRICSFragments))
 
     # ================================ FRAGMENT LIBRARY ========================================
 
