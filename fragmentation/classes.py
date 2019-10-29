@@ -12,8 +12,6 @@ class Fragment:
         atom numbers of the fragment atoms within the fragmented molecule
     subpocket: Subpocket
         Subpocket in which the fragment lies
-    smiles: str
-        SMILES representation of the fragment molecule
     structure: str
         PDB code + alt + chain of corresponding structure
     environment: str

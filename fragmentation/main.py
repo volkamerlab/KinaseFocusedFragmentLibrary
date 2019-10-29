@@ -163,78 +163,78 @@ for index, entry in KLIFSData.iterrows():
     # Adjust subpocket assignments in order to keep small fragments uncleaved
     fix_small_fragments(BRICSFragments, [bond[0] for bond in BRICSBonds])
 
-    # check validity of subpocket connections
-    for (beginAtom, endAtom), _ in BRICSBonds:
-
-        firstFragment = next(fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers)
-        secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
-
-        sp_1 = firstFragment.subpocket
-        sp_2 = secondFragment.subpocket
-
-        if not is_valid_subpocket_connection(sp_1, sp_2) and sp_1 != sp_2:
-
-            # store invalid subpocket connections
-            conn = frozenset((sp_1.name, sp_2.name))
-            if conn in invalid_subpocket_connections:
-                invalid_subpocket_connections[conn].append(folder)
-            else:
-                invalid_subpocket_connections[conn] = [folder]
-
-            # # fix invalid subpocket connection
-            # # fp-b2 # fp-b1 # ap-b1 # ap-b2 # #se-ga # se-b2
-            # # if {sp_1.name, sp_2.name} == {'FP', 'B2'}:
-            # #     print(sp_1.name, calc_3d_dist(firstFragment.center, sp_1.center), calc_3d_dist(firstFragment.center, sp_2.center))
-            # #     print(sp_2.name, calc_3d_dist(secondFragment.center, sp_2.center), calc_3d_dist(secondFragment.center, sp_1.center))
-            # if {sp_1.name, sp_2.name} == {'FP', 'B2'}:
-            #
-            #     fp_frag = firstFragment if sp_1.name == 'FP' else secondFragment
-            #     b2_frag = firstFragment if sp_1.name == 'B2' else secondFragment
-            #
-            #     # check distance to B2
-            #     if calc_3d_dist(b2_frag.center, b2.center) < 5:
-            #         print(folder, 'FP-B2 (back pocket)')
-            #
-            #         # check distance to GA
-            #         # print(subpockets[3].name, calc_3d_dist(fp_frag.center, subpockets[3].center), calc_3d_dist(b2_frag.center, subpockets[3].center))
-            #         if calc_3d_dist(fp_frag.center, ga.center) < 7:
-            #             # fp_frag.subpocket = ga
-            #             # # print('FP -> GA')
-            #             # # check size of new GA fragment
-            #             # if fp_frag.mol.GetNumHeavyAtoms() < 3:
-            #             #     print(folder, 'fp-b2, ga too small')
-            #             print(folder, 'FP-GA-B2: FP -> GA')
-            #
-            #         elif calc_3d_dist(b2_frag.center, ga.center) < 7:
-            #             # b2_frag.subpocket = ga
-            #             # # print('B2 -> GA')
-            #             # if b2_frag.mol.GetNumHeavyAtoms() < 3:
-            #             #     print(folder, 'fp-b2, ga too small')
-            #             print(folder, 'FP-GA-B2: B2 -> GA')
-            #
-            #     # if B2 fragment is not close enough to B2, put all in FP
-            #     else:
-            #         print(folder, 'FP-B2: B2 -> FP')
-            #         # assign B2 fragments to FP
-            #         b2_frag.subpocket = fp
-            #         num_fixed_fragments = 1
-            #         fixed_frag = b2_frag
-            #         while num_fixed_fragments > 0:
-            #             num_fixed_fragments = 0
-            #             for nf in find_neighboring_fragments(fixed_frag, BRICSFragments, [bond[0] for bond in BRICSBonds]):
-            #                 if nf.subpocket == b2:
-            #                     nf.subpocket = fp
-            #                     num_fixed_fragments += 1
-            #                     fixed_frag = nf
-
-        # # check special cases SE-FP and FP-GA
-        # elif {sp_1.name, sp_2.name} == {'SE', 'FP'} or {sp_1.name, sp_2.name} == {'FP', 'GA'}:
-        #
-        #     conn = frozenset((sp_1.name, sp_2.name))
-        #     if conn in invalid_subpocket_connections:
-        #         invalid_subpocket_connections[conn].append(folder)
-        #     else:
-        #         invalid_subpocket_connections[conn] = [folder]
+    # # check validity of subpocket connections
+    # for (beginAtom, endAtom), _ in BRICSBonds:
+    #
+    #     firstFragment = next(fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers)
+    #     secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
+    #
+    #     sp_1 = firstFragment.subpocket
+    #     sp_2 = secondFragment.subpocket
+    #
+    #     if not is_valid_subpocket_connection(sp_1, sp_2) and sp_1 != sp_2:
+    #
+    #         # store invalid subpocket connections
+    #         conn = frozenset((sp_1.name, sp_2.name))
+    #         if conn in invalid_subpocket_connections:
+    #             invalid_subpocket_connections[conn].append(folder)
+    #         else:
+    #             invalid_subpocket_connections[conn] = [folder]
+    #
+    #         # fix invalid subpocket connection
+    #         # fp-b2 # fp-b1 # ap-b1 # ap-b2 # #se-ga # se-b2
+    #         # if {sp_1.name, sp_2.name} == {'FP', 'B2'}:
+    #         #     print(sp_1.name, calc_3d_dist(firstFragment.center, sp_1.center), calc_3d_dist(firstFragment.center, sp_2.center))
+    #         #     print(sp_2.name, calc_3d_dist(secondFragment.center, sp_2.center), calc_3d_dist(secondFragment.center, sp_1.center))
+    #         if {sp_1.name, sp_2.name} == {'FP', 'B2'}:
+    #
+    #             fp_frag = firstFragment if sp_1.name == 'FP' else secondFragment
+    #             b2_frag = firstFragment if sp_1.name == 'B2' else secondFragment
+    #
+    #             # check distance to B2
+    #             if calc_3d_dist(b2_frag.center, b2.center) < 5:
+    #                 print(folder, 'FP-B2 (back pocket)')
+    #
+    #                 # check distance to GA
+    #                 # print(subpockets[3].name, calc_3d_dist(fp_frag.center, subpockets[3].center), calc_3d_dist(b2_frag.center, subpockets[3].center))
+    #                 if calc_3d_dist(fp_frag.center, ga.center) < 7:
+    #                     # fp_frag.subpocket = ga
+    #                     # # print('FP -> GA')
+    #                     # # check size of new GA fragment
+    #                     # if fp_frag.mol.GetNumHeavyAtoms() < 3:
+    #                     #     print(folder, 'fp-b2, ga too small')
+    #                     print(folder, 'FP-GA-B2: FP -> GA')
+    #
+    #                 elif calc_3d_dist(b2_frag.center, ga.center) < 7:
+    #                     # b2_frag.subpocket = ga
+    #                     # # print('B2 -> GA')
+    #                     # if b2_frag.mol.GetNumHeavyAtoms() < 3:
+    #                     #     print(folder, 'fp-b2, ga too small')
+    #                     print(folder, 'FP-GA-B2: B2 -> GA')
+    #
+    #             # if B2 fragment is not close enough to B2, put all in FP
+    #             else:
+    #                 print(folder, 'FP-B2: B2 -> FP')
+    #                 # assign B2 fragments to FP
+    #                 b2_frag.subpocket = fp
+    #                 num_fixed_fragments = 1
+    #                 fixed_frag = b2_frag
+    #                 while num_fixed_fragments > 0:
+    #                     num_fixed_fragments = 0
+    #                     for nf in find_neighboring_fragments(fixed_frag, BRICSFragments, [bond[0] for bond in BRICSBonds]):
+    #                         if nf.subpocket == b2:
+    #                             nf.subpocket = fp
+    #                             num_fixed_fragments += 1
+    #                             fixed_frag = nf
+    #
+    #     # check special cases SE-FP and FP-GA
+    #     elif {sp_1.name, sp_2.name} == {'SE', 'FP'} or {sp_1.name, sp_2.name} == {'FP', 'GA'}:
+    #
+    #         conn = frozenset((sp_1.name, sp_2.name))
+    #         if conn in invalid_subpocket_connections:
+    #             invalid_subpocket_connections[conn].append(folder)
+    #         else:
+    #             invalid_subpocket_connections[conn] = [folder]
 
     # ================================== FINAL FRAGMENTATION ==========================================
 
@@ -264,28 +264,6 @@ for index, entry in KLIFSData.iterrows():
 
     # ============================= SUBPOCKET ASSIGNMENTS ====================================
 
-    # check validity of subpocket connections
-    for (beginAtom, endAtom) in atom_tuples:
-
-        firstFragment = next(fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers)
-        secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
-
-        sp_1 = firstFragment.subpocket
-        sp_2 = secondFragment.subpocket
-
-        if not is_valid_subpocket_connection(sp_1, sp_2):
-
-            print(folder, 'Invalid subpocket connection:', sp_1.name, '-', sp_2.name)
-
-        # discard this ligand if SE and GA subpockets are connected
-        if {sp_1.name, sp_2.name} == {'SE', 'GA'}:
-
-            skipStructure = True
-            break
-
-    if skipStructure:
-        continue
-
     # iterate over new fragments and create Fragment objects
     fragments = []
     for (atomNumbers, mol) in zip(fragment_atoms, fragment_mols):
@@ -295,16 +273,63 @@ for index, entry in KLIFSData.iterrows():
         # create Fragment object
         fragments.append(Fragment(mol=mol, atomNumbers=atomNumbers, subpocket=subpocket))
 
-    # set atom properties (atom ids, subpockets, and BRICS environments)
-    for fragment in fragments:
+    # check validity of subpocket connections
+    for (beginAtom, endAtom) in atom_tuples:
 
-        set_atom_properties(fragment, atom_tuples, BRICSFragments)
+        firstFragment = next(fragment for fragment in fragments if beginAtom in fragment.atomNumbers)
+        secondFragment = next(fragment for fragment in fragments if endAtom in fragment.atomNumbers)
+
+        sp_1 = firstFragment.subpocket
+        sp_2 = secondFragment.subpocket
+
+        if not is_valid_subpocket_connection(sp_1, sp_2):
+
+            # discard this ligand if SE and GA subpockets are connected
+            if {sp_1.name, sp_2.name} == {'SE', 'GA'}:
+
+                print(folder, ':')
+                print('Invalid connection SE-GA. Structure is skipped.\n')
+
+                skipStructure = True
+                break
+
+            # if FP or B2 are connected, check distance to GA and if close enough put FP fragment to GA
+            if {sp_1.name, sp_2.name} == {'FP', 'B2'}:
+
+                fp_frag = firstFragment if sp_1.name == 'FP' else secondFragment
+                fp_frag.center = calc_geo_center(fp_frag.mol.GetAtoms(), fp_frag.mol.GetConformer())
+
+                if calc_3d_dist(fp_frag.center, ga.center) < 5:
+                    # assign FP fragment to GA pocket
+                    fp_frag.subpocket = ga
+                    print(folder, 'FP -> GA\n')
+
+            # check subpocket connections again after adaptation
+            sp_1 = firstFragment.subpocket
+            sp_2 = secondFragment.subpocket
+
+            if not is_valid_subpocket_connection(sp_1, sp_2):
+
+                # print(folder, 'Invalid subpocket connection:', sp_1.name, '-', sp_2.name)
+
+                # store invalid subpocket connections
+                conn = frozenset((sp_1.name, sp_2.name))
+                if conn in invalid_subpocket_connections:
+                    invalid_subpocket_connections[conn].append(folder)
+                else:
+                    invalid_subpocket_connections[conn] = [folder]
+
+    if skipStructure:
+        continue
+
+    # set atom properties: atom ids, subpockets, and BRICS environments
+    set_atom_properties(fragments, atom_tuples, BRICSFragments)
 
     # ================================ FRAGMENT LIBRARY ========================================
 
     # add fragments to their respective pool
 
-    # for fragment in fragments:
+    for fragment in fragments:
 
         # store PDB where this fragment came from
         fragment.structure = get_file_name(entry)
