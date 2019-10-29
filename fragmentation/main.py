@@ -9,8 +9,8 @@ import json
 
 from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center, \
     is_valid_subpocket_connection, find_neighboring_fragments
-from fragmentation import find_brics_fragments, fragment_between_atoms, create_fragment_object
-from classes import Subpocket
+from fragmentation import find_brics_fragments, fragment_between_atoms, set_atom_properties
+from classes import Subpocket, Fragment
 from preprocessing import get_folder_name, get_file_name, fix_residue_numbers
 from discard import contains_ribose, contains_phosphate
 from visualization import visual_subpockets
@@ -286,17 +286,26 @@ for index, entry in KLIFSData.iterrows():
     if skipStructure:
         continue
 
-    # iterate over new fragments, create Fragment objects and assign atom and fragment properties
+    # iterate over new fragments and create Fragment objects
     fragments = []
     for (atomNumbers, mol) in zip(fragment_atoms, fragment_mols):
 
-        fragments.append(create_fragment_object(mol, atomNumbers, atom_tuples, BRICSFragments))
+        # get subpocket corresponding to fragment (Is there a better way?)
+        subpocket = next(brics_fragment.subpocket for brics_fragment in BRICSFragments if atomNumbers[0] in brics_fragment.atomNumbers)
+        # create Fragment object
+        fragments.append(Fragment(mol=mol, atomNumbers=atomNumbers, subpocket=subpocket))
+
+    # set atom properties (atom ids, subpockets, and BRICS environments)
+    for fragment in fragments:
+
+        set_atom_properties(fragment, atom_tuples, BRICSFragments)
 
     # ================================ FRAGMENT LIBRARY ========================================
 
     # add fragments to their respective pool
 
-    for fragment in fragments:
+    # for fragment in fragments:
+
         # store PDB where this fragment came from
         fragment.structure = get_file_name(entry)
 

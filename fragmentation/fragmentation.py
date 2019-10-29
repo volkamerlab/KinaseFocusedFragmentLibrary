@@ -78,18 +78,18 @@ def fragment_between_atoms(mol, atom_tuples):
     return fragment_mols, fragment_atoms
 
 
-def create_fragment_object(mol, atomNumbers, atom_tuples, brics_fragments):
+def set_atom_properties(fragment, atom_tuples, brics_fragments):
 
     """
-    - Assigns the given fragment to a subpocket based on the subpocket of the BRICS fragments that it consists of
-    - Assigns a subpocket to each atom of the fragment -> Neighboring subpocket is stored at the dummy atoms
+
+    Assigns properties to the atoms of a fragment (in place):
+    - subpocket -> Neighboring subpocket is stored at the dummy atoms
+    - atom number w.r.t. original ligand
+    - BRICS environment type
 
     Parameters
     ----------
-    mol: RDKit Mol object
-        molecule representation of the fragment
-    atomNumbers: list(int)
-        atom numbers of the fragment w.r.t. the original ligand
+    fragment: Fragment object
     atom_tuples: list(tuple(int))
             list of atom index tuples, where each tuple represents a bond between two atoms in the ligand (final bonds, NOT BRICS bonds!)
     brics_fragments: list(Fragment)
@@ -102,11 +102,6 @@ def create_fragment_object(mol, atomNumbers, atom_tuples, brics_fragments):
 
     """
 
-    # get subpocket corresponding to fragment (Is there a better way?)
-    subpocket = next(brics_fragment.subpocket for brics_fragment in brics_fragments if atomNumbers[0] in brics_fragment.atomNumbers)
-    # create Fragment object
-    fragment = Fragment(mol=mol, atomNumbers=atomNumbers, subpocket=subpocket)
-
     # set atom properties for the created fragment
     for atom, atomNumber in zip(fragment.mol.GetAtoms(), fragment.atomNumbers):
 
@@ -117,7 +112,7 @@ def create_fragment_object(mol, atomNumbers, atom_tuples, brics_fragments):
             # set atom number within the entire molecule as property of the fragment atom
             # IS THIS ALWAYS TRUE? (Does order of atoms always stay the same after fragmentation?)
             atom.SetIntProp('atomNumber', atomNumber)
-            atom.SetProp('subpocket', subpocket.name)
+            atom.SetProp('subpocket', fragment.subpocket.name)
             atom.SetProp('environment', env_type)
 
         # if atom = dummy atom
@@ -138,5 +133,3 @@ def create_fragment_object(mol, atomNumbers, atom_tuples, brics_fragments):
                                          if dummy_atom in BRICSFragment.atomNumbers)
             atom.SetProp('subpocket', neighboring_subpocket.name)
             atom.SetProp('environment', env_type)
-
-    return fragment
