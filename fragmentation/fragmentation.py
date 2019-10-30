@@ -87,6 +87,8 @@ def set_atom_properties(fragments, atom_tuples, brics_fragments):
     - atom number w.r.t. original ligand
     - BRICS environment type
 
+    Assumption: When iterating over the fragment atoms, dummy atoms are last.
+
     Parameters
     ----------
     fragments: list(Fragment)
@@ -112,7 +114,7 @@ def set_atom_properties(fragments, atom_tuples, brics_fragments):
             if atom.GetSymbol() != '*':
                 # get environment type of the brics fragment that the current atom belongs to
                 env_type = next(brics_fragment.environment for brics_fragment in brics_fragments if atomNumber in brics_fragment.atomNumbers)
-                # set atom number within the entire molecule as property of the fragment atom
+                # set atom number w.r.t. ligand as property of the fragment atom
                 # IS THIS ALWAYS TRUE? (Does order of atoms always stay the same after fragmentation?)
                 atom.SetIntProp('atomNumber', atomNumber)
                 atom.SetProp('subpocket', fragment.subpocket.name)
@@ -122,16 +124,17 @@ def set_atom_properties(fragments, atom_tuples, brics_fragments):
             else:
                 # neighbor = atom next to a dummy (Can several neighbors exist?)
                 neighbor = atom.GetNeighbors()[0]
-
                 # -> This works only because dummy atoms are always last in the iteration
                 neighbor_atom = neighbor.GetIntProp('atomNumber')
-                # get environment type of the brics fragment that the current atom belongs to
-                env_type = 'na'
                 # get and set atom number w.r.t ligand of the dummy atom
+                # (dummy atoms have just been consecutively numbered as additional atoms,
+                #  we want to have the atom number of the atom that the dummy atom corresponds to)
                 bond_atoms = next(atomTuple for atomTuple in atom_tuples if neighbor_atom in atomTuple)
                 dummy_atom = next(atomNumber for atomNumber in bond_atoms if atomNumber != neighbor_atom)
                 atom.SetIntProp('atomNumber', dummy_atom)
+                # print(dummy_atom, atomNumber)
                 # get and set subpocket of the dummy atom
                 neighboring_subpocket = next(f.subpocket for f in fragments if dummy_atom in f.atomNumbers)
                 atom.SetProp('subpocket', neighboring_subpocket.name)
-                atom.SetProp('environment', env_type)
+                # dummy atoms do not get an environment type assigned
+                atom.SetProp('environment', 'na')

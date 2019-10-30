@@ -41,7 +41,7 @@ path_to_data = Path('../../data/KLIFS_download')
 
 KLIFSData = pd.read_csv(path_to_data / 'filtered_ligands.csv')
 
-# KLIFSData = KLIFSData[KLIFSData.kinase.isin(['EGFR', 'AKT1'])]
+# KLIFSData = KLIFSData[KLIFSData.kinase.isin(['TTK'])]
 
 # clear output files and create output folders
 output_files = {}
@@ -274,6 +274,7 @@ for index, entry in KLIFSData.iterrows():
         fragments.append(Fragment(mol=mol, atomNumbers=atomNumbers, subpocket=subpocket))
 
     # check validity of subpocket connections
+    fragments_to_remove = []
     for (beginAtom, endAtom) in atom_tuples:
 
         firstFragment = next(fragment for fragment in fragments if beginAtom in fragment.atomNumbers)
@@ -297,12 +298,33 @@ for index, entry in KLIFSData.iterrows():
             if {sp_1.name, sp_2.name} == {'FP', 'B2'}:
 
                 fp_frag = firstFragment if sp_1.name == 'FP' else secondFragment
+                b2_frag = firstFragment if sp_1.name == 'B2' else secondFragment
                 fp_frag.center = calc_geo_center(fp_frag.mol.GetAtoms(), fp_frag.mol.GetConformer())
 
+                # if FP fragment is close to GA
                 if calc_3d_dist(fp_frag.center, ga.center) < 5:
                     # assign FP fragment to GA pocket
                     fp_frag.subpocket = ga
                     print(folder, 'FP -> GA\n')
+
+                # if FP is not close to GA, there is an actual FP-B2 connection which we do not want to have
+                # hence we delete the B2 fragment and close FP
+                else:
+                    fragments_to_remove.append(b2_frag)
+                    print(folder, 'FP-B2 -> B2 removed')
+                    # TODO: delete dummy atom to B2 of FP fragment (close FP)
+                    # get atom next to dummy atom
+                    for atom, atomNumber in zip(fp_frag.mol.GetAtoms(), fp_frag.atomNumbers):
+                        if atomNumber == beginAtom or atomNumber == endAtom:
+                            bondAtom = atom
+                            break
+                    # remove dummy atom and replace with hydrogen
+                    # bondAtom could have several dummy atoms ...
+                    # dummy = next(atom.GetIdx() for atom in bondAtom.GetNeighbors() if atom.GetSymbol() == '*')
+                    # ed_frag = Chem.EditableMol(fp_frag.mol)
+                    # ed_frag.RemoveAtom(dummy)
+                    # fp_frag.mol = ed_frag.GetMol()
+                    # fp_frag.mol = Chem.AddHs(ed_frag.GetMol())
 
             # check subpocket connections again after adaptation
             sp_1 = firstFragment.subpocket
@@ -310,7 +332,7 @@ for index, entry in KLIFSData.iterrows():
 
             if not is_valid_subpocket_connection(sp_1, sp_2):
 
-                # print(folder, 'Invalid subpocket connection:', sp_1.name, '-', sp_2.name)
+                print(folder, 'Invalid subpocket connection:', sp_1.name, '-', sp_2.name, '\n')
 
                 # store invalid subpocket connections
                 conn = frozenset((sp_1.name, sp_2.name))
@@ -334,6 +356,11 @@ for index, entry in KLIFSData.iterrows():
         # store PDB where this fragment came from
         fragment.structure = get_file_name(entry)
 
+        # discard large fragments
+        if fragment.mol.GetNumHeavyAtoms() > 29 or fragment in fragments_to_remove:
+            discardedFragments.append(fragment)
+            continue
+
         # fragment properties
         # this sets the PDB code as 'name' of the fragment at the top of the SD file entry
         fragment.mol.SetProp('_Name', fragment.structure)
@@ -350,12 +377,8 @@ for index, entry in KLIFSData.iterrows():
         Chem.CreateAtomStringPropertyList(fragment.mol, 'subpocket')
         Chem.CreateAtomStringPropertyList(fragment.mol, 'environment')
 
-        # discard large fragments
-        if fragment.mol.GetNumHeavyAtoms() > 29:
-            discardedFragments.append(fragment)
-        else:
-            w = Chem.SDWriter(output_files[fragment.subpocket.name])
-            w.write(fragment.mol)
+        w = Chem.SDWriter(output_files[fragment.subpocket.name])
+        w.write(fragment.mol)
 
     # ================================ DRAW FRAGMENTS ==========================================
 
@@ -363,6 +386,7 @@ for index, entry in KLIFSData.iterrows():
     for fragment in fragments:
         fragment.mol = Chem.RemoveHs(fragment.mol)
         tmp = AllChem.Compute2DCoords(fragment.mol)
+
     img = Draw.MolsToGridImage([fragment.mol for fragment in fragments],
                                legends=[fragment.subpocket.name for fragment in fragments],
                                subImgSize=(400, 400))
