@@ -8,7 +8,7 @@ from pathlib import Path
 import json
 
 from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center, \
-    is_valid_subpocket_connection, find_neighboring_fragments
+    is_valid_subpocket_connection
 from fragmentation import find_brics_fragments, fragment_between_atoms, set_atom_properties
 from classes import Subpocket, Fragment
 from preprocessing import get_folder_name, get_file_name, fix_residue_numbers
@@ -24,9 +24,8 @@ subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # 
               Subpocket('AP', residues=[46, 51, 75, 15], color='0.6, 0.1, 0.6'),  # deep purple
               Subpocket('FP', residues=[72, 51, 10, 81], color='0.2, 0.6, 0.2'),  # forest # 4 -> 10
               Subpocket('GA', residues=[45, 17, 81], color='1.0, 0.5, 0.0'),  # orange  # 80 -> 82 -> 81
-              # Subpocket('BP', residues=[82, 24, 43], color='0.5, 0.0, 1.0')  # purple blue
               Subpocket('B1', residues=[81, 28, 43, 38], color='0.0, 0.5, 1.0'),  # marine
-              Subpocket('B2', residues=[18, 24, 83], color='0.5, 0.0, 1.0')  # purple blue # -70
+              Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0'),  # purple blue # -70
               ]
 se, ap, fp, ga, b1, b2 = subpockets[0], subpockets[1], subpockets[2], subpockets[3], subpockets[4], subpockets[5]
 
@@ -45,7 +44,7 @@ KLIFSData = pd.read_csv(path_to_data / 'filtered_ligands.csv')
 
 # clear output files and create output folders
 output_files = {}
-for subpocket in subpockets:
+for subpocket in subpockets+[Subpocket('X')]:
     folderName = path_to_library / subpocket.name
     if not folderName.exists():
         Path.mkdir(folderName)
@@ -58,6 +57,8 @@ discardedFragments = []
 discardedLigands = []
 
 invalid_subpocket_connections = {}
+distances = {}
+outliers = set()
 
 # iterate over molecules
 for index, entry in KLIFSData.iterrows():
@@ -65,6 +66,8 @@ for index, entry in KLIFSData.iterrows():
     # ================================== READ DATA ============================================
 
     folder = get_folder_name(entry)
+
+    skipStructure = False
 
     # special cases where GA can not be disconnected by BRICS which leads to unreasonable connections
     # (but BRICS fragment not large enough to get discarded automatically by the chosen threshold)
@@ -114,8 +117,6 @@ for index, entry in KLIFSData.iterrows():
 
     # ============================ SUBPOCKET CENTERS =========================================
 
-    skipStructure = False
-
     # calculate subpocket centers
     for subpocket in subpockets:
 
@@ -135,8 +136,6 @@ for index, entry in KLIFSData.iterrows():
 
     # ================================ BRICS FRAGMENTS ==========================================
 
-    skipStructure = False
-
     # find BRICS fragments and bonds (as atom numbers)
     BRICSFragments, BRICSBonds = find_brics_fragments(ligand)
 
@@ -146,8 +145,15 @@ for index, entry in KLIFSData.iterrows():
         center = calc_geo_center(BRICSFragment.mol.GetAtoms(), BRICSFragment.mol.GetConformer())
         BRICSFragment.center = center
 
-        subpocket = get_subpocket_from_pos(center, subpockets)
-        BRICSFragment.subpocket = subpocket
+        subpocket, distance = get_subpocket_from_pos(center, subpockets, distances)
+
+        # check distance to nearest subpocket
+        if distance >= 8:
+            # if distance to nearest subpocket is too large, assign this fragment to X ("bin" pocket)
+            BRICSFragment.subpocket = Subpocket('X-'+subpocket.name)
+        else:
+            # else assign this fragment to its nearest subpocket
+            BRICSFragment.subpocket = subpocket
 
     # discard any ligands where a BRICS fragment is larger than 22 heavy atoms (e.g. staurosporine)
         if BRICSFragment.mol.GetNumHeavyAtoms() > 22:
@@ -158,87 +164,10 @@ for index, entry in KLIFSData.iterrows():
     if skipStructure:
         continue
 
-    # ============================= FIX SUBPOCKET ASSIGNMENTS ====================================
-
     # Adjust subpocket assignments in order to keep small fragments uncleaved
     fix_small_fragments(BRICSFragments, [bond[0] for bond in BRICSBonds])
 
-    # # check validity of subpocket connections
-    # for (beginAtom, endAtom), _ in BRICSBonds:
-    #
-    #     firstFragment = next(fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers)
-    #     secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
-    #
-    #     sp_1 = firstFragment.subpocket
-    #     sp_2 = secondFragment.subpocket
-    #
-    #     if not is_valid_subpocket_connection(sp_1, sp_2) and sp_1 != sp_2:
-    #
-    #         # store invalid subpocket connections
-    #         conn = frozenset((sp_1.name, sp_2.name))
-    #         if conn in invalid_subpocket_connections:
-    #             invalid_subpocket_connections[conn].append(folder)
-    #         else:
-    #             invalid_subpocket_connections[conn] = [folder]
-    #
-    #         # fix invalid subpocket connection
-    #         # fp-b2 # fp-b1 # ap-b1 # ap-b2 # #se-ga # se-b2
-    #         # if {sp_1.name, sp_2.name} == {'FP', 'B2'}:
-    #         #     print(sp_1.name, calc_3d_dist(firstFragment.center, sp_1.center), calc_3d_dist(firstFragment.center, sp_2.center))
-    #         #     print(sp_2.name, calc_3d_dist(secondFragment.center, sp_2.center), calc_3d_dist(secondFragment.center, sp_1.center))
-    #         if {sp_1.name, sp_2.name} == {'FP', 'B2'}:
-    #
-    #             fp_frag = firstFragment if sp_1.name == 'FP' else secondFragment
-    #             b2_frag = firstFragment if sp_1.name == 'B2' else secondFragment
-    #
-    #             # check distance to B2
-    #             if calc_3d_dist(b2_frag.center, b2.center) < 5:
-    #                 print(folder, 'FP-B2 (back pocket)')
-    #
-    #                 # check distance to GA
-    #                 # print(subpockets[3].name, calc_3d_dist(fp_frag.center, subpockets[3].center), calc_3d_dist(b2_frag.center, subpockets[3].center))
-    #                 if calc_3d_dist(fp_frag.center, ga.center) < 7:
-    #                     # fp_frag.subpocket = ga
-    #                     # # print('FP -> GA')
-    #                     # # check size of new GA fragment
-    #                     # if fp_frag.mol.GetNumHeavyAtoms() < 3:
-    #                     #     print(folder, 'fp-b2, ga too small')
-    #                     print(folder, 'FP-GA-B2: FP -> GA')
-    #
-    #                 elif calc_3d_dist(b2_frag.center, ga.center) < 7:
-    #                     # b2_frag.subpocket = ga
-    #                     # # print('B2 -> GA')
-    #                     # if b2_frag.mol.GetNumHeavyAtoms() < 3:
-    #                     #     print(folder, 'fp-b2, ga too small')
-    #                     print(folder, 'FP-GA-B2: B2 -> GA')
-    #
-    #             # if B2 fragment is not close enough to B2, put all in FP
-    #             else:
-    #                 print(folder, 'FP-B2: B2 -> FP')
-    #                 # assign B2 fragments to FP
-    #                 b2_frag.subpocket = fp
-    #                 num_fixed_fragments = 1
-    #                 fixed_frag = b2_frag
-    #                 while num_fixed_fragments > 0:
-    #                     num_fixed_fragments = 0
-    #                     for nf in find_neighboring_fragments(fixed_frag, BRICSFragments, [bond[0] for bond in BRICSBonds]):
-    #                         if nf.subpocket == b2:
-    #                             nf.subpocket = fp
-    #                             num_fixed_fragments += 1
-    #                             fixed_frag = nf
-    #
-    #     # check special cases SE-FP and FP-GA
-    #     elif {sp_1.name, sp_2.name} == {'SE', 'FP'} or {sp_1.name, sp_2.name} == {'FP', 'GA'}:
-    #
-    #         conn = frozenset((sp_1.name, sp_2.name))
-    #         if conn in invalid_subpocket_connections:
-    #             invalid_subpocket_connections[conn].append(folder)
-    #         else:
-    #             invalid_subpocket_connections[conn] = [folder]
-
-    # ================================== FINAL FRAGMENTATION ==========================================
-
-    skipStructure = False
+    # ================================== FRAGMENTATION ==========================================
 
     # list to store the bonds where we will cleave
     atom_tuples = []
@@ -273,8 +202,33 @@ for index, entry in KLIFSData.iterrows():
         # create Fragment object
         fragments.append(Fragment(mol=mol, atomNumbers=atomNumbers, subpocket=subpocket))
 
-    # check validity of subpocket connections
-    fragments_to_remove = []
+    # check for FP-B2 connections
+    for (beginAtom, endAtom) in atom_tuples:
+
+        firstFragment = next(fragment for fragment in fragments if beginAtom in fragment.atomNumbers)
+        secondFragment = next(fragment for fragment in fragments if endAtom in fragment.atomNumbers)
+
+        sp_1 = firstFragment.subpocket
+        sp_2 = secondFragment.subpocket
+
+        # if FP and B2 are connected, check distance to GA and if close enough put FP fragment to GA
+        if {sp_1.name, sp_2.name} == {'FP', 'B2'}:
+
+            fp_frag = firstFragment if sp_1.name == 'FP' else secondFragment
+            b2_frag = firstFragment if sp_1.name == 'B2' else secondFragment
+            fp_frag.center = calc_geo_center(fp_frag.mol.GetAtoms(), fp_frag.mol.GetConformer())
+
+            # if FP fragment is close to GA
+            if calc_3d_dist(fp_frag.center, ga.center) < 5:
+                # assign FP fragment to GA pocket
+                fp_frag.subpocket = ga
+
+            # if FP is not close to GA, there is an actual FP-B2 connection which we do not want to have
+            # hence we assign the B2 fragment to X
+            else:
+                b2_frag.subpocket = Subpocket('X-B2')
+
+    # check subpocket connections again after adaptation
     for (beginAtom, endAtom) in atom_tuples:
 
         firstFragment = next(fragment for fragment in fragments if beginAtom in fragment.atomNumbers)
@@ -285,61 +239,18 @@ for index, entry in KLIFSData.iterrows():
 
         if not is_valid_subpocket_connection(sp_1, sp_2):
 
-            # discard this ligand if SE and GA subpockets are connected
-            if {sp_1.name, sp_2.name} == {'SE', 'GA'}:
+            print(folder+':')
+            print('Invalid subpocket connection:', sp_1.name, '-', sp_2.name, '. Structure is skipped.\n')
 
-                print(folder, ':')
-                print('Invalid connection SE-GA. Structure is skipped.\n')
+            # store invalid subpocket connections
+            conn = frozenset((sp_1.name, sp_2.name))
+            if conn in invalid_subpocket_connections:
+                invalid_subpocket_connections[conn].append(folder)
+            else:
+                invalid_subpocket_connections[conn] = [folder]
 
-                skipStructure = True
-                break
-
-            # if FP or B2 are connected, check distance to GA and if close enough put FP fragment to GA
-            if {sp_1.name, sp_2.name} == {'FP', 'B2'}:
-
-                fp_frag = firstFragment if sp_1.name == 'FP' else secondFragment
-                b2_frag = firstFragment if sp_1.name == 'B2' else secondFragment
-                fp_frag.center = calc_geo_center(fp_frag.mol.GetAtoms(), fp_frag.mol.GetConformer())
-
-                # if FP fragment is close to GA
-                if calc_3d_dist(fp_frag.center, ga.center) < 5:
-                    # assign FP fragment to GA pocket
-                    fp_frag.subpocket = ga
-                    print(folder, 'FP -> GA\n')
-
-                # if FP is not close to GA, there is an actual FP-B2 connection which we do not want to have
-                # hence we delete the B2 fragment and close FP
-                else:
-                    fragments_to_remove.append(b2_frag)
-                    print(folder, 'FP-B2 -> B2 removed')
-                    # TODO: delete dummy atom to B2 of FP fragment (close FP)
-                    # get atom next to dummy atom
-                    for atom, atomNumber in zip(fp_frag.mol.GetAtoms(), fp_frag.atomNumbers):
-                        if atomNumber == beginAtom or atomNumber == endAtom:
-                            bondAtom = atom
-                            break
-                    # remove dummy atom and replace with hydrogen
-                    # bondAtom could have several dummy atoms ...
-                    # dummy = next(atom.GetIdx() for atom in bondAtom.GetNeighbors() if atom.GetSymbol() == '*')
-                    # ed_frag = Chem.EditableMol(fp_frag.mol)
-                    # ed_frag.RemoveAtom(dummy)
-                    # fp_frag.mol = ed_frag.GetMol()
-                    # fp_frag.mol = Chem.AddHs(ed_frag.GetMol())
-
-            # check subpocket connections again after adaptation
-            sp_1 = firstFragment.subpocket
-            sp_2 = secondFragment.subpocket
-
-            if not is_valid_subpocket_connection(sp_1, sp_2):
-
-                print(folder, 'Invalid subpocket connection:', sp_1.name, '-', sp_2.name, '\n')
-
-                # store invalid subpocket connections
-                conn = frozenset((sp_1.name, sp_2.name))
-                if conn in invalid_subpocket_connections:
-                    invalid_subpocket_connections[conn].append(folder)
-                else:
-                    invalid_subpocket_connections[conn] = [folder]
+            skipStructure = True
+            break
 
     if skipStructure:
         continue
@@ -357,7 +268,7 @@ for index, entry in KLIFSData.iterrows():
         fragment.structure = get_file_name(entry)
 
         # discard large fragments
-        if fragment.mol.GetNumHeavyAtoms() > 29 or fragment in fragments_to_remove:
+        if fragment.mol.GetNumHeavyAtoms() > 29:
             discardedFragments.append(fragment)
             continue
 
@@ -377,7 +288,11 @@ for index, entry in KLIFSData.iterrows():
         Chem.CreateAtomStringPropertyList(fragment.mol, 'subpocket')
         Chem.CreateAtomStringPropertyList(fragment.mol, 'environment')
 
-        w = Chem.SDWriter(output_files[fragment.subpocket.name])
+        if fragment.subpocket.name.startswith('X'):
+            w = Chem.SDWriter(output_files['X'])
+            outliers.add(folder)
+        else:
+            w = Chem.SDWriter(output_files[fragment.subpocket.name])
         w.write(fragment.mol)
 
     # ================================ DRAW FRAGMENTS ==========================================
@@ -395,7 +310,7 @@ for index, entry in KLIFSData.iterrows():
     count_structures += 1
 
 
-for subpocket in subpockets:
+for subpocket in subpockets+[Subpocket('X')]:
     w = Chem.SDWriter(output_files[subpocket.name])
     output_files[subpocket.name].close()
     w.close()
@@ -434,8 +349,7 @@ for conn in invalid_subpocket_connections:
     for struct in invalid_subpocket_connections[conn]:
         print(struct)
 
-# print('\nSE-FP-GA')
-# for struct in invalid_subpocket_connections[frozenset(('SE', 'FP'))]:
-#     for struct2 in invalid_subpocket_connections[frozenset(('FP', 'GA'))]:
-#         if struct == struct2:
-#             print(struct)
+print(distances)
+print('Outliers:')
+for struct in sorted(list(outliers)):
+    print(struct)

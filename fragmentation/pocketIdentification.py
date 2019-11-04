@@ -1,13 +1,13 @@
 import numpy as np
 import sys
 
-from functions import remove_duplicates, calc_3d_dist, get_ca_atom
+from functions import calc_3d_dist, get_ca_atom
 from classes import Subpocket
 
 
 # given a 3D position, get the subpocket of the nearest subpocket center
 # subpockets: AP, FP, SE, GA, B1, B2
-def get_subpocket_from_pos(pos, subpockets):
+def get_subpocket_from_pos(pos, subpockets, distances):
 
     """
     Get the subpocket of the nearest subpocket center to a given 3D position
@@ -21,8 +21,9 @@ def get_subpocket_from_pos(pos, subpockets):
 
     Returns
     -------
-    String
-        Name of the subpocket
+    nearest_subpocket: Subpocket
+    smallest_distance: float
+        distance from pos to nearest_subpocket center
 
     """
 
@@ -34,7 +35,18 @@ def get_subpocket_from_pos(pos, subpockets):
             nearest_subpocket = subpocket
             smallest_distance = distance
 
-    return nearest_subpocket
+    # store all distances
+    if nearest_subpocket.name in distances:
+        distances[nearest_subpocket.name].append(smallest_distance)
+    else:
+        distances[nearest_subpocket.name] = [smallest_distance]
+
+    # Problem: This introduces SE-F2 connections
+    # if distance to FP or B2 is above threshold, put this fragment into F2
+    # if nearest_subpocket.name in ['FP', 'B2'] and smallest_distance >= 10:
+    #     nearest_subpocket = Subpocket('F2')
+
+    return nearest_subpocket, smallest_distance
 
 
 def find_neighboring_fragments(fragment, fragments, bonds):
@@ -257,7 +269,7 @@ def is_valid_subpocket_connection(sp_1, sp_2):
 
     """
 
-    if {sp_1.name, sp_2.name} in valid_subpocket_connections:
+    if {sp_1.name, sp_2.name} in valid_subpocket_connections or 'X' in sp_1.name or 'X' in sp_2.name:
         return True
     else:
         return False
