@@ -72,10 +72,7 @@ for index, entry in KLIFSData.iterrows():
     # special cases where GA can not be disconnected by BRICS which leads to unreasonable connections
     # (but BRICS fragment not large enough to get discarded automatically by the chosen threshold)
     # '3ovv', '3oxt', '3p0m', '3poo': large FP fragment should be in AP (but gets assigned to FP), rest is only in FP-II
-    if entry.pdb in ['5x5o', '4umt', '4umu', '5mai', '4uyn', '4uzd', '4o0y', '5w5q', '2ycq', '3ovv', '3oxt', '3p0m', '3poo',
-                     # these ligands do not lie inside the main pocket
-                     '5ct0', '5ctp', '5cu0', '5cu2', '5cx9', '5mmf', '5mmr', '5mo5', '5mo6', '5mo7', '5osz', '5ot5', '5ot6', '5otd', '5oth',
-                     '5oti', '5otl', '5oto', '5ots', '5oty', '5oue', '5oum', '5oun', '5oyt', '6ehk', '6ehn', '6eii']:
+    if entry.pdb in ['5x5o', '4umt', '4umu', '5mai', '4uyn', '4uzd', '4o0y', '5w5q', '2ycq', '3ovv', '3oxt', '3p0m', '3poo']:
         continue
 
     # load ligand and binding pocket to rdkit molecules
@@ -86,24 +83,21 @@ for index, entry in KLIFSData.iterrows():
     if '.' in Chem.MolToSmiles(ligand):
 
         multi_ligands = Chem.GetMolFrags(ligand, asMols=True)
-        # do not use phosphate containing ligands
-        multi_ligands = [l for l in multi_ligands if not contains_phosphate(l) and not contains_ribose(l)]
-        # choose largest one
-        sizes = [l.GetNumHeavyAtoms() for l in multi_ligands]
-        max_size = max(sizes)
-
-        # if multiple ligands have the same largest size - should not happen if preprocessing was done correctly
-        if sizes.count(max_size) > 1:
+        # do not use structures including substrates
+        phosphate_ligands = [l for l in multi_ligands if contains_phosphate(l) or contains_ribose(l)]
+        if phosphate_ligands:
             print('ERROR in ' + folder + ':')
-            print('Ligand consists of multiple molecules of the same size. \n')
-            sys.exit()
-
-        # if there is a unique largest ligand
+            print('Ligand consists of multiple molecules. Structure is skipped. \n')
+            continue
+        # get only large ligands
+        multi_ligands = [l for l in multi_ligands if l.GetNumHeavyAtoms() > 14]
+        # if there is more than one large ligand, discard this structure
+        if len(multi_ligands) != 1:
+            print('ERROR in ' + folder + ':')
+            print('Ligand consists of multiple molecules. Structure is skipped. \n')
+            continue
         else:
             ligand = multi_ligands[0]
-            for l in multi_ligands:
-                if l.GetNumHeavyAtoms() > ligand.GetNumHeavyAtoms():
-                    ligand = l
 
     lenLigand = ligand.GetNumAtoms()
 
@@ -204,6 +198,10 @@ for index, entry in KLIFSData.iterrows():
         subpocket = next(brics_fragment.subpocket for brics_fragment in BRICSFragments if atomNumbers[0] in brics_fragment.atomNumbers)
         # create Fragment object
         fragments.append(Fragment(mol=mol, atomNumbers=atomNumbers, subpocket=subpocket))
+
+    # skip this structure if it does not contain an AP fragment
+    if ap not in [fragment.subpocket for fragment in fragments]:
+        continue
 
     # check for FP-B2 connections
     for (beginAtom, endAtom) in atom_tuples:
@@ -351,8 +349,3 @@ for conn in invalid_subpocket_connections:
     print([sp for sp in conn], len(invalid_subpocket_connections[conn]), len(invalid_subpocket_connections[conn])/count_structures*100)
     for struct in invalid_subpocket_connections[conn]:
         print(struct)
-
-print(distances)
-print('Outliers:')
-for struct in sorted(list(outliers)):
-    print(struct)
