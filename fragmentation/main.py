@@ -72,7 +72,10 @@ for index, entry in KLIFSData.iterrows():
     # special cases where GA can not be disconnected by BRICS which leads to unreasonable connections
     # (but BRICS fragment not large enough to get discarded automatically by the chosen threshold)
     # '3ovv', '3oxt', '3p0m', '3poo': large FP fragment should be in AP (but gets assigned to FP), rest is only in FP-II
-    if entry.pdb in ['5x5o', '4umt', '4umu', '5mai', '4uyn', '4uzd', '4o0y', '5w5q', '2ycq', '3ovv', '3oxt', '3p0m', '3poo']:
+    if entry.pdb in ['5x5o', '4umt', '4umu', '5mai', '4uyn', '4uzd', '4o0y', '5w5q', '2ycq', '3ovv', '3oxt', '3p0m', '3poo',
+                     # these ligands do not lie inside the main pocket
+                     '5ct0', '5ctp', '5cu0', '5cu2', '5cx9', '5mmf', '5mmr', '5mo5', '5mo6', '5mo7', '5osz', '5ot5', '5ot6', '5otd', '5oth',
+                     '5oti', '5otl', '5oto', '5ots', '5oty', '5oue', '5oum', '5oun', '5oyt', '6ehk', '6ehn', '6eii']:
         continue
 
     # load ligand and binding pocket to rdkit molecules
