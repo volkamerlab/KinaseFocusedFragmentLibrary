@@ -132,7 +132,6 @@ def set_atom_properties(fragments, atom_tuples, brics_fragments):
                 bond_atoms = next(atomTuple for atomTuple in atom_tuples if neighbor_atom in atomTuple)
                 dummy_atom = next(atomNumber for atomNumber in bond_atoms if atomNumber != neighbor_atom)
                 atom.SetIntProp('atomNumber', dummy_atom)
-                # print(dummy_atom, atomNumber)
                 # get and set subpocket of the dummy atom
                 neighboring_subpocket = next(f.subpocket for f in fragments if dummy_atom in f.atomNumbers)
                 atom.SetProp('subpocket', neighboring_subpocket.name)
