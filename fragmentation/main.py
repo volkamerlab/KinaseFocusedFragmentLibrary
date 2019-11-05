@@ -32,6 +32,7 @@ se, ap, fp, ga, b1, b2 = subpockets[0], subpockets[1], subpockets[2], subpockets
 # count discarded structures
 count_missing_res = 0
 count_not_ap = 0
+count_x = 0
 count_structures = 0
 
 path_to_library = Path('../FragmentLibrary')
@@ -205,7 +206,7 @@ for index, entry in KLIFSData.iterrows():
         count_not_ap += 1
         continue
 
-    # check for FP-B2 connections
+    # check for FP-BP connections
     for (beginAtom, endAtom) in atom_tuples:
 
         firstFragment = next(fragment for fragment in fragments if beginAtom in fragment.atomNumbers)
@@ -214,11 +215,11 @@ for index, entry in KLIFSData.iterrows():
         sp_1 = firstFragment.subpocket
         sp_2 = secondFragment.subpocket
 
-        # if FP and B2 are connected, check distance to GA and if close enough put FP fragment to GA
-        if {sp_1.name, sp_2.name} == {'FP', 'B2'}:
+        # if FP and BP are connected, check distance to GA and if close enough put FP fragment to GA
+        if {sp_1.name, sp_2.name} == {'FP', 'B2'} or {sp_1.name, sp_2.name} == {'FP', 'B1'}:
 
             fp_frag = firstFragment if sp_1.name == 'FP' else secondFragment
-            b2_frag = firstFragment if sp_1.name == 'B2' else secondFragment
+            bp_frag = firstFragment if sp_1.name.startswith('B') else secondFragment
             fp_frag.center = calc_geo_center(fp_frag.mol.GetAtoms(), fp_frag.mol.GetConformer())
 
             # if FP fragment is close to GA
@@ -229,7 +230,7 @@ for index, entry in KLIFSData.iterrows():
             # if FP is not close to GA, there is an actual FP-B2 connection which we do not want to have
             # hence we assign the B2 fragment to X
             else:
-                b2_frag.subpocket = Subpocket('X-B2')
+                bp_frag.subpocket = Subpocket('X-'+bp_frag.subpocket.name)
 
     # check subpocket connections again after adaptation
     for (beginAtom, endAtom) in atom_tuples:
@@ -290,6 +291,7 @@ for index, entry in KLIFSData.iterrows():
 
         if fragment.subpocket.name.startswith('X'):
             w = Chem.SDWriter(output_files['X'])
+            count_x += 1
             outliers.add(folder)
         else:
             w = Chem.SDWriter(output_files[fragment.subpocket.name])
@@ -332,6 +334,7 @@ print('\nNumber of discarded structures: ')
 print('Ligands with too large BRICS fragments: ', len(discardedLigands))
 print('Missing residue position could not be inferred: ', count_missing_res)
 print('Ligands not occupying AP:', count_not_ap)
+print('Fragments in X pool:', count_x)
 
 # print invalid subpocket connections
 for conn in invalid_subpocket_connections:

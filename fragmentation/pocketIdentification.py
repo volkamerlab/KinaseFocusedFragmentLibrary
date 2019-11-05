@@ -122,10 +122,9 @@ def fix_small_fragments(fragments, bonds, min_size):
                 if not fragments_in_other_subpocket:
                     continue
 
-                fragment_sizes = [f.mol.GetNumHeavyAtoms() for f in neighboring_fragments]
-
                 # if small fragment is not yet connected to another fragment
-                if not fragments_in_same_subpocket:
+                elif not fragments_in_same_subpocket:
+                    fragment_sizes = [f.mol.GetNumHeavyAtoms() for f in neighboring_fragments]
                     # connect fragment to largest neighboring fragment (this will also fix single terminal fragments)
                     BRICSFragment.subpocket = neighboring_fragments[int(np.argmax(fragment_sizes))].subpocket
                     num_fixed_fragments += 1
@@ -153,11 +152,11 @@ def fix_small_fragments(fragments, bonds, min_size):
                         for fragment in fragments_in_same_subpocket:
                             fragments_in_same_subpocket_2 = [f for f in find_neighboring_fragments(fragment, fragments, bonds)
                                                              if f.subpocket == BRICSFragment.subpocket]
-                            n_subpocket_fragments += (len(fragments_in_same_subpocket_2) - 1)
+                            subpocket_fragments = subpocket_fragments + [f for f in fragments_in_same_subpocket_2
+                                                                         if f.atomNumbers not in [g.atomNumbers for g in subpocket_fragments]]
+                            n_subpocket_fragments = len(subpocket_fragments)
                             # if fragment has neighbors in this subpocket other than BRICSFragment
-                            if len(fragments_in_same_subpocket_2) > 1:
-                                subpocket_size += (sum([f.mol.GetNumHeavyAtoms() for f in fragments_in_same_subpocket_2])
-                                                   - fragment.mol.GetNumHeavyAtoms())
+                            subpocket_size = sum([f.mol.GetNumHeavyAtoms() for f in subpocket_fragments])
                             # go to next fragment if min size is fulfilled
                             if subpocket_size >= min_size:
                                 break
