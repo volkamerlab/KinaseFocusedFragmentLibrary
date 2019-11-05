@@ -81,7 +81,7 @@ def find_neighboring_fragments(fragment, fragments, bonds):
     return neighboring_fragments
 
 
-def fix_small_fragments(fragments, bonds):
+def fix_small_fragments(fragments, bonds, min_size):
 
     """
     Fix subpocket assignment of small BRICS fragments such that the final result does not have single small fragments in one subpocket (in place)
@@ -92,6 +92,8 @@ def fix_small_fragments(fragments, bonds):
         all BRICS fragments of the ligand
     bonds: list(tuple(int))
         list of atom index tuples, where each tuple represents a bond between two atoms in the ligand
+    min_size: int
+        Minimum allowed fragment size
 
     Returns
     -------
@@ -102,16 +104,24 @@ def fix_small_fragments(fragments, bonds):
     # repeat until all small fragments are fixed
     num_fixed_fragments = 1
     while num_fixed_fragments > 0:
+
         num_fixed_fragments = 0
 
         # iterate over BRICS fragments, which now all have a subpocket assigned
         for BRICSFragment in fragments:
 
             # small fragments
-            if BRICSFragment.mol.GetNumHeavyAtoms() < 3:
-                # find neighboring fragments and fragments in same subpocket
+            if BRICSFragment.mol.GetNumHeavyAtoms() < min_size:
+
+                # find neighboring fragments
                 neighboring_fragments = find_neighboring_fragments(BRICSFragment, fragments, bonds)
                 fragments_in_same_subpocket = [f for f in neighboring_fragments if f.subpocket == BRICSFragment.subpocket]
+                fragments_in_other_subpocket = [f for f in neighboring_fragments if f.subpocket != BRICSFragment.subpocket]
+
+                # if this fragment has only neighbors within the same subpocket, it can not be fixed in this iteration
+                if not fragments_in_other_subpocket:
+                    continue
+
                 fragment_sizes = [f.mol.GetNumHeavyAtoms() for f in neighboring_fragments]
 
                 # if small fragment is not yet connected to another fragment
@@ -122,36 +132,44 @@ def fix_small_fragments(fragments, bonds):
 
                 # if small fragment is already connected to other fragments
                 else:
-                    subpocket_size = BRICSFragment.mol.GetNumHeavyAtoms() + sum([f.mol.GetNumHeavyAtoms() for f in fragments_in_same_subpocket])
-                    # if those fragments build up a large enough fragment, do nothing
-                    if subpocket_size >= 3:
+
+                    # if this is a terminal fragment, do nothing
+                    if len(neighboring_fragments) == 1:
                         continue
-                    # else check further neighboring fragments
-                    # (1 round is enough because that would make 3 fragments which should always have a combined size of >= 3)
-                    else:
+
+                    # all fragments in this subpocket
+                    subpocket_fragments = fragments_in_same_subpocket+[BRICSFragment]
+                    n_subpocket_fragments = len(subpocket_fragments)
+
+                    subpocket_size = sum([f.mol.GetNumHeavyAtoms() for f in subpocket_fragments])
+
+                    # look for further neighboring fragments in the same subpocket until min size is reached or all fragments have been found
+                    n_start = 1
+                    while subpocket_size < min_size and n_subpocket_fragments > n_start:
+
+                        n_start = n_subpocket_fragments
+
                         # find more fragments in the same subpocket
-                        for fragment_2 in fragments_in_same_subpocket:
-                            fragments_in_same_subpocket_2 = [f for f in find_neighboring_fragments(fragment_2, fragments, bonds)
+                        for fragment in fragments_in_same_subpocket:
+                            fragments_in_same_subpocket_2 = [f for f in find_neighboring_fragments(fragment, fragments, bonds)
                                                              if f.subpocket == BRICSFragment.subpocket]
+                            n_subpocket_fragments += (len(fragments_in_same_subpocket_2) - 1)
                             # if fragment has neighbors in this subpocket other than BRICSFragment
                             if len(fragments_in_same_subpocket_2) > 1:
                                 subpocket_size += (sum([f.mol.GetNumHeavyAtoms() for f in fragments_in_same_subpocket_2])
-                                                   - fragment_2.mol.GetNumHeavyAtoms())
+                                                   - fragment.mol.GetNumHeavyAtoms())
+                            # go to next fragment if min size is fulfilled
+                            if subpocket_size >= min_size:
+                                break
 
-                        # if combined fragments in this subpocket are large enough, do nothing
-                        if subpocket_size >= 3:
-                            continue
-                        else:
-                            # if this is a terminal fragment, do nothing
-                            if len(neighboring_fragments) == 1:
-                                continue
-                            else:
-                                # else connect fragment to largest neighboring fragment in other pocket
-                                fragments_in_other_subpocket = [f for f in neighboring_fragments if f.subpocket != BRICSFragment.subpocket]
-                                fragment_sizes = [f.mol.GetNumHeavyAtoms() for f in fragments_in_other_subpocket]
-                                BRICSFragment.subpocket = fragments_in_other_subpocket[int(np.argmax(fragment_sizes))].subpocket
-                                num_fixed_fragments += 1
-    return None
+                        fragments_in_same_subpocket = fragments_in_same_subpocket_2
+
+                    # if combined fragments in this subpocket are not large enough
+                    if subpocket_size < min_size:
+                        # else connect fragment to largest neighboring fragment in other pocket
+                        fragment_sizes = [f.mol.GetNumHeavyAtoms() for f in fragments_in_other_subpocket]
+                        BRICSFragment.subpocket = fragments_in_other_subpocket[int(np.argmax(fragment_sizes))].subpocket
+                        num_fixed_fragments += 1
 
 
 def calc_geo_center(atoms, mol_conf):

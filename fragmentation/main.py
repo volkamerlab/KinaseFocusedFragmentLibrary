@@ -31,7 +31,7 @@ se, ap, fp, ga, b1, b2 = subpockets[0], subpockets[1], subpockets[2], subpockets
 
 # count discarded structures
 count_missing_res = 0
-
+count_not_ap = 0
 count_structures = 0
 
 path_to_library = Path('../FragmentLibrary')
@@ -53,12 +53,15 @@ for subpocket in subpockets+[Subpocket('X')]:
         Path.unlink(fileName)
     output_files[subpocket.name] = fileName.open('a')
 
-discardedFragments = []
 discardedLigands = []
 
 invalid_subpocket_connections = {}
 distances = {}
 outliers = set()
+
+fragment_sizes = dict()
+for size in range(1, 40):
+    fragment_sizes[size] = 0
 
 # iterate over molecules
 for index, entry in KLIFSData.iterrows():
@@ -69,11 +72,9 @@ for index, entry in KLIFSData.iterrows():
 
     skipStructure = False
 
-    # special cases where GA can not be disconnected by BRICS which leads to unreasonable connections
-    # (but BRICS fragment not large enough to get discarded automatically by the chosen threshold)
-    # '3ovv', '3oxt', '3p0m', '3poo': large FP fragment should be in AP (but gets assigned to FP), rest is only in FP-II
-    if entry.pdb in ['5x5o', '4umt', '4umu', '5mai', '4uyn', '4uzd', '4o0y', '5w5q', '2ycq', '3ovv', '3oxt', '3p0m', '3poo']:
-        continue
+    # special cases where GA or FP can not be disconnected by BRICS which leads to unreasonable subpocket assignments
+    # if entry.pdb in ['5mai', '4o0y', '5w5q']:
+    #     continue
 
     # load ligand and binding pocket to rdkit molecules
     ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
@@ -162,7 +163,7 @@ for index, entry in KLIFSData.iterrows():
         continue
 
     # Adjust subpocket assignments in order to keep small fragments uncleaved
-    fix_small_fragments(BRICSFragments, [bond[0] for bond in BRICSBonds])
+    fix_small_fragments(BRICSFragments, [bond[0] for bond in BRICSBonds], 4)
 
     # ================================== FRAGMENTATION ==========================================
 
@@ -201,6 +202,7 @@ for index, entry in KLIFSData.iterrows():
 
     # skip this structure if it does not contain an AP fragment
     if ap not in [fragment.subpocket for fragment in fragments]:
+        count_not_ap += 1
         continue
 
     # check for FP-B2 connections
@@ -268,10 +270,7 @@ for index, entry in KLIFSData.iterrows():
         # store PDB where this fragment came from
         fragment.structure = get_file_name(entry)
 
-        # discard large fragments
-        if fragment.mol.GetNumHeavyAtoms() > 29:
-            discardedFragments.append(fragment)
-            continue
+        fragment_sizes[fragment.mol.GetNumHeavyAtoms()] += 1
 
         # fragment properties
         # this sets the PDB code as 'name' of the fragment at the top of the SD file entry
@@ -316,17 +315,6 @@ for subpocket in subpockets+[Subpocket('X')]:
     output_files[subpocket.name].close()
     w.close()
 
-# draw discarded fragments
-if discardedFragments:
-    for fragment in discardedFragments:
-        fragment.mol = Chem.RemoveHs(fragment.mol)
-        tmp = AllChem.Compute2DCoords(fragment.mol)
-    img = Draw.MolsToGridImage([fragment.mol for fragment in discardedFragments],
-                               legends=[fragment.structure+' '+fragment.subpocket.name+' '+str(fragment.mol.GetNumHeavyAtoms())
-                                        for fragment in discardedFragments],
-                               subImgSize=(400, 400), molsPerRow=6)
-    img.save('../output/discarded_fragments.png')
-
 # draw discarded ligands
 if discardedLigands:
     discardedLigands = [(Chem.RemoveHs(ligand), legend) for ligand, legend in discardedLigands]
@@ -343,9 +331,13 @@ print('Number of fragmented structures: ', count_structures)
 print('\nNumber of discarded structures: ')
 print('Ligands with too large BRICS fragments: ', len(discardedLigands))
 print('Missing residue position could not be inferred: ', count_missing_res)
+print('Ligands not occupying AP:', count_not_ap)
 
 # print invalid subpocket connections
 for conn in invalid_subpocket_connections:
     print([sp for sp in conn], len(invalid_subpocket_connections[conn]), len(invalid_subpocket_connections[conn])/count_structures*100)
     for struct in invalid_subpocket_connections[conn]:
         print(struct)
+
+print('Fragment sizes:')
+print(fragment_sizes)
