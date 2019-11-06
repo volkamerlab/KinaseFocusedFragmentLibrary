@@ -3,7 +3,6 @@ from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 from biopandas.mol2 import PandasMol2
 import pandas as pd
-import sys
 from pathlib import Path
 import json
 
@@ -29,12 +28,6 @@ subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # 
               ]
 se, ap, fp, ga, b1, b2 = subpockets[0], subpockets[1], subpockets[2], subpockets[3], subpockets[4], subpockets[5]
 
-# count discarded structures
-count_missing_res = 0
-count_not_ap = 0
-count_x = 0
-count_structures = 0
-
 path_to_library = Path('../FragmentLibrary')
 
 path_to_data = Path('../../data/KLIFS_download')
@@ -54,15 +47,13 @@ for subpocket in subpockets+[Subpocket('X')]:
         Path.unlink(fileName)
     output_files[subpocket.name] = fileName.open('a')
 
+# count discarded structures
+count_missing_res = 0
+count_not_ap = 0
+count_x = 0
+count_structures = 0
 discardedLigands = []
-
 invalid_subpocket_connections = {}
-distances = {}
-outliers = set()
-
-fragment_sizes = dict()
-for size in range(1, 40):
-    fragment_sizes[size] = 0
 
 # iterate over molecules
 for index, entry in KLIFSData.iterrows():
@@ -144,7 +135,7 @@ for index, entry in KLIFSData.iterrows():
         center = calc_geo_center(BRICSFragment.mol.GetAtoms(), BRICSFragment.mol.GetConformer())
         BRICSFragment.center = center
 
-        subpocket, distance = get_subpocket_from_pos(center, subpockets, distances)
+        subpocket, distance = get_subpocket_from_pos(center, subpockets)
 
         # check distance to nearest subpocket
         if distance >= 8:
@@ -164,7 +155,7 @@ for index, entry in KLIFSData.iterrows():
         continue
 
     # Adjust subpocket assignments in order to keep small fragments uncleaved
-    fix_small_fragments(BRICSFragments, [bond[0] for bond in BRICSBonds], 4)
+    fix_small_fragments(BRICSFragments, [bond[0] for bond in BRICSBonds], 3)
 
     # ================================== FRAGMENTATION ==========================================
 
@@ -271,8 +262,6 @@ for index, entry in KLIFSData.iterrows():
         # store PDB where this fragment came from
         fragment.structure = get_file_name(entry)
 
-        fragment_sizes[fragment.mol.GetNumHeavyAtoms()] += 1
-
         # fragment properties
         # this sets the PDB code as 'name' of the fragment at the top of the SD file entry
         fragment.mol.SetProp('_Name', fragment.structure)
@@ -292,7 +281,6 @@ for index, entry in KLIFSData.iterrows():
         if fragment.subpocket.name.startswith('X'):
             w = Chem.SDWriter(output_files['X'])
             count_x += 1
-            outliers.add(folder)
         else:
             w = Chem.SDWriter(output_files[fragment.subpocket.name])
         w.write(fragment.mol)
@@ -341,6 +329,3 @@ for conn in invalid_subpocket_connections:
     print([sp for sp in conn], len(invalid_subpocket_connections[conn]), len(invalid_subpocket_connections[conn])/count_structures*100)
     for struct in invalid_subpocket_connections[conn]:
         print(struct)
-
-print('Fragment sizes:')
-print(fragment_sizes)

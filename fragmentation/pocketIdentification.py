@@ -7,7 +7,7 @@ from classes import Subpocket
 
 # given a 3D position, get the subpocket of the nearest subpocket center
 # subpockets: AP, FP, SE, GA, B1, B2
-def get_subpocket_from_pos(pos, subpockets, distances):
+def get_subpocket_from_pos(pos, subpockets):
 
     """
     Get the subpocket of the nearest subpocket center to a given 3D position
@@ -34,17 +34,6 @@ def get_subpocket_from_pos(pos, subpockets, distances):
         if distance < smallest_distance:
             nearest_subpocket = subpocket
             smallest_distance = distance
-
-    # store all distances
-    if nearest_subpocket.name in distances:
-        distances[nearest_subpocket.name].append(smallest_distance)
-    else:
-        distances[nearest_subpocket.name] = [smallest_distance]
-
-    # Problem: This introduces SE-F2 connections
-    # if distance to FP or B2 is above threshold, put this fragment into F2
-    # if nearest_subpocket.name in ['FP', 'B2'] and smallest_distance >= 10:
-    #     nearest_subpocket = Subpocket('F2')
 
     return nearest_subpocket, smallest_distance
 
