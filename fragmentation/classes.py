@@ -10,23 +10,20 @@ class Fragment:
         RDKit molecule representation of the fragment
     atomNumbers: list(int)
         atom numbers of the fragment atoms within the fragmented molecule
-    subpocket: str
+    subpocket: Subpocket
         Subpocket in which the fragment lies
-    smiles: str
-        SMILES representation of the fragment molecule
     structure: str
         PDB code + alt + chain of corresponding structure
     environment: str
         BRICS environment type of the fragment (based on RDKit definitions)
     """
 
-    def __init__(self, mol=None, atomNumbers=None, subpocket=None, smiles=None, structure=None, center=None, environment=None):
+    def __init__(self, mol=None, atomNumbers=None, subpocket=None, structure=None, center=None, environment=None):
 
         self.mol = mol
         self.atomNumbers = atomNumbers
         self.center = center
         self.subpocket = subpocket
-        self.smiles = smiles
         self.structure = structure
         self.environment = environment
 
@@ -54,3 +51,8 @@ class Subpocket:
         self.center = center
         self.color = color
 
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __ne__(self, other):
+        return self.name != other.name

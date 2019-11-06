@@ -65,26 +65,21 @@ for index, entry in KLIFSData.iterrows():
     if '.' in Chem.MolToSmiles(ligand):
 
         multi_ligands = Chem.GetMolFrags(ligand, asMols=True)
-        # do not use phosphate containing ligands
-        multi_ligands = [l for l in multi_ligands if not contains_phosphate(l) and not contains_ribose(l)]
-        # choose largest one
-        sizes = [l.GetNumHeavyAtoms() for l in multi_ligands]
-        max_size = max(sizes)
-
-        # if multiple ligands have the same largest size, skip this molecule
-        if sizes.count(max_size) > 1:
+        # do not use structures including substrates
+        phosphate_ligands = [l for l in multi_ligands if contains_phosphate(l) or contains_ribose(l)]
+        if phosphate_ligands:
             print('ERROR in ' + folder + ':')
             print('Ligand consists of multiple molecules. Structure is skipped. \n')
-            count_multi_ligands += 1
-            filtered_data = filtered_data.drop(index)
             continue
-
-        # if there is a unique largest ligand
+        # get only large ligands
+        multi_ligands = [l for l in multi_ligands if l.GetNumHeavyAtoms() > 14]
+        # if there is more than one large ligand, discard this structure
+        if len(multi_ligands) != 1:
+            print('ERROR in ' + folder + ':')
+            print('Ligand consists of multiple molecules. Structure is skipped. \n')
+            continue
         else:
             ligand = multi_ligands[0]
-            for l in multi_ligands:
-                if l.GetNumHeavyAtoms() > ligand.GetNumHeavyAtoms():
-                    ligand = l
 
     # discard ligands containing phosphates
     if contains_phosphate(ligand):
