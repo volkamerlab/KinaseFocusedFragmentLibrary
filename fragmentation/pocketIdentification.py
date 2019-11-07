@@ -5,8 +5,6 @@ from functions import calc_3d_dist, get_ca_atom
 from classes import Subpocket
 
 
-# given a 3D position, get the subpocket of the nearest subpocket center
-# subpockets: AP, FP, SE, GA, B1, B2
 def get_subpocket_from_pos(pos, subpockets):
 
     """
@@ -118,12 +116,8 @@ def fix_small_fragments(fragments, bonds, min_size):
                     BRICSFragment.subpocket = neighboring_fragments[int(np.argmax(fragment_sizes))].subpocket
                     num_fixed_fragments += 1
 
-                # if small fragment is already connected to other fragments
+                # if small fragment is already connected to other fragments and has more than one neighbor
                 else:
-
-                    # if this is a terminal fragment, do nothing
-                    if len(neighboring_fragments) == 1:
-                        continue
 
                     # all fragments in this subpocket
                     subpocket_fragments = fragments_in_same_subpocket+[BRICSFragment]
@@ -133,6 +127,7 @@ def fix_small_fragments(fragments, bonds, min_size):
 
                     # look for further neighboring fragments in the same subpocket until min size is reached or all fragments have been found
                     n_start = 1
+                    # n_subpocket_fragments should be >= 2 now
                     while subpocket_size < min_size and n_subpocket_fragments > n_start:
 
                         n_start = n_subpocket_fragments
@@ -247,7 +242,6 @@ def calc_subpocket_center(subpocket, pocket, pocket_mol2, folder):
     return center / len(ca_atoms)
 
 
-# check validity of neighboring fragments
 valid_subpocket_connections = [{'SE', 'AP'},
                                {'SE', 'FP'},
                                {'AP', 'FP'},
@@ -281,8 +275,6 @@ def is_valid_subpocket_connection(sp_1, sp_2):
         return False
 
 
-# given a residue number within the binding pocket (KLIFS numbering):
-# returns the corresponding region of the binding pocket (KLIFS definition) as a string
 # used only in pymol script
 def get_region(res):
 
