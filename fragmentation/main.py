@@ -64,8 +64,10 @@ for subpocket in subpockets+[Subpocket('X')]:
         Path.unlink(fileName)
     output_files[subpocket.name] = fileName.open('a')
 # path to output pictures of fragmented molecules
-# TODO: delete files in this folder
-Path.mkdir(path_to_library / 'fragmented_molecules')
+# TODO:
+# if (path_to_library / 'fragmented_molecules').exists():
+#     Path.unlink(path_to_library / 'fragmented_molecules')
+# Path.mkdir(path_to_library / 'fragmented_molecules')
 
 # iterate over molecules
 for index, entry in KLIFSData.iterrows():
@@ -297,7 +299,7 @@ for index, entry in KLIFSData.iterrows():
     img = Draw.MolsToGridImage([fragment.mol for fragment in fragments],
                                legends=[fragment.subpocket.name for fragment in fragments],
                                subImgSize=(400, 400))
-    img.save(path_to_library / 'fragmented_molecules/' + get_file_name(entry) + '.png')
+    img.save(path_to_library / ('fragmented_molecules/' + get_file_name(entry) + '.png'))
 
     count_structures += 1
 
