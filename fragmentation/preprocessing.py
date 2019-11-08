@@ -6,6 +6,28 @@ import pandas as pd
 
 def preprocess_klifs_data(path_to_klifs_download, path_to_klifs_export):
 
+    """
+    Given the two CSV files downloaded from KLIFS:
+    - merges the two dataframes
+    - adds a column listing the missing residue numbers
+    - for each PDB code, selects the structure with the best quality score
+    - selects relevant columns
+    - returns the filtered dataframe
+
+    Parameters
+    ----------
+    path_to_klifs_download: Path or Str
+        path to overview.csv file given by KLIFS (including the file name)
+    path_to_klifs_export: Path or Str
+        path KLIFS_export.csv file (including the file name)
+
+    Returns
+    -------
+    df_screened: Pandas DataFrame
+        Filtered dataframe including best quality structure for each PDB
+
+    """
+
     # read overview file
     df = pd.read_csv(path_to_klifs_download)
     # read export file
@@ -74,8 +96,25 @@ def preprocess_klifs_data(path_to_klifs_download, path_to_klifs_export):
     return df_screened
 
 
-# replace number of missing residues with list of missing residues
 def add_missing_residues(df):
+
+    """
+
+    Given a dataframe with a 'pocket' column listing the 85 residues of a kinase binding pocket,
+    create a list of missing residues and add/replace the 'missing_residue' column
+
+    Parameters
+    ----------
+    df: Pandas DataFrame
+        input dataframe including a 'pocket' column
+
+    Returns
+    -------
+    df: Pandas Dataframe
+        output dataframe with added 'missing_residue' column
+
+    """
+
     missing_residues = []
     for ix, row in df.iterrows():
         missing_residues.append(find_missing_residues(row.pocket))
@@ -83,9 +122,25 @@ def add_missing_residues(df):
     return df
 
 
-# find positions of missing residues
-# numMissing was used to save time, but this value is not always correct. :(
 def find_missing_residues(sequence):  # , numMissing):
+
+    """
+
+    Given a sequence of binding pocket residues, find positions of missing residues ('_')
+    (numMissing was used to save time, but this value is not always correct.)
+
+    Parameters
+    ----------
+    sequence: Str
+        85 binding pocket residues
+
+    Returns
+    -------
+    missing_residues: list(int)
+        list of missing residue indices
+
+    """
+
     # iterate over sequence string
     missing_residues = []
     for i, aa in enumerate(sequence):
@@ -99,17 +154,49 @@ def find_missing_residues(sequence):  # , numMissing):
     return missing_residues
 
 
-# fix residue IDs according to KLIFS in mol2 instance of binding pocket
-# missing_residues: positions (KLIFS numbering) of missing residues
 def fix_residue_numbers(pocket_mol2, missing_residues):
+
+    """
+
+    Fix residue IDs according to KLIFS in Mol2 instance of binding pocket
+    (In the Mol2 file, the numbering was consecutive w/o considering missing residues)
+
+    Parameters
+    ----------
+    pocket_mol2: Pandas DataFrame
+        atom block from mol2 file representing the pocket (read using PandasMol2().read_mol2())
+    missing_residues: list(int)
+        positions (KLIFS numbering) of missing residues
+
+    Returns
+    -------
+    pocket_mol2: Pandas DataFrame
+        updated mol2 block
+
+    """
+
     for res in missing_residues:
         pocket_mol2['res_id'].mask(pocket_mol2['res_id'] >= res, pocket_mol2['res_id'] + 1, inplace=True)
     return pocket_mol2
 
 
-# input: 1D data frame with species, kinase, pdb, alt, and chain
-# output: path from KLIFS download to respective files
 def get_folder_name(df):
+
+    """
+
+    Given information on a specific KLIFS structure, get relative path from KLIFS_download/ to corresponding files
+
+    Parameters
+    ----------
+    df: Pandas Series
+        dataframe with species, kinase, pdb, alt, and chain
+
+    Returns
+    -------
+    folder: Str
+        path from KLIFS_download/ to respective files
+
+    """
 
     if df.alt == ' ':
         folder = df.species.upper()+'/'+df.kinase+'/'+df.pdb+'_chain'+df.chain
@@ -120,6 +207,22 @@ def get_folder_name(df):
 
 
 def get_file_name(df):
+
+    """
+
+    Given information on a specific KLIFS structure, get output file name (for drawings)
+
+    Parameters
+    ----------
+    df: Pandas Series
+        dataframe with pdb, alt, and chain
+
+    Returns
+    -------
+    file: Str
+        output file name for this structure
+
+    """
 
     if df.alt == ' ':
         file = df.pdb+'_chain'+df.chain
