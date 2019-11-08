@@ -1,27 +1,40 @@
 from pathlib import Path
 from rdkit import Chem
+import argparse
 
 from preprocessing import preprocess_klifs_data, get_folder_name
-from discard import is_covalent, contains_phosphate, contains_ribose
+from discard import is_covalent, contains_phosphate, contains_ribose, get_ligand_from_multi_ligands
 
+# ============================= INPUT ===============================================
 
-path_to_data = Path('../../data/KLIFS_download')
+parser = argparse.ArgumentParser()
+
+parser.add_argument('-f', '--klifsdata', type=str, help='path to KLIFS_download folder', required=True)
+args = parser.parse_args()
+
+path_to_data = Path(args.klifsdata) / 'KLIFS_download'
 path_to_KLIFS_download = path_to_data / 'overview.csv'
 path_to_KLIFS_export = path_to_data / 'KLIFS_export.csv'
 
+# ============================= PREPROCESSING ===============================================
+
+# select one structure per PDB
 KLIFSData = preprocess_klifs_data(path_to_KLIFS_download, path_to_KLIFS_export)
 count_structures = len(KLIFSData)
+# select only human kinases
 KLIFSData = KLIFSData[KLIFSData.species == 'Human']
 before = len(KLIFSData)
+# select only DFG-in conformations
 KLIFSData = KLIFSData[KLIFSData.dfg == 'in']
 after_dfg = len(KLIFSData)
-
 # We are not interested in Atypical kinases
 KLIFSData = KLIFSData[KLIFSData.group != 'Atypical']
 count_atypical = after_dfg - len(KLIFSData)
 # We are not interested in substrates
 KLIFSData = KLIFSData[~KLIFSData.pdb_id.isin(['AMP', 'ADP', 'ATP', 'ACP', 'ANP', 'ADN', 'ADE', 'AGS', 'AN2', 'ANK'])]
 count_substrates = after_dfg - count_atypical - len(KLIFSData)
+
+# ============================= INITIALIZATIONS ===============================================
 
 # count discarded structures
 count_ligand_errors = 0
@@ -64,22 +77,13 @@ for index, entry in KLIFSData.iterrows():
     # multiple ligands in one structure
     if '.' in Chem.MolToSmiles(ligand):
 
-        multi_ligands = Chem.GetMolFrags(ligand, asMols=True)
-        # do not use structures including substrates
-        phosphate_ligands = [l for l in multi_ligands if contains_phosphate(l) or contains_ribose(l)]
-        if phosphate_ligands:
+        ligand = get_ligand_from_multi_ligands(ligand)
+
+        if not ligand:
             print('ERROR in ' + folder + ':')
             print('Ligand consists of multiple molecules. Structure is skipped. \n')
+            count_multi_ligands += 1
             continue
-        # get only large ligands
-        multi_ligands = [l for l in multi_ligands if l.GetNumHeavyAtoms() > 14]
-        # if there is more than one large ligand, discard this structure
-        if len(multi_ligands) != 1:
-            print('ERROR in ' + folder + ':')
-            print('Ligand consists of multiple molecules. Structure is skipped. \n')
-            continue
-        else:
-            ligand = multi_ligands[0]
 
     # discard ligands containing phosphates
     if contains_phosphate(ligand):

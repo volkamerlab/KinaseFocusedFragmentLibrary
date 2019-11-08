@@ -5,13 +5,14 @@ from biopandas.mol2 import PandasMol2
 import pandas as pd
 from pathlib import Path
 import json
+import argparse
 
 from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center, \
     is_valid_subpocket_connection
 from fragmentation import find_brics_fragments, fragment_between_atoms, set_atom_properties
 from classes import Subpocket, Fragment
 from preprocessing import get_folder_name, get_file_name, fix_residue_numbers
-from discard import contains_ribose, contains_phosphate
+from discard import contains_ribose, contains_phosphate, get_ligand_from_multi_ligands
 from visualization import visual_subpockets
 from functions import calc_3d_dist
 
@@ -24,13 +25,29 @@ subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # 
               Subpocket('FP', residues=[72, 51, 10, 81], color='0.2, 0.6, 0.2'),  # forest # 4 -> 10
               Subpocket('GA', residues=[45, 17, 81], color='1.0, 0.5, 0.0'),  # orange  # 80 -> 82 -> 81
               Subpocket('B1', residues=[81, 28, 43, 38], color='0.0, 0.5, 1.0'),  # marine
-              Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0'),  # purple blue # -70
+              Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0')  # purple blue # -70
               ]
 se, ap, fp, ga, b1, b2 = subpockets[0], subpockets[1], subpockets[2], subpockets[3], subpockets[4], subpockets[5]
 
-path_to_library = Path('../FragmentLibrary')
+# count discarded structures
+count_missing_res = 0
+count_not_ap = 0
+count_x = 0
+count_structures = 0
+discardedLigands = []
+invalid_subpocket_connections = {}
 
-path_to_data = Path('../../data/KLIFS_download')
+# ============================= INPUT AND OUTPUT ===============================================
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('-f', '--klifsdata', type=str, help='path to KLIFS_download folder', required=True)
+parser.add_argument('-o', '--fragmentlibrary', type=str, help='output path to fragment library', required=True)
+args = parser.parse_args()
+
+path_to_library = Path(args.fragmentlibrary)
+
+path_to_data = Path(args.klifsdata) / 'KLIFS_download'
 
 KLIFSData = pd.read_csv(path_to_data / 'filtered_ligands.csv')
 
@@ -46,14 +63,9 @@ for subpocket in subpockets+[Subpocket('X')]:
     if fileName.exists():
         Path.unlink(fileName)
     output_files[subpocket.name] = fileName.open('a')
-
-# count discarded structures
-count_missing_res = 0
-count_not_ap = 0
-count_x = 0
-count_structures = 0
-discardedLigands = []
-invalid_subpocket_connections = {}
+# path to output pictures of fragmented molecules
+# TODO: delete files in this folder
+Path.mkdir(path_to_library / 'fragmented_molecules')
 
 # iterate over molecules
 for index, entry in KLIFSData.iterrows():
@@ -75,22 +87,12 @@ for index, entry in KLIFSData.iterrows():
     # multiple ligands in one structure
     if '.' in Chem.MolToSmiles(ligand):
 
-        multi_ligands = Chem.GetMolFrags(ligand, asMols=True)
-        # do not use structures including substrates
-        phosphate_ligands = [l for l in multi_ligands if contains_phosphate(l) or contains_ribose(l)]
-        if phosphate_ligands:
+        ligand = get_ligand_from_multi_ligands(ligand)
+
+        if not ligand:
             print('ERROR in ' + folder + ':')
             print('Ligand consists of multiple molecules. Structure is skipped. \n')
             continue
-        # get only large ligands
-        multi_ligands = [l for l in multi_ligands if l.GetNumHeavyAtoms() > 14]
-        # if there is more than one large ligand, discard this structure
-        if len(multi_ligands) != 1:
-            print('ERROR in ' + folder + ':')
-            print('Ligand consists of multiple molecules. Structure is skipped. \n')
-            continue
-        else:
-            ligand = multi_ligands[0]
 
     lenLigand = ligand.GetNumAtoms()
 
@@ -295,7 +297,7 @@ for index, entry in KLIFSData.iterrows():
     img = Draw.MolsToGridImage([fragment.mol for fragment in fragments],
                                legends=[fragment.subpocket.name for fragment in fragments],
                                subImgSize=(400, 400))
-    img.save('../output/fragmented_molecules/' + get_file_name(entry) + '.png')
+    img.save(path_to_library / 'fragmented_molecules/' + get_file_name(entry) + '.png')
 
     count_structures += 1
 
@@ -313,7 +315,7 @@ if discardedLigands:
     img = Draw.MolsToGridImage([ligand for ligand, legend in discardedLigands],
                                legends=[legend for ligand, legend in discardedLigands],
                                subImgSize=(400, 400), molsPerRow=6)
-    img.save('../output/discarded_ligands.png')
+    img.save(path_to_library / 'discarded_ligands.png')
 
 
 # output statistics

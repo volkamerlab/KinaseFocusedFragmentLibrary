@@ -8,6 +8,39 @@ phosphatep = Chem.MolFromSmiles('O[P+](O)(O)O')
 ribose = Chem.MolFromSmiles('OC1COCC1O')
 
 
+def get_ligand_from_multi_ligands(ligand):
+
+    """
+    Given a molecule object including multiple molecules:
+     - return None if one of the molecules includes a phosphate or ribose (substrate)
+     - else remove the molecules that consist of <= 14 heavy atoms
+     - if more than one molecule is left, return None, else return the remaining molecule
+
+    Parameters
+    ----------
+    ligand: Mol
+        RDKit molecule object which should include multiple molecules
+
+    Returns
+    -------
+    Mol if a single molecule was extracted, None otherwise
+
+    """
+
+    multi_ligands = Chem.GetMolFrags(ligand, asMols=True)
+    # do not use structures including substrates
+    phosphate_ligands = [l for l in multi_ligands if contains_phosphate(l) or contains_ribose(l)]
+    if phosphate_ligands:
+        return
+    # get only large ligands
+    multi_ligands = [l for l in multi_ligands if l.GetNumHeavyAtoms() > 14]
+    # if there is more than one large ligand, discard this structure
+    if len(multi_ligands) != 1:
+        return
+    else:
+        return multi_ligands[0]
+
+
 def contains_phosphate(mol):
     return mol.HasSubstructMatch(phosphate) \
     or mol.HasSubstructMatch(phosphate2) \
