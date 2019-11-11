@@ -9,13 +9,14 @@ import pickle
 import multiprocessing as mp
 
 sys.path.append('../recombination')
-sys.path.append('../recombination/construct_ligands')
 from construct_ligand import read_fragment_library
 from pickle_loader import pickle_loader
 from analyze_results import analyze_result
 from novelty import read_inchis, read_scaffolds, read_original_ligands
 
-data = read_fragment_library(Path('../FragmentLibrary'))
+subpockets = ['AP', 'FP', 'SE', 'GA', 'B1', 'B2']
+
+data = read_fragment_library(Path('../FragmentLibrary'), subpockets)
 
 original_ligands = read_original_ligands(data)
 
@@ -49,8 +50,6 @@ novel = 0
 # with open(out_path, 'wb') as out_file:
 # ligand_smiles = set()
 
-subpockets = ['AP', 'FP', 'SE', 'GA', 'B1', 'B2']
-
 n_per_sp, n_filtered_per_sp = {}, {}
 for subpocket in subpockets:
     n_per_sp[subpocket] = 0
@@ -69,7 +68,7 @@ start = time.time()
 metas = []
 results = []
 
-n_processes = 8  # mp.cpu_count()
+n_processes = 2  # mp.cpu_count()
 print("Number of processors: ", n_processes)
 pool = mp.Pool(n_processes)
 
@@ -79,7 +78,7 @@ pool = mp.Pool(n_processes)
 for in_path in in_paths:
 
     print(str(in_path))
-    with open(in_path, 'rb') as pickle_in:
+    with open(str(in_path), 'rb') as pickle_in:
 
         results.extend(pool.starmap(analyze_result, [(meta, data, original_ligands, chembl, scaffolds) for meta in pickle_loader(pickle_in)]))
 
