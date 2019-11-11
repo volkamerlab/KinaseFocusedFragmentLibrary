@@ -4,22 +4,11 @@ __pycache__/
 *$py.class
 
 # folders
-test/
-output/
-fragmentation/*cif
-fragmentation/*png
-fragmentation/obsolete*
-fragmentation/special_cases*
-recombination/results*
-recombination/obsolete*
-recombination/statistics*
-recombination/test*
-recombination/tmp*
-FragmentLibrary*
-CombinatorialLibrary*
+kinase_focused_fragment_library/fragmentation/*cif
+kinase_focused_fragment_library/fragmentation/*png
+kinase_focused_fragment_library/fragmentation/obsolete*
+kinase_focused_fragment_library/recombination/obsolete*
 pymol/*.png
-ATP_analogues.txt
-riboses.txt
 
 # C extensions
 *.so
