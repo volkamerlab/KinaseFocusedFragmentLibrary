@@ -3,6 +3,7 @@ import pandas as pd
 import pymol
 # from pymol.cgo import *
 from pymol import cmd
+from pathlib import Path
 
 import sys
 sys.path.append("../fragmentation")
@@ -31,16 +32,41 @@ def get_res_dict(pmol):
     return dict(zip(klifsIDs, resIDs))
 
 
+def get_info_from_folder(folder):
+
+    folders = folder.split('/')
+
+    species = folders[0].title()
+    kinase = folders[1]
+    struct = folders[2]
+
+    if 'alt' in folders[2]:
+        struct = struct.split('_')
+        pdb = struct[0]
+        alt = struct[1][-1]
+        chain = struct[2][-1]
+    else:
+        struct = struct.split('_')
+        pdb = struct[0]
+        alt = ' '
+        chain = struct[1][-1]
+
+    return species, kinase, pdb, alt, chain
+
+
 # color binding pocket using PyMOL
-def subpocket_arrangements(species, kinase, pdb, alt, chain):
+def subpocket_arrangements(folder):  # (species, kinase, pdb, alt, chain):
 
     cmd.reinitialize()
+
+    species, kinase, pdb, alt, chain = get_info_from_folder(folder)
+    # print(species, kinase, pdb, alt, chain)
 
     # overview table for this structure
     global info
     info = info[(info.species == species) & (info.kinase == kinase) & (info.pdb == pdb) & (info.alt == alt) & (info.chain == chain)].iloc[0]
     
-    folder = get_folder_name(info)
+    # folder = get_folder_name(info)
 
     # mol2 file of this pocket structure
     pocketMol2 = PandasMol2().read_mol2(path+folder+'/pocket.mol2',
