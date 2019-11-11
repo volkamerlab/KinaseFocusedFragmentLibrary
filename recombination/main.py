@@ -19,7 +19,8 @@ start = time.time()
 # ============================= COMMAND LINE ARGUMENTS ===================================
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-n', '--n_frags', type=int, help='Number of input fragments per subpocket', default=None)
+parser.add_argument('-f', '--fragmentlibrary', type=str, help='path to fragment library', required=True)
+parser.add_argument('-n', '--n_frags', type=int, help='Number of input fragments per subpocket', required=False)
 parser.add_argument('-s', '--subpockets', type=str, help='Start from these subpockets only.', required=False, nargs='+')
 parser.add_argument('-d', '--depth', type=int, help='Maximum number of fragments per ligand', default=6)
 args = parser.parse_args()
@@ -37,11 +38,13 @@ for out_file in out_files:
 
 # ============================= READ DATA ===============================================
 
-path_to_library = Path('../FragmentLibrary')
+path_to_library = Path(args.fragmentlibrary)
 
 # list of folders for each subpocket
-folders = list(path_to_library.glob('*'))
-subpockets = [folder.name for folder in folders]
+# folders = list(path_to_library.glob('*'))
+# subpockets = [folder.name for folder in folders]
+subpockets = ['AP', 'FP', 'SE', 'GA', 'B1', 'B2']
+folders = [path_to_library / subpocket for subpocket in subpockets]
 
 if args.subpockets:
     start_subpockets = args.subpockets
@@ -82,19 +85,24 @@ for folder, subpocket in zip(folders, subpockets):
             atom.SetProp('frag_atom_id', frag_atom_id)
 
         # add all dummy atoms of this fragment to the queue if it has not been in there yet
-        dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*']
+        # get all dummy atoms of this fragment except the ones corresponding to the X pool
+        dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*' and not a.GetProp('subpocket').startswith('X')]
         if not dummy_atoms:
             continue
         frag_smiles, dummy_set = get_tuple(fragment, dummy_atoms)
+        # check if this exact fragment has already been found
         if (frag_smiles, dummy_set) in frag_set:
             continue
+        # if not, add this fragment to set of fragments
         frag_set.add((frag_smiles, dummy_set))
 
+        # create dummy atom objects
         ports = [Port(atom_id=dummy.GetProp('frag_atom_id'), subpocket=subpocket, neighboring_subpocket=dummy.GetProp('subpocket'),
                       bond_type=fragment.GetBondBetweenAtoms(dummy.GetIdx(), dummy.GetNeighbors()[0].GetIdx()).GetBondType(),
                       environment=dummy.GetNeighbors()[0].GetProp('environment'))
                  for dummy in dummy_atoms]
 
+        # add all dummy atoms of this fragment to the queue if the fragment lies in a starting pocket
         if subpocket in start_subpockets:
 
             compound = Compound(frag_ids=[frag_id], subpockets=[subpocket], ports=ports, bonds=[])
