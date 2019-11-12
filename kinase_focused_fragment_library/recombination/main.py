@@ -1,6 +1,3 @@
-from rdkit import Chem
-Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AllProps)
-
 from collections import deque  # queue
 import time
 import argparse
@@ -14,24 +11,43 @@ from process_results import results_to_file, add_to_results, process_result
 from process_queue import add_to_queue
 from brics_rules import is_brics_bond
 
+from rdkit import Chem
+Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AllProps)
+
 start = time.time()
 
 # ============================= COMMAND LINE ARGUMENTS ===================================
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--fragmentlibrary', type=str, help='path to fragment library', required=True)
+parser.add_argument('-o', '--combinatoriallibrary', type=str, help='output path', required=True)
 parser.add_argument('-n', '--n_frags', type=int, help='Number of input fragments per subpocket', required=False)
 parser.add_argument('-s', '--subpockets', type=str, help='Start from these subpockets only.', required=False, nargs='+')
 parser.add_argument('-d', '--depth', type=int, help='Maximum number of fragments per ligand', default=6)
 args = parser.parse_args()
 max_depth = args.depth
 
-path = Path('./tmp')
+output_path = Path(args.combinatoriallibrary)
+
+# create tmp path
+path = output_path / 'tmp'
+if not path.exists():
+    Path.mkdir(path)
+# delete tmp files if present
 tmp_files = path.glob('tmp_queue*')
 for tmp_file in tmp_files:
     Path.unlink(tmp_file)
 
-path = Path('./results')
+# create stat output path
+path = output_path / 'statistics'
+if not path.exists():
+    Path.mkdir(path)
+
+# create output path
+path = output_path / 'results'
+if not path.exists():
+    Path.mkdir(path)
+# delete output files if present
 out_files = path.glob('results*')
 for out_file in out_files:
     Path.unlink(out_file)
@@ -41,8 +57,6 @@ for out_file in out_files:
 path_to_library = Path(args.fragmentlibrary)
 
 # list of folders for each subpocket
-# folders = list(path_to_library.glob('*'))
-# subpockets = [folder.name for folder in folders]
 subpockets = ['AP', 'FP', 'SE', 'GA', 'B1', 'B2']
 folders = [path_to_library / subpocket for subpocket in subpockets]
 
@@ -66,8 +80,7 @@ for folder, subpocket in zip(folders, subpockets):
 
     file = folder / (subpocket + '.sdf')
 
-    # read molecules
-    # keep hydrogen atoms
+    # read molecules, keep hydrogen atoms
     suppl = Chem.SDMolSupplier(str(file), removeHs=False)
     mols = [f for f in suppl][:args.n_frags]
 
@@ -84,7 +97,6 @@ for folder, subpocket in zip(folders, subpockets):
             frag_atom_id = f'{subpocket}_{a}'
             atom.SetProp('frag_atom_id', frag_atom_id)
 
-        # add all dummy atoms of this fragment to the queue if it has not been in there yet
         # get all dummy atoms of this fragment except the ones corresponding to the X pool
         dummy_atoms = [a for a in fragment.GetAtoms() if a.GetSymbol() == '*' and not a.GetProp('subpocket').startswith('X')]
         if not dummy_atoms:
@@ -147,13 +159,12 @@ results_temp = set()
 while queue:
 
     # first element in queue of fragmentation sites to be processed
-    # print(len(queue))
     ps = queue.popleft()
 
     # ========================== TEMP INPUT ================================
 
     # read back from tmp queue output file if queue is empty
-    tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_in)+'.pickle')
+    tmp_q_path = output_path / ('tmp/tmp_queue'+str(n_tmp_file_in)+'.pickle')
     if len(queue) == 0 and tmp_q_path.exists():
         with open(tmp_q_path, 'rb') as pickle_in:
             for q_object in pickle_loader(pickle_in):
@@ -168,7 +179,7 @@ while queue:
 
     # if queue has reached limit length write part of it to temp output file:
     elif len(queue) >= limit_q:
-        tmp_q_path = Path('tmp/tmp_queue'+str(n_tmp_file_out)+'.pickle')
+        tmp_q_path = output_path / ('tmp/tmp_queue'+str(n_tmp_file_out)+'.pickle')
         with open(tmp_q_path, 'wb') as pickle_out:
             print('Write ' + str(n_out) + ' queue objects to tmp file', n_tmp_file_out)
             for i in range(n_out):
@@ -230,7 +241,8 @@ while queue:
         if len(ports) == 0 or len(subpockets) == max_depth:
             count_iterations += 1
             # add new result to results
-            results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
+            results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r,
+                                                                                 n_results_out, count_results, output_path)
             continue
 
         # ========================== ADD TO QUEUE ===============================
@@ -246,7 +258,8 @@ while queue:
             frags_in_queue.add(combo)
         # if nothing was added to queue because no new subpockets: add to results
         else:
-            results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
+            results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r,
+                                                                                 n_results_out, count_results, output_path)
 
     # ===========================================================================
 
@@ -272,14 +285,15 @@ while queue:
         if (len(ps.compound.subpockets) > 1 >= len(ps.compound.ports)) and not something_added:
             count_iterations += 1
             # add new result to results
-            results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r, n_results_out, count_results)
+            results, results_temp, n_results_out, count_results = process_result(combo, results_temp, results, limit_r,
+                                                                                 n_results_out, count_results, output_path)
 
 # ============================= OUTPUT ===============================================
 
 # write remaining results to file
-add_to_results(results_temp, results, n_results_out)
+add_to_results(results_temp, results, n_results_out, output_path)
 results_temp = set()
-n_results_out = results_to_file(results, n_results_out)
+n_results_out = results_to_file(results, n_results_out, output_path)
 count_results += len(results)
 results = set()
 
@@ -291,7 +305,7 @@ print('Number of ligands including duplicates: ', count_iterations)
 print('Overall number of fragments in queue: ', len(frags_in_queue))
 print('Time: ', runtime)
 
-stat_path = Path('statistics/statistics_' + str(args.n_frags) + '.txt')
+stat_path = output_path / ('statistics/statistics_' + str(args.n_frags) + '.txt')
 
 with open(stat_path, 'w') as stat_file:
     stat_file.write('Fragments ' + str(n_frags))

@@ -3,7 +3,7 @@ import pickle
 from pickle_loader import pickle_loader
 
 
-def results_to_file(results, n_results_out):
+def results_to_file(results, n_results_out, output_path):
 
     """
     Writes the given results (Combination objects) to a pickle and returns the current number of output files
@@ -14,6 +14,8 @@ def results_to_file(results, n_results_out):
         set of Combination objects representing ligands resulting from the recombinations
     n_results_out: int
         current number of output files containing results
+    output_path: Path
+        output path to combinatorial library (and results folder)
 
     Returns
     -------
@@ -24,8 +26,8 @@ def results_to_file(results, n_results_out):
 
     # write results in result set to output file
     n_out = len(results)
-    out_path = Path('results/results' + str(n_results_out) + '.pickle')
-    with open(out_path, 'wb') as pickle_out:
+    out_path = output_path / ('results/results' + str(n_results_out) + '.pickle')
+    with open(str(out_path), 'wb') as pickle_out:
         print('Write ' + str(n_out) + ' results to file', n_results_out)
         for result in results:
             pickle.dump(result, pickle_out)
@@ -33,7 +35,7 @@ def results_to_file(results, n_results_out):
     return n_results_out + 1
 
 
-def add_to_results(combos, results, n_results_out):
+def add_to_results(combos, results, n_results_out, output_path):
 
     """
     - Checks if the given combos (Combination objects) are already present in the results (including result output files)
@@ -48,6 +50,8 @@ def add_to_results(combos, results, n_results_out):
         set of Combination objects representing ligands resulting from the recombinations
     n_results_out: int
         current number of output files containing results + 1
+    output_path: Path
+        output path to combinatorial library (and results folder)
 
     """
 
@@ -62,8 +66,8 @@ def add_to_results(combos, results, n_results_out):
     duplicates = set()
     for n in range(n_results_out):
 
-        in_path = Path('results/results' + str(n) + '.pickle')
-        with open(in_path, 'rb') as pickle_in:
+        in_path = output_path / ('results/results' + str(n) + '.pickle')
+        with open(str(in_path), 'rb') as pickle_in:
             results_in = set(pickle_loader(pickle_in))
             for combo in combos:
                 if combo in results_in:
@@ -76,7 +80,7 @@ def add_to_results(combos, results, n_results_out):
     return
 
 
-def process_result(combo, results_temp, results, limit_r, n_results_out, count_results):
+def process_result(combo, results_temp, results, limit_r, n_results_out, count_results, output_path):
 
     """
     - adds new result to the temporary result set
@@ -97,15 +101,17 @@ def process_result(combo, results_temp, results, limit_r, n_results_out, count_r
         current number of output files containing results + 1
     count_results: int
         current number of results
+    output_path: Path
+        output path to combinatorial library (and results folder)
     """
 
     results_temp.add(combo)
     if len(results_temp) >= limit_r:
-        add_to_results(results_temp, results, n_results_out)
+        add_to_results(results_temp, results, n_results_out, output_path)
         results_temp = set()
     if len(results) >= limit_r:
         count_results += len(results)
-        n_results_out = results_to_file(results, n_results_out)
+        n_results_out = results_to_file(results, n_results_out, output_path)
         results = set()
 
     return results, results_temp, n_results_out, count_results

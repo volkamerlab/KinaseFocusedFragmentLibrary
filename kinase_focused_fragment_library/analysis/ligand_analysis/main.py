@@ -1,40 +1,53 @@
-from rdkit import Chem
-Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 from pathlib import Path
 import time
 import matplotlib.pyplot as plt
-import sys
 import pickle
 
 import multiprocessing as mp
 
-sys.path.append('../recombination')
 from construct_ligand import read_fragment_library
 from pickle_loader import pickle_loader
 from analyze_results import analyze_result
 from novelty import read_inchis, read_scaffolds, read_original_ligands
+import argparse
+
+from rdkit import Chem
+Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
+
+# ============================= COMMAND LINE ARGUMENTS ===================================
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-f', '--fragmentlibrary', type=str, help='path to fragment library', required=True)
+parser.add_argument('-chembl', type=str, help='file with chembl data', required=True)
+parser.add_argument('-klifs', type=str, help='path to KLIFS_download folder (original ligands)', required=True)
+parser.add_argument('-o', '--combinatoriallibrary', type=str, help='output path', required=True)
+args = parser.parse_args()
+
+# ============================= INPUT DATA ================================================
 
 subpockets = ['AP', 'FP', 'SE', 'GA', 'B1', 'B2']
+fragments = read_fragment_library(Path(args.fragmentlibrary), subpockets)
 
-data = read_fragment_library(Path('../FragmentLibrary'), subpockets)
+# original ligands from KLIFS
+path_to_klifs = Path(args.klifs) / 'KLIFS_download'
+original_ligands = read_original_ligands(fragments, path_to_klifs)
 
-original_ligands = read_original_ligands(data)
-
-# chembl = read_chembl('/home/paula/Downloads/chembl_25_chemreps.txt')
-chembl = read_inchis('../../data/chembl/chembl.txt')
+chembl = read_inchis(args.chembl)
 
 # kinase inhibitor scaffolds identified by Hu and Bajorath (dx.doi.org/10.1021/jm501237k | J. Med. Chem. 2015, 58, 315−332)
 # scaffolds = read_scaffolds(['../../data/Kinase_Inhibitors_And_Scaffolds/Ki_Subset/Kinase_Based_Scaffold_Sets_Ki.dat',
 #                             '../../data/Kinase_Inhibitors_And_Scaffolds/IC50_Subset/Kinase_Based_Scaffold_Sets_IC50.dat'])
 scaffolds = None
 
-# ================================ INITIALIZE =========================================
+# output file
+combinatorial_library_folder = Path(args.combinatoriallibrary)
+combinatorial_library_file = combinatorial_library_folder / 'combinatorial_library.pickle'
 
-path_to_results = Path('../recombination/results')
+# objects create by the recombination algorithm
+path_to_results = combinatorial_library_folder / 'results'
 in_paths = list(path_to_results.glob('*.pickle'))
 
-combinatorial_library_folder = Path('../CombinatorialLibrary/')
-combinatorial_library_file = combinatorial_library_folder / 'combinatorial_library.pickle'
+# ================================ INITIALIZE =========================================
 
 count_ligands = 0
 lipinski_ligands, filtered_ligands = 0, 0
@@ -47,8 +60,6 @@ original_subs = 0
 chembl_match = 0
 scaffold = 0
 novel = 0
-# with open(out_path, 'wb') as out_file:
-# ligand_smiles = set()
 
 n_per_sp, n_filtered_per_sp = {}, {}
 for subpocket in subpockets:
@@ -80,8 +91,7 @@ for in_path in in_paths:
     print(str(in_path))
     with open(str(in_path), 'rb') as pickle_in:
 
-        results.extend(pool.starmap(analyze_result, [(meta, data, original_ligands, chembl, scaffolds) for meta in pickle_loader(pickle_in)]))
-
+        results.extend(pool.starmap(analyze_result, [(meta, fragments, original_ligands, chembl, scaffolds) for meta in pickle_loader(pickle_in)]))
 
 # ================================ COMBINE RESULTS ======================================
 
@@ -157,25 +167,6 @@ print('LogP <= 5:', logp_ligands, logp_ligands/count_ligands)
 print('HB donors <= 5:', hbd_ligands, hbd_ligands/count_ligands)
 print('HB acceptors <= 10:', hba_ligands, hba_ligands/count_ligands)
 print('Time: ', runtime)
-
-
-# # plot novelty statistics
-# y = [originals/count_ligands*100, original_subs/count_ligands*100, scaffold/count_ligands*100,
-#      chembl_match/count_ligands*100, novel/count_ligands*100]
-# plt.figure()
-# ax = plt.bar(range(5), y)
-# plt.ylabel('# Ligands [%]')
-# plt.xticks(range(5), ['Original\nligand', 'Substr. of\noriginal ligand', 'Scaffold\ncontained',  'ChEMBL\nmatch', 'Novel\nligand'])
-# plt.yticks()
-# rects = ax.patches
-# # calculate percentages
-# labels = [str(round(n, 2))+'%' for n in y]
-# for rect, label in zip(rects, labels):
-#     height = rect.get_height()
-#     if height != 100 and height != 0:
-#         plt.text(rect.get_x() + rect.get_width() / 2, height + 0.2, label, ha='center', va='bottom')
-# plt.savefig(combinatorial_library_folder / 'novelty.png')
-
 
 # plot Lipinski rule
 rules = [wt_ligands/count_ligands*100, logp_ligands/count_ligands*100, hbd_ligands/count_ligands*100,

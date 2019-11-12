@@ -12,7 +12,7 @@ from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_sm
 from fragmentation import find_brics_fragments, fragment_between_atoms, set_atom_properties
 from classes import Subpocket, Fragment
 from preprocessing import get_folder_name, get_file_name, fix_residue_numbers
-from discard import contains_ribose, contains_phosphate, get_ligand_from_multi_ligands
+from discard import get_ligand_from_multi_ligands
 from visualization import visual_subpockets
 from functions import calc_3d_dist
 

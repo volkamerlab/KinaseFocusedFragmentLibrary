@@ -36,7 +36,7 @@ def read_scaffolds(files):
     return scaffolds
 
 
-def read_original_ligands(frag_dict):
+def read_original_ligands(frag_dict, path_to_klifs):
 
     print('Read original ligands.')
 
@@ -50,8 +50,8 @@ def read_original_ligands(frag_dict):
     smiles = []
     inchis = []
     for kinase, pdb in kinases_pdbs:
-        f = '../../data/KLIFS_download/HUMAN/' + kinase + '/' + pdb + '/ligand.mol2'
-        ligand = Chem.MolFromMol2File(f)
+        f = path_to_klifs / ('HUMAN/' + kinase + '/' + pdb + '/ligand.mol2')
+        ligand = Chem.MolFromMol2File(str(f))
         # ligand.SetProp('complex_pdb', pdb)
         smiles.append(Chem.MolToSmiles(ligand))
         inchis.append(Chem.MolToInchi(ligand))
