@@ -4,4 +4,4 @@ API Documentation
 .. autosummary::
    :toctree: autosummary
 
-   kinasefocusedfragmentlibrary.canvas
+   kinase_focused_fragment_library.canvas

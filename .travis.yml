@@ -42,7 +42,7 @@ install:
 
 
 script:
-  - pytest -v --cov=kinasefocusedfragmentlibrary kinasefocusedfragmentlibrary/tests/
+  - pytest -v --cov=kinase_focused_fragment_library kinase_focused_fragment_library/tests/
 
 notifications:
     email: false

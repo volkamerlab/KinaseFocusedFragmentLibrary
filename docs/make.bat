@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=.
 set BUILDDIR=_build
-set SPHINXPROJ=kinasefocusedfragmentlibrary
+set SPHINXPROJ=kinase_focused_fragment_library
 
 if "%1" == "" goto help
 

@@ -17,7 +17,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-import kinasefocusedfragmentlibrary
+import kinase_focused_fragment_library
 
 
 # -- Project information -----------------------------------------------------
@@ -117,7 +117,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'kinasefocusedfragmentlibrarydoc'
+htmlhelp_basename = 'kinase_focused_fragment_librarydoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -144,8 +144,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'kinasefocusedfragmentlibrary.tex', 'KinaseFocusedFragmentLibrary Documentation',
-     'kinasefocusedfragmentlibrary', 'manual'),
+    (master_doc, 'kinase_focused_fragment_library.tex', 'KinaseFocusedFragmentLibrary Documentation',
+     'kinase_focused_fragment_library', 'manual'),
 ]
 
 
@@ -154,7 +154,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'kinasefocusedfragmentlibrary', 'KinaseFocusedFragmentLibrary Documentation',
+    (master_doc, 'kinase_focused_fragment_library', 'KinaseFocusedFragmentLibrary Documentation',
      [author], 1)
 ]
 
@@ -165,8 +165,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'kinasefocusedfragmentlibrary', 'KinaseFocusedFragmentLibrary Documentation',
-     author, 'kinasefocusedfragmentlibrary', 'A short description of the project.',
+    (master_doc, 'kinase_focused_fragment_library', 'KinaseFocusedFragmentLibrary Documentation',
+     author, 'kinase_focused_fragment_library', 'A short description of the project.',
      'Miscellaneous'),
 ]
 
