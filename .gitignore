@@ -3,12 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# folders
-kinase_focused_fragment_library/fragmentation/*cif
-kinase_focused_fragment_library/fragmentation/*png
-kinase_focused_fragment_library/fragmentation/obsolete*
-kinase_focused_fragment_library/recombination/obsolete*
-pymol/*.png
+*.cif
+*.png
+*obsolete*
 
 # C extensions
 *.so
@@ -53,6 +50,7 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+.pytest_cache
 
 # Translations
 *.mo
