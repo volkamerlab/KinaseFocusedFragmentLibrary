@@ -3,7 +3,7 @@ from pymol import cmd
 
 p = '/home/paula/Masterarbeit/'
 
-path = p + 'KinaseFocusedFragmentLibrary/fragmentation/'
+path = p + 'FragmentLibrary/special_cases/'
 
 
 def visual_ligand_list(file):
