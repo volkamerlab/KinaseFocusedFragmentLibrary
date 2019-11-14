@@ -30,11 +30,11 @@ subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # 
 se, ap, fp, ga, b1, b2 = subpockets[0], subpockets[1], subpockets[2], subpockets[3], subpockets[4], subpockets[5]
 
 # count discarded structures
-count_missing_res = 0
-count_not_ap = 0
+missing_res = []
+not_ap = []
+large_brics = []
 count_x = 0
 count_structures = 0
-discardedLigands = []
 invalid_subpocket_connections = {}
 
 # ============================= INPUT AND OUTPUT ===============================================
@@ -91,9 +91,10 @@ for index, entry in KLIFSData.iterrows():
 
         ligand = get_ligand_from_multi_ligands(ligand)
 
+        # should not happen if preprocessing was done correctly
         if not ligand:
             print('ERROR in ' + folder + ':')
-            print('Ligand consists of multiple molecules. Structure is skipped. \n')
+            print('Ligand consists of multiple molecules.\n')
             continue
 
     lenLigand = ligand.GetNumAtoms()
@@ -117,7 +118,7 @@ for index, entry in KLIFSData.iterrows():
         subpocket.center = calc_subpocket_center(subpocket, pocket, pocketMol2, folder)
         # skip structure if no center could be calculated because of missing residues
         if subpocket.center is None:
-            count_missing_res += 1
+            missing_res.append(entry.pdb + ' ' + entry.pdb_id)
             skipStructure = True
             break
 
@@ -126,7 +127,7 @@ for index, entry in KLIFSData.iterrows():
         continue
 
     # visualize subpocket centers using PyMOL
-    visual_subpockets(subpockets, folder)
+    visual_subpockets(subpockets, path_to_data, folder)
 
     # ================================ BRICS FRAGMENTS ==========================================
 
@@ -151,7 +152,7 @@ for index, entry in KLIFSData.iterrows():
 
     # discard any ligands where a BRICS fragment is larger than 22 heavy atoms (e.g. staurosporine)
         if BRICSFragment.mol.GetNumHeavyAtoms() > 22:
-            discardedLigands.append((ligand, entry.pdb))
+            large_brics.append((ligand, entry.pdb, entry.pdb_id))
             skipStructure = True
             break
 
@@ -198,7 +199,7 @@ for index, entry in KLIFSData.iterrows():
 
     # skip this structure if it does not contain an AP fragment
     if ap not in [fragment.subpocket for fragment in fragments]:
-        count_not_ap += 1
+        not_ap.append(entry.pdb + ' ' + entry.pdb_id)
         continue
 
     # check for FP-BP connections
@@ -282,6 +283,7 @@ for index, entry in KLIFSData.iterrows():
         Chem.CreateAtomStringPropertyList(fragment.mol, 'subpocket')
         Chem.CreateAtomStringPropertyList(fragment.mol, 'environment')
 
+        # store fragment in fragment library
         if fragment.subpocket.name.startswith('X'):
             w = Chem.SDWriter(output_files['X'])
             count_x += 1
@@ -304,32 +306,48 @@ for index, entry in KLIFSData.iterrows():
     count_structures += 1
 
 
+# store fragment in X pool in fragment library
 for subpocket in subpockets+[Subpocket('X')]:
     w = Chem.SDWriter(output_files[subpocket.name])
     output_files[subpocket.name].close()
     w.close()
 
-# draw discarded ligands
-if discardedLigands:
-    discardedLigands = [(Chem.RemoveHs(ligand), legend) for ligand, legend in discardedLigands]
-    for ligand in discardedLigands:
-        tmp = AllChem.Compute2DCoords(ligand[0])
-    img = Draw.MolsToGridImage([ligand for ligand, legend in discardedLigands],
-                               legends=[legend for ligand, legend in discardedLigands],
-                               subImgSize=(400, 400), molsPerRow=6)
-    img.save(path_to_library / 'discarded_ligands.png')
-
-
 # output statistics
 print('Number of fragmented structures: ', count_structures)
 print('\nNumber of discarded structures: ')
-print('Ligands with too large BRICS fragments: ', len(discardedLigands))
-print('Missing residue position could not be inferred: ', count_missing_res)
-print('Ligands not occupying AP:', count_not_ap)
+print('Missing residue position could not be inferred: ', len(missing_res))
+print('Ligands with too large BRICS fragments: ', len(large_brics))
+print('Ligands not occupying AP:', len(not_ap))
+print('Invalid subpocket connections:', sum([len(invalid_subpocket_connections[conn]) for conn in invalid_subpocket_connections]))
 print('Fragments in X pool:', count_x)
 
-# print invalid subpocket connections
-for conn in invalid_subpocket_connections:
-    print([sp for sp in conn], len(invalid_subpocket_connections[conn]), len(invalid_subpocket_connections[conn])/count_structures*100)
-    for struct in invalid_subpocket_connections[conn]:
-        print(struct)
+folderName = Path(args.fragmentlibrary) / 'discarded_ligands'
+if not folderName.exists():
+    Path.mkdir(folderName)
+
+# draw ligands discarded because of large BRICS fragments
+if large_brics:
+    large_brics = [(Chem.RemoveHs(ligand), pdb, pdb_id) for ligand, pdb, pdb_id in large_brics]
+    for struct in large_brics:
+        tmp = AllChem.Compute2DCoords(struct[0])
+    img = Draw.MolsToGridImage([ligand for ligand, pdb, pdb_id in large_brics],
+                               legends=[pdb+' '+pdb_id for ligand, pdb, pdb_id in large_brics],
+                               subImgSize=(400, 400), molsPerRow=6)
+    img.save(folderName / 'large_brics.png')
+
+# write discarded ligands to files
+with open(folderName / 'large_brics.txt', 'w') as o:
+    for struct in large_brics:
+        o.write(struct[1]+' '+struct[2]+'\n')
+with open(folderName / 'missing_res.txt', 'w') as o:
+    for struct in missing_res:
+        o.write(struct+'\n')
+with open(folderName / 'not_ap.txt', 'w') as o:
+    for struct in not_ap:
+        o.write(struct+'\n')
+
+with open(folderName / 'invalid_subpocket_connections.txt', 'w') as o:
+    for conn in invalid_subpocket_connections:
+        lst = [sp for sp in conn]
+        for struct in invalid_subpocket_connections[conn]:
+            o.write(struct+' '+lst[0] + '-' + lst[1]+'\n')
