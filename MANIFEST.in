@@ -1,0 +1,6 @@
+include LICENSE
+include MANIFEST.in
+include versioneer.py
+
+graft kinase_focused_fragment_library
+global-exclude *.py[cod] __pycache__ *.so

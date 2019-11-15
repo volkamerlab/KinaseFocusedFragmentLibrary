@@ -3,23 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# folders
-test/
-output/
-fragmentation/*cif
-fragmentation/*png
-fragmentation/obsolete*
-fragmentation/special_cases*
-recombination/results*
-recombination/obsolete*
-recombination/statistics*
-recombination/test*
-recombination/tmp*
-FragmentLibrary*
-CombinatorialLibrary*
-pymol/*.png
-ATP_analogues.txt
-riboses.txt
+*.cif
+*.png
+*obsolete*
 
 # C extensions
 *.so
@@ -64,6 +50,7 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+.pytest_cache
 
 # Translations
 *.mo
