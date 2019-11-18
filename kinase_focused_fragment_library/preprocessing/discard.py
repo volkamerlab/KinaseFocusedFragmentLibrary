@@ -1,5 +1,4 @@
 import parmed as pmd
-# import pypdb
 from rdkit import Chem
 
 
@@ -86,29 +85,6 @@ def is_covalent(pdb, pdb_id, chain):
 
     if pdb in not_covalent:
         return False
-
-    # # download pdb file as string
-    # print('Download PDB', pdb, pdb_id)
-    # try:
-    #     pdb_file = pypdb.get_pdb_file(pdb, filetype='pdb', compression=False)
-    # except OSError:
-    #     print('ERROR: Could not retrieve PDB', pdb, '\n')
-    #     return False
-    #
-    # lines = pdb_file.split('\n')
-    # i = 0
-    # line = lines[i]
-    # while not line.startswith('LINK') and not line.startswith('ATOM'):
-    #     i += 1
-    #     line = lines[i]
-    # while line.startswith('LINK'):
-    #     # check LINK entry for covalent bond
-    #     # if (aa in line[17:20] and pdb_id in line[46:50]) or (aa in line[16:20] and pdb_id in line[46:50]):
-    #     # print(line[17:20])
-    #     if (line[17:20] in aa and line[47:50] == pdb_id and line[26] == chain) or (line[17:20] == pdb_id and line[47:50] == aa and line[51] == chain):
-    #         return True
-    #     i += 1
-    #     line = lines[i]
 
     protein_atom_numbers = []
 
