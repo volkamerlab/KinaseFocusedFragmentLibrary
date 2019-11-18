@@ -1,10 +1,20 @@
 radius = 2
 
 
-# create cgo file with subpocket centers as spheres to load in PyMOL
-def visual_subpockets(subpockets, path_to_data, folder):
+def visual_subpockets(subpockets, output_path):
 
-    with open(path_to_data / folder / 'subpockets.cgo', 'w') as f:
+    """
+    Create cgo file with subpocket centers as spheres to load in PyMOL
+
+    Parameters
+    ----------
+    subpockets: list(Subpocket)
+        list of Subpocket objects containing the 3D centers and colors of the subpocket
+    output_path: Path
+
+    """
+
+    with open(output_path / 'subpockets.cgo', 'w') as f:
 
         # write header
         f.write('# Subpockets of kinase binding pocket\n')
@@ -24,6 +34,3 @@ def visual_subpockets(subpockets, path_to_data, folder):
 
         f.write(']\n')
         f.write('cmd.load_cgo(obj,\'subpockets\')\n')
-
-    return None
-

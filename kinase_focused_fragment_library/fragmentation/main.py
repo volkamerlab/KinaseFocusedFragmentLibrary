@@ -8,24 +8,23 @@ import json
 import argparse
 
 from pocketIdentification import get_subpocket_from_pos, calc_geo_center, fix_small_fragments, calc_subpocket_center, \
-    is_valid_subpocket_connection
+    is_valid_subpocket_connection, calc_3d_dist
 from fragmentation import find_brics_fragments, fragment_between_atoms, set_atom_properties
 from classes import Subpocket, Fragment
 from preprocessing import get_folder_name, get_file_name, fix_residue_numbers
 from discard import get_ligand_from_multi_ligands
 from visualization import visual_subpockets
-from functions import calc_3d_dist
 
 
 # ============================= INITIALIZATIONS ===============================================
 
 # define the 6 subpockets
-subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan  # leave out 2? (1m17 will improve)
+subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan
               Subpocket('AP', residues=[46, 51, 75, 15], color='0.6, 0.1, 0.6'),  # deep purple
-              Subpocket('FP', residues=[72, 51, 10, 81], color='0.2, 0.6, 0.2'),  # forest # 4 -> 10
-              Subpocket('GA', residues=[45, 17, 81], color='1.0, 0.5, 0.0'),  # orange  # 80 -> 82 -> 81
+              Subpocket('FP', residues=[72, 51, 10, 81], color='0.2, 0.6, 0.2'),  # forest # 4 <-> 10
+              Subpocket('GA', residues=[45, 17, 81], color='1.0, 0.5, 0.0'),  # orange  # 80 <-> 81
               Subpocket('B1', residues=[81, 28, 43, 38], color='0.0, 0.5, 1.0'),  # marine
-              Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0')  # purple blue # -70
+              Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0')  # purple blue # +/- 70
               ]
 se, ap, fp, ga, b1, b2 = subpockets[0], subpockets[1], subpockets[2], subpockets[3], subpockets[4], subpockets[5]
 
@@ -63,11 +62,15 @@ for subpocket in subpockets+[Subpocket('X')]:
     if fileName.exists():
         Path.unlink(fileName)
     output_files[subpocket.name] = fileName.open('a')
+
 # path to output pictures of fragmented molecules
-# TODO:
-# if (path_to_library / 'fragmented_molecules').exists():
-#     Path.unlink(path_to_library / 'fragmented_molecules')
-# Path.mkdir(path_to_library / 'fragmented_molecules')
+path = path_to_library / 'fragmented_molecules'
+if path.exists():
+    # delete existing files in this directory
+    [f.unlink() for f in path.glob('*') if f.is_file()]
+else:
+    # create this directory if it does not yet exist
+    Path.mkdir(path)
 
 # iterate over molecules
 for index, entry in KLIFSData.iterrows():
@@ -77,10 +80,6 @@ for index, entry in KLIFSData.iterrows():
     folder = get_folder_name(entry)
 
     skipStructure = False
-
-    # special cases where GA or FP can not be disconnected by BRICS which leads to unreasonable subpocket assignments
-    # if entry.pdb in ['5mai', '4o0y', '5w5q']:
-    #     continue
 
     # load ligand and binding pocket to rdkit molecules
     ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
@@ -118,7 +117,7 @@ for index, entry in KLIFSData.iterrows():
         subpocket.center = calc_subpocket_center(subpocket, pocket, pocketMol2, folder)
         # skip structure if no center could be calculated because of missing residues
         if subpocket.center is None:
-            missing_res.append(entry.pdb + ' ' + entry.pdb_id)
+            missing_res.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
             skipStructure = True
             break
 
@@ -127,7 +126,7 @@ for index, entry in KLIFSData.iterrows():
         continue
 
     # visualize subpocket centers using PyMOL
-    visual_subpockets(subpockets, path_to_data, folder)
+    visual_subpockets(subpockets, path_to_data / folder)
 
     # ================================ BRICS FRAGMENTS ==========================================
 
@@ -152,7 +151,7 @@ for index, entry in KLIFSData.iterrows():
 
     # discard any ligands where a BRICS fragment is larger than 22 heavy atoms (e.g. staurosporine)
         if BRICSFragment.mol.GetNumHeavyAtoms() > 22:
-            large_brics.append((ligand, entry.pdb, entry.pdb_id))
+            large_brics.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
             skipStructure = True
             break
 
@@ -199,7 +198,7 @@ for index, entry in KLIFSData.iterrows():
 
     # skip this structure if it does not contain an AP fragment
     if ap not in [fragment.subpocket for fragment in fragments]:
-        not_ap.append(entry.pdb + ' ' + entry.pdb_id)
+        not_ap.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
         continue
 
     # check for FP-BP connections
@@ -223,8 +222,8 @@ for index, entry in KLIFSData.iterrows():
                 # assign FP fragment to GA pocket
                 fp_frag.subpocket = ga
 
-            # if FP is not close to GA, there is an actual FP-B2 connection which we do not want to have
-            # hence we assign the B2 fragment to X
+            # if FP is not close to GA, there is an actual FP-BP connection which we do not want to have
+            # hence we assign the BP fragment to X
             else:
                 bp_frag.subpocket = Subpocket('X-'+bp_frag.subpocket.name)
 
@@ -245,9 +244,9 @@ for index, entry in KLIFSData.iterrows():
             # store invalid subpocket connections
             conn = frozenset((sp_1.name, sp_2.name))
             if conn in invalid_subpocket_connections:
-                invalid_subpocket_connections[conn].append(folder)
+                invalid_subpocket_connections[conn].append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
             else:
-                invalid_subpocket_connections[conn] = [folder]
+                invalid_subpocket_connections[conn] = [entry.pdb+' '+entry.chain+' '+entry.pdb_id]
 
             skipStructure = True
             break
@@ -325,20 +324,10 @@ folderName = Path(args.fragmentlibrary) / 'discarded_ligands'
 if not folderName.exists():
     Path.mkdir(folderName)
 
-# draw ligands discarded because of large BRICS fragments
-if large_brics:
-    large_brics = [(Chem.RemoveHs(ligand), pdb, pdb_id) for ligand, pdb, pdb_id in large_brics]
-    for struct in large_brics:
-        tmp = AllChem.Compute2DCoords(struct[0])
-    img = Draw.MolsToGridImage([ligand for ligand, pdb, pdb_id in large_brics],
-                               legends=[pdb+' '+pdb_id for ligand, pdb, pdb_id in large_brics],
-                               subImgSize=(400, 400), molsPerRow=6)
-    img.save(folderName / 'large_brics.png')
-
 # write discarded ligands to files
 with open(folderName / 'large_brics.txt', 'w') as o:
     for struct in large_brics:
-        o.write(struct[1]+' '+struct[2]+'\n')
+        o.write(struct+'\n')
 with open(folderName / 'missing_res.txt', 'w') as o:
     for struct in missing_res:
         o.write(struct+'\n')
