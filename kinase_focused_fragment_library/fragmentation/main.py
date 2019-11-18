@@ -305,7 +305,7 @@ for index, entry in KLIFSData.iterrows():
     count_structures += 1
 
 
-# store fragment in X pool in fragment library
+# close output files
 for subpocket in subpockets+[Subpocket('X')]:
     w = Chem.SDWriter(output_files[subpocket.name])
     output_files[subpocket.name].close()
