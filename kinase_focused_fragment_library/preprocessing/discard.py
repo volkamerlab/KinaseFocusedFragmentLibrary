@@ -1,4 +1,5 @@
 import parmed as pmd
+# import pypdb
 from rdkit import Chem
 
 
@@ -52,6 +53,7 @@ def contains_ribose(mol):
 
 
 covalent = ['4d9t', '4hct', '4kio']
+not_covalent = ['2clx', '4cfn']
 
 aa = '\t'.join(["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN",
                 "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE",
@@ -81,6 +83,32 @@ def is_covalent(pdb, pdb_id, chain):
 
     if pdb in covalent:
         return True
+
+    if pdb in not_covalent:
+        return False
+
+    # # download pdb file as string
+    # print('Download PDB', pdb, pdb_id)
+    # try:
+    #     pdb_file = pypdb.get_pdb_file(pdb, filetype='pdb', compression=False)
+    # except OSError:
+    #     print('ERROR: Could not retrieve PDB', pdb, '\n')
+    #     return False
+    #
+    # lines = pdb_file.split('\n')
+    # i = 0
+    # line = lines[i]
+    # while not line.startswith('LINK') and not line.startswith('ATOM'):
+    #     i += 1
+    #     line = lines[i]
+    # while line.startswith('LINK'):
+    #     # check LINK entry for covalent bond
+    #     # if (aa in line[17:20] and pdb_id in line[46:50]) or (aa in line[16:20] and pdb_id in line[46:50]):
+    #     # print(line[17:20])
+    #     if (line[17:20] in aa and line[47:50] == pdb_id and line[26] == chain) or (line[17:20] == pdb_id and line[47:50] == aa and line[51] == chain):
+    #         return True
+    #     i += 1
+    #     line = lines[i]
 
     protein_atom_numbers = []
 
@@ -117,17 +145,3 @@ def is_covalent(pdb, pdb_id, chain):
                 return True
 
     return False
-
-
-# not covalent
-# print(is_covalent('3ggf', 'GVD', 'A'))
-# print(is_covalent('3bhy', '7CP', 'A'))
-# print(is_covalent('6hop', 'GJK', 'A'))
-# print(is_covalent('1h07', 'MFQ', 'A'))
-# print(is_covalent('1h00', 'FCP', 'A'))
-
-# covalent
-# print(is_covalent('4d9t', '0JG', 'A'))
-# print(is_covalent('4hct', '18R', 'A'))
-# print(is_covalent('4kio', 'G5K', 'A'))
-# print(is_covalent('5p9l', '7G9', 'A'))
