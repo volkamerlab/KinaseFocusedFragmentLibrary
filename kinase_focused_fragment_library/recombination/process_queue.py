@@ -3,6 +3,21 @@ from classes_meta import PermutationStep
 
 def add_to_queue(queue, compound):
 
+    """
+    Adds each Port of a given Compound object to the queue if the subpocket of the Port is not occupied by the compound yet
+
+    Parameters
+    ----------
+    queue: deque(PermutationStep)
+    compound: Compound
+
+    Returns
+    -------
+    True if one or multiple Ports have been added to the queue,
+    False otherwise
+
+    """
+
     added_to_queue = False
     for port in compound.ports:
         if port.neighboring_subpocket in compound.subpockets:

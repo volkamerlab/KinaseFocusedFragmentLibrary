@@ -23,7 +23,7 @@ parser.add_argument('-f', '--fragmentlibrary', type=str, help='path to fragment 
 parser.add_argument('-o', '--combinatoriallibrary', type=str, help='output path', required=True)
 parser.add_argument('-n', '--n_frags', type=int, help='Number of input fragments per subpocket', required=False)
 parser.add_argument('-s', '--subpockets', type=str, help='Start from these subpockets only.', required=False, nargs='+')
-parser.add_argument('-d', '--depth', type=int, help='Maximum number of fragments per ligand', default=6)
+parser.add_argument('-d', '--depth', type=int, help='Maximum number of fragments per ligand', default=6, choices=range(2, 7))
 args = parser.parse_args()
 max_depth = args.depth
 
@@ -140,10 +140,6 @@ print('Number of fragments: ', n_frags)
 
 # ============================= PERMUTATION ===============================================
 
-# IDEA for frags_in_queue AND results:
-# store in file when certain number is reached
-# when comparing: load files one by one to compare
-
 count_iterations = 0
 count_results = 0
 n_tmp_file_out = 0
@@ -236,7 +232,7 @@ while queue:
         # ========================== ADD TO RESULTS ===============================
 
         # if no ports present, ligand is finished
-        # if max depth is reached, ligand is also finished, because all subpockets are explored
+        # if max depth is reached, ligand is also finished
         combo = Combination(frag_ids=frozenset(frag_ids), bonds=frozenset(bonds))
         if len(ports) == 0 or len(subpockets) == max_depth:
             count_iterations += 1
