@@ -104,6 +104,7 @@ for index, entry in KLIFSData.iterrows():
         if not ligand:
             print('ERROR in ' + folder + ':')
             print('Ligand consists of multiple molecules. Structure is skipped. \n')
+            filtered_data = filtered_data.drop(index)
             multi_ligands.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
             continue
 
