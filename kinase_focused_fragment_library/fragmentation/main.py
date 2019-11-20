@@ -35,6 +35,10 @@ large_brics = []
 count_x = 0
 count_structures = 0
 invalid_subpocket_connections = {}
+# count number of subpockets occupied by the ligands
+count_sps = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+# count number of each subpocket connection
+subpocket_connections = {}
 
 # ============================= INPUT AND OUTPUT ===============================================
 
@@ -49,8 +53,6 @@ path_to_library = Path(args.fragmentlibrary)
 path_to_data = Path(args.klifsdata) / 'KLIFS_download'
 
 KLIFSData = pd.read_csv(path_to_data / 'filtered_ligands.csv')
-
-# KLIFSData = KLIFSData[KLIFSData.kinase.isin(['TTK'])]
 
 # clear output files and create output folders
 output_files = {}
@@ -235,6 +237,13 @@ for index, entry in KLIFSData.iterrows():
 
         sp_1 = firstFragment.subpocket
         sp_2 = secondFragment.subpocket
+        conn = frozenset((sp_1.name, sp_2.name))
+
+        # store invalid subpocket connections
+        if conn in subpocket_connections:
+            subpocket_connections[conn] += 1
+        else:
+            subpocket_connections[conn] = 1
 
         if not is_valid_subpocket_connection(sp_1, sp_2):
 
@@ -242,7 +251,6 @@ for index, entry in KLIFSData.iterrows():
             print('Invalid subpocket connection:', sp_1.name, '-', sp_2.name, '. Structure is skipped.\n')
 
             # store invalid subpocket connections
-            conn = frozenset((sp_1.name, sp_2.name))
             if conn in invalid_subpocket_connections:
                 invalid_subpocket_connections[conn].append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
             else:
@@ -256,6 +264,10 @@ for index, entry in KLIFSData.iterrows():
 
     # set atom properties: atom ids, subpockets, and BRICS environments
     set_atom_properties(fragments, atom_tuples, BRICSFragments)
+
+    # number of occupied subpockets (excluding X)
+    n_sps = len(set([fragment.subpocket.name for fragment in fragments if 'X' not in fragment.subpocket.name]))
+    count_sps[n_sps] += 1
 
     # ================================ FRAGMENT LIBRARY ========================================
 
@@ -313,6 +325,10 @@ for subpocket in subpockets+[Subpocket('X')]:
 
 # output statistics
 print('Number of fragmented structures: ', count_structures)
+print('Number of ligands occupying each possible number of subpockets:')
+print(count_sps)
+print('Number of ligands showing each subpocket connection:')
+print(subpocket_connections)
 print('\nNumber of discarded structures: ')
 print('Missing residue position could not be inferred: ', len(missing_res))
 print('Ligands with too large BRICS fragments: ', len(large_brics))
