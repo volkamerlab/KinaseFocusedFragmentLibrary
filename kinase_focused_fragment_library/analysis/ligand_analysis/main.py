@@ -5,10 +5,13 @@ import pickle
 
 import multiprocessing as mp
 
+import sys
+sys.path.append('../../recombination')
+
 from construct_ligand import read_fragment_library
 from pickle_loader import pickle_loader
 from analyze_results import analyze_result
-from novelty import read_inchis, read_scaffolds, read_original_ligands
+from novelty import read_original_ligands, read_smiles
 import argparse
 
 from rdkit import Chem
@@ -18,7 +21,7 @@ Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--fragmentlibrary', type=str, help='path to fragment library', required=True)
-parser.add_argument('-chembl', type=str, help='file with chembl data', required=True)
+parser.add_argument('-chembl', type=str, help='file with standardized chembl data (SMILES)', required=True)
 parser.add_argument('-klifs', type=str, help='path to KLIFS_download folder (original ligands)', required=True)
 parser.add_argument('-o', '--combinatoriallibrary', type=str, help='output path', required=True)
 args = parser.parse_args()
@@ -32,7 +35,9 @@ fragments = read_fragment_library(Path(args.fragmentlibrary), subpockets)
 path_to_klifs = Path(args.klifs) / 'KLIFS_download'
 original_ligands = read_original_ligands(fragments, path_to_klifs)
 
-chembl = read_inchis(args.chembl)
+# read standardized chembl smiles
+chembl = read_smiles(args.chembl)
+print('Number of ChEMBL molecules:', chembl.shape[0])
 
 # kinase inhibitor scaffolds identified by Hu and Bajorath (dx.doi.org/10.1021/jm501237k | J. Med. Chem. 2015, 58, 315−332)
 # scaffolds = read_scaffolds(['../../data/Kinase_Inhibitors_And_Scaffolds/Ki_Subset/Kinase_Based_Scaffold_Sets_Ki.dat',
@@ -167,6 +172,8 @@ print('LogP <= 5:', logp_ligands, logp_ligands/count_ligands)
 print('HB donors <= 5:', hbd_ligands, hbd_ligands/count_ligands)
 print('HB acceptors <= 10:', hba_ligands, hba_ligands/count_ligands)
 print('Time: ', runtime)
+
+# ==================================== PLOTS ============================================
 
 # plot Lipinski rule
 rules = [wt_ligands/count_ligands*100, logp_ligands/count_ligands*100, hbd_ligands/count_ligands*100,
