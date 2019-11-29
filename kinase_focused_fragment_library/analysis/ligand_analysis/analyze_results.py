@@ -8,7 +8,7 @@ from standardize import standardize_mol
 
 def analyze_result(meta, data, original_ligands, chembl):
 
-    ligand, pdbs, fragpdbs = construct_ligand(meta, data)
+    ligand = construct_ligand(meta, data)
     # if ligand could not be constructed, skip
     if not ligand:
         print('Ligand could not be constructed: ', meta)

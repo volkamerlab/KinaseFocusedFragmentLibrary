@@ -142,7 +142,4 @@ def construct_ligand(meta, data):
     for atom in ligand.GetAtoms():
         atom.ClearProp('frag_atom_id')
 
-    pdbs = [frag.GetProp('complex_pdb') for frag in fragments]
-    fragpdbs = [frag.GetProp('ligand_pdb') for frag in fragments]
-
-    return ligand, pdbs, fragpdbs
+    return ligand
