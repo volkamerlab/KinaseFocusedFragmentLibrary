@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - omnia
   - rdkit
-  - schrodinger
+  - samoturk
 dependencies:
   - biopandas
   - jupyter
