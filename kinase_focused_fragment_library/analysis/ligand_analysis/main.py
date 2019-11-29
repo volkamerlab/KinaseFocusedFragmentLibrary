@@ -44,11 +44,6 @@ print('Number of ChEMBL molecules:', chembl.shape[0])
 path_to_klifs = Path(args.klifs) / 'KLIFS_download'
 original_ligands = read_original_ligands(fragments, path_to_klifs)
 
-# kinase inhibitor scaffolds identified by Hu and Bajorath (dx.doi.org/10.1021/jm501237k | J. Med. Chem. 2015, 58, 315−332)
-# scaffolds = read_scaffolds(['../../data/Kinase_Inhibitors_And_Scaffolds/Ki_Subset/Kinase_Based_Scaffold_Sets_Ki.dat',
-#                             '../../data/Kinase_Inhibitors_And_Scaffolds/IC50_Subset/Kinase_Based_Scaffold_Sets_IC50.dat'])
-scaffolds = None
-
 # output file
 combinatorial_library_folder = Path(args.combinatoriallibrary)
 combinatorial_library_file = combinatorial_library_folder / 'combinatorial_library.pickle'
@@ -68,7 +63,6 @@ hba_ligands = 0
 originals = 0
 original_subs = 0
 chembl_match = 0
-scaffold = 0
 novel = 0
 
 n_per_sp, n_filtered_per_sp = {}, {}
@@ -101,7 +95,7 @@ for in_path in in_paths:
     print(str(in_path))
     with open(str(in_path), 'rb') as pickle_in:
 
-        results.extend(pool.starmap(analyze_result, [(meta, fragments, original_ligands, chembl, scaffolds) for meta in pickle_loader(pickle_in)]))
+        results.extend(pool.starmap(analyze_result, [(meta, fragments, original_ligands, chembl) for meta in pickle_loader(pickle_in)]))
 
 # ================================ COMBINE RESULTS ======================================
 
@@ -153,9 +147,6 @@ for result in results:
     if result.chembl_match == 0 and result.original == 0 and result.original_sub == 0:
         novel += 1
 
-    # scaffold as substructures
-    scaffold += result.scaffold
-
     # number of atoms
     n_atoms[n] = n_atoms[n] + 1 if n in n_atoms else 1
 
@@ -170,7 +161,6 @@ print('Exact match in original ligands:', originals)
 print('Substructures of original ligands:', original_subs)
 print('Exact match in ChEMBL:', chembl_match)
 print('Novel ligand:', novel)
-# print('Kinase inhibitor scaffold contained:', scaffold)
 print('Lipinski rule of 5 fulfilled:', lipinski_ligands, lipinski_ligands/count_ligands)
 print('Molecular weight <= 500:', wt_ligands, wt_ligands/count_ligands)
 print('LogP <= 5:', logp_ligands, logp_ligands/count_ligands)

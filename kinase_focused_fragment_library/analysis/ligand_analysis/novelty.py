@@ -66,6 +66,11 @@ def read_original_ligands(frag_dict, path_to_klifs):
 
         # standardization
         ligand = standardize_mol(ligand)
+        # if ligand could not be standardized, skip
+        if not ligand:
+            print('Ligand could not be standardized: ', pdb)
+            return
+
         mols.append(ligand)
         inchi = Chem.MolToInchi(ligand)
         inchis.append(inchi)

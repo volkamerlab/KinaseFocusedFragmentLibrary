@@ -2,7 +2,7 @@
 
 class Result:
 
-    def __init__(self, meta, lipinski, mwt, logp, hbd, hba, n_atoms, original, original_sub, chembl_match, scaffold):
+    def __init__(self, meta, lipinski, mwt, logp, hbd, hba, n_atoms, original, original_sub, chembl_match):
 
         self.meta = meta
         self.n_subpockets = len(meta.frag_ids)
@@ -17,4 +17,3 @@ class Result:
         self.original = original
         self.original_sub = original_sub
         self.chembl_match = chembl_match
-        self.scaffold = scaffold

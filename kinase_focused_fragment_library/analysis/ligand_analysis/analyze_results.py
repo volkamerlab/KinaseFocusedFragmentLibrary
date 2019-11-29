@@ -6,7 +6,7 @@ from rdkit import Chem
 from standardize import standardize_mol
 
 
-def analyze_result(meta, data, original_ligands, chembl, scaffolds):
+def analyze_result(meta, data, original_ligands, chembl):
 
     ligand, pdbs, fragpdbs = construct_ligand(meta, data)
     # if ligand could not be constructed, skip
@@ -18,6 +18,11 @@ def analyze_result(meta, data, original_ligands, chembl, scaffolds):
     # Chem.GetSymmSSSR(ligand)
 
     ligand = standardize_mol(ligand)
+    # if ligand could not be standardized, skip
+    if not ligand:
+        print('Ligand could not be standardized: ', meta)
+        return
+
     inchi = Chem.MolToInchi(ligand)
 
     # Lipinski rule
@@ -44,12 +49,7 @@ def analyze_result(meta, data, original_ligands, chembl, scaffolds):
     if not chembl_matches.empty:
         chembl_match = 1
 
-    scaffold = 0
-    # Does ligand contain a Hu and Bajorath scaffold as substructure?
-    #if not scaffolds[scaffolds.mol <= ligand].empty:
-    #    scaffold = 1
-
     # construct Result object
-    result = Result(meta, lipinski, wt, logp, hbd, hba, n, original, original_sub, chembl_match, scaffold)
+    result = Result(meta, lipinski, wt, logp, hbd, hba, n, original, original_sub, chembl_match)
 
     return result

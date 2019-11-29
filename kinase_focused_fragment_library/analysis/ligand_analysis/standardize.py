@@ -6,17 +6,19 @@ import argparse
 RDLogger.DisableLog('rdApp.*')
 
 
-# TODO: include try-excepts here!
 def standardize_mol(mol):
-    Chem.SanitizeMol(mol)
-    mol = Chem.RemoveHs(mol)
-    mol = rdMolStandardize.MetalDisconnector().Disconnect(mol)
-    mol = rdMolStandardize.Normalize(mol)
-    mol = rdMolStandardize.Reionize(mol)
-    u = rdMolStandardize.Uncharger()
-    mol = u.uncharge(mol)
-    Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
-    return mol
+    try:
+        Chem.SanitizeMol(mol)
+        mol = Chem.RemoveHs(mol)
+        mol = rdMolStandardize.MetalDisconnector().Disconnect(mol)
+        mol = rdMolStandardize.Normalize(mol)
+        mol = rdMolStandardize.Reionize(mol)
+        u = rdMolStandardize.Uncharger()
+        mol = u.uncharge(mol)
+        Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
+        return mol
+    except:
+        return None
 
 
 def standardize_inchi(input_inchi):
@@ -58,5 +60,5 @@ def command_parser():
 
 if __name__ == "__main__":
     input_inchi = command_parser()
-    inchi = standardize_mol(input_inchi)
+    inchi = standardize_inchi(input_inchi)
     print(inchi)
