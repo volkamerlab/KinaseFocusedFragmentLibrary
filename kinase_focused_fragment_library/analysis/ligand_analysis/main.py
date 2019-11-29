@@ -2,6 +2,7 @@ from pathlib import Path
 import time
 import matplotlib.pyplot as plt
 import pickle
+import pandas as pd
 
 import multiprocessing as mp
 
@@ -11,7 +12,7 @@ sys.path.append('../../recombination')
 from construct_ligand import read_fragment_library
 from pickle_loader import pickle_loader
 from analyze_results import analyze_result
-from novelty import read_original_ligands, read_smiles
+from novelty import read_original_ligands, read_chembl
 import argparse
 
 from rdkit import Chem
@@ -21,7 +22,7 @@ Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--fragmentlibrary', type=str, help='path to fragment library', required=True)
-parser.add_argument('-chembl', type=str, help='file with standardized chembl data (SMILES)', required=True)
+parser.add_argument('-chembl', type=str, help='file with standardized chembl data (InChIs)', required=True)
 parser.add_argument('-klifs', type=str, help='path to KLIFS_download folder (original ligands)', required=True)
 parser.add_argument('-o', '--combinatoriallibrary', type=str, help='output path', required=True)
 args = parser.parse_args()
@@ -31,13 +32,17 @@ args = parser.parse_args()
 subpockets = ['AP', 'FP', 'SE', 'GA', 'B1', 'B2']
 fragments = read_fragment_library(Path(args.fragmentlibrary), subpockets)
 
+# standardize chembl
+# chembl = read_chembl(args.chembl)
+
+# read standardized chembl inchis
+print('Read', args.chembl)
+chembl = pd.read_csv(args.chembl, header=None, names=['standard_inchi'])
+print('Number of ChEMBL molecules:', chembl.shape[0])
+
 # original ligands from KLIFS
 path_to_klifs = Path(args.klifs) / 'KLIFS_download'
 original_ligands = read_original_ligands(fragments, path_to_klifs)
-
-# read standardized chembl smiles
-chembl = read_smiles(args.chembl)
-print('Number of ChEMBL molecules:', chembl.shape[0])
 
 # kinase inhibitor scaffolds identified by Hu and Bajorath (dx.doi.org/10.1021/jm501237k | J. Med. Chem. 2015, 58, 315−332)
 # scaffolds = read_scaffolds(['../../data/Kinase_Inhibitors_And_Scaffolds/Ki_Subset/Kinase_Based_Scaffold_Sets_Ki.dat',

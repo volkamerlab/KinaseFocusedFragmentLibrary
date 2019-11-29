@@ -2,16 +2,32 @@ from rdkit import Chem
 import pandas as pd
 from rdkit.Chem import PandasTools
 
-from standardize import standardize_smiles
+from standardize import standardize_mol, standardize_inchi
 
 
-def read_smiles(file):
+def read_chembl(in_file):
 
-    print('Read', file)
+    print('Read', in_file)
 
-    smiles = pd.read_csv(file, header=None, names=['smiles'])
+    # chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
 
-    return smiles
+    mols = pd.read_csv(in_file, sep='\t')
+    chembl = mols.drop(['canonical_smiles', 'chembl_id', 'standard_inchi_key'], axis='columns')
+
+    print('Number of ChEMBL molecules:', mols.shape[0])
+
+    chembl['standard_inchi_new'] = chembl['standard_inchi'].apply(standardize_inchi)
+    chembl['diff'] = chembl.apply(lambda x: x['standard_inchi'] != x['standard_inchi_new'], axis=1)
+    print('Standardized ChEMBL molecules:', sum(chembl['diff']))
+
+    chembl = chembl['standard_inchi_new']
+    chembl = chembl.dropna(how='any')
+
+    chembl.to_csv('chembl_standardized_inchi', header=0, index=0)
+
+    print('Number of filtered ChEMBL molecules:', len(chembl), mols.shape[0]-len(chembl))
+
+    return chembl
 
 
 def read_scaffolds(files):
@@ -42,31 +58,22 @@ def read_original_ligands(frag_dict, path_to_klifs):
         for frag in frag_dict[subpocket]:
             kinases_pdbs.add((frag.GetProp('kinase'), frag.GetProp('_Name')))
 
-    smiles = []
-    # inchis = []
+    inchis = []
+    mols = []
     for kinase, pdb in kinases_pdbs:
         f = path_to_klifs / ('HUMAN/' + kinase + '/' + pdb + '/ligand.mol2')
         ligand = Chem.MolFromMol2File(str(f))
+
         # standardization
-        # ligand = standardize_mol(ligand)
-        # ligand.SetProp('complex_pdb', pdb)
-        s = Chem.MolToSmiles(ligand)
-        s = standardize_smiles(s)
-        smiles.append(s)
-        # inchis.append(Chem.MolToInchi(ligand))
+        ligand = standardize_mol(ligand)
+        mols.append(ligand)
+        inchi = Chem.MolToInchi(ligand)
+        inchis.append(inchi)
 
-    print('Number of original ligands :', len(smiles))
+    print('Number of original ligands :', len(inchis))
 
-    # ligands = pd.DataFrame(data=inchis, dtype=str, columns=['inchi'])
-
-    # TODO: standardize molecules instead of removing p+1 from InChI
-    # remove all protonations
-    # ligands['inchi'] = ligands.inchi.str.replace(r'/p\+1', '')
-
-    ligands = pd.DataFrame(data=smiles, dtype=str, columns=['smiles'])
-
+    ligands = pd.DataFrame(data=inchis, dtype=str, columns=['inchi'])
     # add molecule column
-    # ligands['smiles'] = smiles
-    PandasTools.AddMoleculeColumnToFrame(ligands, 'smiles', 'mol')
+    ligands['mol'] = mols
 
     return ligands

@@ -6,23 +6,15 @@ import argparse
 RDLogger.DisableLog('rdApp.*')
 
 
-def standardize_smiles(input_smiles):
-
-    try:
-        smiles = rdMolStandardize.StandardizeSmiles(input_smiles)
-    except Exception as e:
-        print(e, input_smiles)
-        return None
-
-    return smiles
-
-
+# TODO: include try-excepts here!
 def standardize_mol(mol):
     Chem.SanitizeMol(mol)
     mol = Chem.RemoveHs(mol)
     mol = rdMolStandardize.MetalDisconnector().Disconnect(mol)
     mol = rdMolStandardize.Normalize(mol)
     mol = rdMolStandardize.Reionize(mol)
+    u = rdMolStandardize.Uncharger()
+    mol = u.uncharge(mol)
     Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
     return mol
 
@@ -38,15 +30,22 @@ def standardize_inchi(input_inchi):
         return None
     try:
         Chem.SanitizeMol(mol)
+        mol = Chem.RemoveHs(mol)
+        mol = rdMolStandardize.MetalDisconnector().Disconnect(mol)
+        mol = rdMolStandardize.Normalize(mol)
+        mol = rdMolStandardize.Reionize(mol)
+        u = rdMolStandardize.Uncharger()
+        mol = u.uncharge(mol)
+        Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
     except:
-        print('ERROR in SanitizeMol:', input_inchi)
+        print('ERROR in standardization:', input_inchi)
         return None
-    mol = Chem.RemoveHs(mol)
-    mol = rdMolStandardize.MetalDisconnector().Disconnect(mol)
-    mol = rdMolStandardize.Normalize(mol)
-    mol = rdMolStandardize.Reionize(mol)
-    Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
-    return Chem.MolToInchi(mol)
+    try:
+        inchi = Chem.MolToInchi(mol)
+    except:
+        print('ERROR in MolToInchi:', input_inchi)
+        return None
+    return inchi
 
 
 def command_parser():
