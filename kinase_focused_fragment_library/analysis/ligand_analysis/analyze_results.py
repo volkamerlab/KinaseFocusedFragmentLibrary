@@ -56,10 +56,6 @@ def analyze_result(meta, data, original_ligands, chembl, scaffolds):
     chembl_matches = chembl[chembl.standard_inchi == inchi]
     if not chembl_matches.empty:
         chembl_match = 1
-        print('ChEMBL:', fragpdbs, pdbs, inchi)
-    else:
-        if original == 1:
-            print('Original but not ChEMBL:', fragpdbs, pdbs, inchi)
 
     scaffold = 0
     # Does ligand contain a Hu and Bajorath scaffold as substructure?
