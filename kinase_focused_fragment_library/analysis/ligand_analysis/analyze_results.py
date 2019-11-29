@@ -1,20 +1,12 @@
 from construct_ligand import construct_ligand
 from drug_likeliness import is_drug_like
 from Result import Result
+from rdkit import Chem
 
 from standardize import standardize_mol
 
-# global pains
-from rdkit.Chem.FilterCatalog import *
-params = FilterCatalogParams()
-# Build a catalog from all PAINS (A, B and C)
-params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
-pains = FilterCatalog(params)
-
 
 def analyze_result(meta, data, original_ligands, chembl, scaffolds):
-
-    global pains
 
     ligand, pdbs, fragpdbs = construct_ligand(meta, data)
     # if ligand could not be constructed, skip
@@ -30,11 +22,6 @@ def analyze_result(meta, data, original_ligands, chembl, scaffolds):
 
     # Lipinski rule
     lipinski, wt, logp, hbd, hba = is_drug_like(ligand)
-
-    # PAINS substructure search
-    match = pains.GetFirstMatch(ligand)
-
-    pains_found = 0 if match is None else 1
 
     # number of atoms
     n = ligand.GetNumHeavyAtoms()
@@ -63,6 +50,6 @@ def analyze_result(meta, data, original_ligands, chembl, scaffolds):
     #    scaffold = 1
 
     # construct Result object
-    result = Result(meta, lipinski, wt, logp, hbd, hba, pains_found, n, original, original_sub, chembl_match, scaffold)
+    result = Result(meta, lipinski, wt, logp, hbd, hba, n, original, original_sub, chembl_match, scaffold)
 
     return result
