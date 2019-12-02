@@ -30,23 +30,6 @@ def read_chembl(in_file):
     return chembl
 
 
-def read_scaffolds(files):
-
-    scaffolds = pd.DataFrame()
-
-    for file in files:
-
-        print('Read', file)
-
-        scaffolds = scaffolds.append(pd.read_csv(file, sep='\t'))
-
-    print('Number of kinase inhibitor scaffolds:', scaffolds.shape[0])
-
-    PandasTools.AddMoleculeColumnToFrame(scaffolds, 'BM_SMILES', 'mol')
-
-    return scaffolds
-
-
 def read_original_ligands(frag_dict, path_to_klifs):
 
     print('Read original ligands.')
