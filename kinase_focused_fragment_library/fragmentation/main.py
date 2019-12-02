@@ -34,7 +34,7 @@ not_ap = []
 large_brics = []
 count_x = 0
 count_structures = 0
-invalid_subpocket_connections = {}
+unwanted_subpocket_connections = {}
 # count number of subpockets occupied by the ligands
 count_sps = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
 # count number of each subpocket connection
@@ -229,6 +229,7 @@ for index, entry in KLIFSData.iterrows():
             else:
                 bp_frag.subpocket = Subpocket('X-'+bp_frag.subpocket.name)
 
+    conns = set()  # subpocket connections in this ligand
     # check subpocket connections again after adaptation
     for (beginAtom, endAtom) in atom_tuples:
 
@@ -238,26 +239,29 @@ for index, entry in KLIFSData.iterrows():
         sp_1 = firstFragment.subpocket
         sp_2 = secondFragment.subpocket
         conn = frozenset((sp_1.name, sp_2.name))
+        conns.add(conn)
 
-        # store invalid subpocket connections
+        if not is_valid_subpocket_connection(sp_1, sp_2):
+
+            print(folder+':')
+            print('Unwanted subpocket connection:', sp_1.name, '-', sp_2.name, '. Structure is skipped.\n')
+
+            # store unwanted subpocket connections
+            if conn in unwanted_subpocket_connections:
+                unwanted_subpocket_connections[conn].append(entry.pdb + ' ' + entry.chain + ' ' + entry.pdb_id)
+            else:
+                unwanted_subpocket_connections[conn] = [entry.pdb + ' ' + entry.chain + ' ' + entry.pdb_id]
+
+            skipStructure = True
+            break
+
+    # store all occurring subpocket connections
+    for conn in conns:
         if conn in subpocket_connections:
             subpocket_connections[conn] += 1
         else:
             subpocket_connections[conn] = 1
 
-        if not is_valid_subpocket_connection(sp_1, sp_2):
-
-            print(folder+':')
-            print('Invalid subpocket connection:', sp_1.name, '-', sp_2.name, '. Structure is skipped.\n')
-
-            # store invalid subpocket connections
-            if conn in invalid_subpocket_connections:
-                invalid_subpocket_connections[conn].append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
-            else:
-                invalid_subpocket_connections[conn] = [entry.pdb+' '+entry.chain+' '+entry.pdb_id]
-
-            skipStructure = True
-            break
 
     if skipStructure:
         continue
@@ -333,7 +337,7 @@ print('\nNumber of discarded structures: ')
 print('Missing residue position could not be inferred: ', len(missing_res))
 print('Ligands with too large BRICS fragments: ', len(large_brics))
 print('Ligands not occupying AP:', len(not_ap))
-print('Invalid subpocket connections:', sum([len(invalid_subpocket_connections[conn]) for conn in invalid_subpocket_connections]))
+print('Unwanted subpocket connections:', sum([len(unwanted_subpocket_connections[conn]) for conn in unwanted_subpocket_connections]))
 print('Fragments in X pool:', count_x)
 
 folderName = Path(args.fragmentlibrary) / 'discarded_ligands'
@@ -351,8 +355,8 @@ with open(folderName / 'not_ap.txt', 'w') as o:
     for struct in not_ap:
         o.write(struct+'\n')
 
-with open(folderName / 'invalid_subpocket_connections.txt', 'w') as o:
-    for conn in invalid_subpocket_connections:
+with open(folderName / 'unwanted_subpocket_connections.txt', 'w') as o:
+    for conn in unwanted_subpocket_connections:
         lst = [sp for sp in conn]
-        for struct in invalid_subpocket_connections[conn]:
+        for struct in unwanted_subpocket_connections[conn]:
             o.write(struct+' '+lst[0] + '-' + lst[1]+'\n')
