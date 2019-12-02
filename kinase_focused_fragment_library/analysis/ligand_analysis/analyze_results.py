@@ -11,7 +11,7 @@ def analyze_result(meta, data, original_ligands, chembl):
     ligand = construct_ligand(meta, data)
     # if ligand could not be constructed, skip
     if not ligand:
-        print('Ligand could not be constructed: ', meta)
+        print('Ligand could not be constructed: ', meta.frag_ids)
         return
 
     # necessary for Lipinski rule
@@ -20,7 +20,7 @@ def analyze_result(meta, data, original_ligands, chembl):
     ligand = standardize_mol(ligand)
     # if ligand could not be standardized, skip
     if not ligand:
-        print('Ligand could not be standardized: ', meta)
+        print('Ligand could not be standardized: ', meta.frag_ids)
         return
 
     inchi = Chem.MolToInchi(ligand)

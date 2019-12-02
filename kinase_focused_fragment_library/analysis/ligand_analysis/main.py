@@ -1,6 +1,6 @@
 from pathlib import Path
 import time
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import pickle
 import pandas as pd
 
@@ -78,9 +78,6 @@ for i in range(len(subpockets)):
 n_atoms = {}
 n_atoms_filtered = {}
 
-start = time.time()
-
-metas = []
 results = []
 
 n_processes = 2  # mp.cpu_count()
@@ -89,28 +86,41 @@ pool = mp.Pool(n_processes)
 
 # ========================= CONSTRUCT AND ANALYZE LIGANDS ==============================
 
+start = time.time()
+
+combinatorial_library_file = combinatorial_library_file.open('wb')
+
 # iterate over ligands
 for in_path in in_paths:
 
     print(str(in_path))
     with open(str(in_path), 'rb') as pickle_in:
 
-        results.extend(pool.starmap(analyze_result, [(meta, fragments, original_ligands, chembl) for meta in pickle_loader(pickle_in)]))
+        tmp_results = pool.starmap(analyze_result, [(meta, fragments, original_ligands, chembl) for meta in pickle_loader(pickle_in)])
 
+        # store in combinatorial library
+        for result in tmp_results:
+            pickle.dump(result, combinatorial_library_file)
+
+        combinatorial_library_file.flush()
+
+        results.extend(tmp_results)
+
+combinatorial_library_file.close()
+
+runtime = time.time() - start
+print('Time: ', runtime)
+
+"""
 # ================================ COMBINE RESULTS ======================================
 
 print('Process results.')
-
-combinatorial_library_file = combinatorial_library_file.open('wb')
 
 # combine results
 for result in results:
 
     if result is None:
         continue
-
-    # store in combinatorial library
-    pickle.dump(result, combinatorial_library_file)
 
     count_ligands += 1
 
@@ -153,9 +163,7 @@ for result in results:
 
 # ==================================== OUTPUT ============================================
 
-combinatorial_library_file.close()
 
-runtime = time.time() - start
 print('Number of resulting ligands:', count_ligands)
 print('Exact match in original ligands:', originals)
 print('Substructures of original ligands:', original_subs)
@@ -166,7 +174,6 @@ print('Molecular weight <= 500:', wt_ligands, wt_ligands/count_ligands)
 print('LogP <= 5:', logp_ligands, logp_ligands/count_ligands)
 print('HB donors <= 5:', hbd_ligands, hbd_ligands/count_ligands)
 print('HB acceptors <= 10:', hba_ligands, hba_ligands/count_ligands)
-print('Time: ', runtime)
 
 # ==================================== PLOTS ============================================
 
@@ -255,3 +262,4 @@ plt.xlabel('# Heavy atoms')
 plt.ylabel('# Ligands [%]')
 plt.legend(loc='upper right')
 plt.savefig(combinatorial_library_folder / 'n_atoms.png')
+"""

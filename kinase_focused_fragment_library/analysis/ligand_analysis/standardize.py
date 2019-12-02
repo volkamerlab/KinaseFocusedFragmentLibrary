@@ -17,7 +17,8 @@ def standardize_mol(mol):
         mol = u.uncharge(mol)
         Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
         return mol
-    except:
+    except Exception as e:
+        print(e)
         return None
 
 

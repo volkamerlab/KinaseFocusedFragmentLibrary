@@ -1,6 +1,7 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.PropertyMol import PropertyMol
+from functools import reduce
 
 
 # ============================= READ FRAGMENT ===============================================
@@ -28,7 +29,7 @@ def read_fragment_library(path_to_library, subpockets, n=None):
     data = {}
     for folder, subpocket in zip(folders, subpockets):
 
-        file = folder / (subpocket + '.sdf')
+        file = folder / (subpocket + '_reduced_0.6.sdf')
 
         # read molecules
         # keep hydrogen atoms
@@ -91,7 +92,6 @@ def construct_ligand(meta, data):
         fragments.append(fragment)
 
     # combine fragments using map reduce model
-    from functools import reduce
     combo = reduce(Chem.CombineMols, fragments)
 
     bonds_matching = True
