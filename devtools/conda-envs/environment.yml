@@ -12,6 +12,7 @@ dependencies:
   - pandas
   - rdkit=2019.03.2
   - parmed  
+  - pmw
   - pymol
   - python=3.6.8
   - scikit-learn
