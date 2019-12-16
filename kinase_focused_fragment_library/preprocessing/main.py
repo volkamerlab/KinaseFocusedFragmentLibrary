@@ -1,8 +1,9 @@
 from pathlib import Path
 from rdkit import Chem
 import argparse
+import pandas as pd
 
-from preprocessing import preprocess_klifs_data, get_folder_name
+from preprocessing import read_klifs_meta_data, choose_best_klifs_structure, get_folder_name
 from discard import is_covalent, contains_phosphate, contains_ribose, get_ligand_from_multi_ligands
 
 # ============================= INPUT ===============================================
@@ -20,8 +21,11 @@ path_to_KLIFS_export = path_to_data / 'KLIFS_export.csv'
 # ============================= PREPROCESSING ===============================================
 
 # select one structure per PDB
-KLIFSData = preprocess_klifs_data(path_to_KLIFS_download, path_to_KLIFS_export)
+KLIFSData = read_klifs_meta_data(path_to_KLIFS_download, path_to_KLIFS_export)
 count_structures = len(KLIFSData)
+# We are not interested in Atypical kinases
+KLIFSData = KLIFSData[KLIFSData.group != 'Atypical']
+count_atypical = count_structures - len(KLIFSData)
 # select only human kinases
 KLIFSData = KLIFSData[KLIFSData.species == 'Human']
 before = len(KLIFSData)
@@ -29,22 +33,25 @@ before = len(KLIFSData)
 KLIFSData = KLIFSData[KLIFSData.dfg == 'in']
 after_dfg = len(KLIFSData)
 count_dfg_out = before - after_dfg
-# We are not interested in Atypical kinases
-KLIFSData = KLIFSData[KLIFSData.group != 'Atypical']
-count_atypical = after_dfg - len(KLIFSData)
+# select best structure per PDB
+KLIFSData = choose_best_klifs_structure(KLIFSData)
+count_structures = len(KLIFSData)
+count_duplicate_pdbs = after_dfg - count_structures
 
 # ============================= INITIALIZATIONS ===============================================
 
 # count discarded structures
 count_ligand_errors = 0
 count_pocket_errors = 0
+count_multi_ligands = 0
+count_substrates = 0
+count_covalent = 0
 
-errors = []
-multi_ligands = []
-substrates = []
-covalent = []
-
+# output file with metadata of structures chosen for fragmentation
 filtered_data = KLIFSData.copy()
+
+# output file with metadata of discarded structures
+discarded_structures = pd.DataFrame()
 
 # iterate over molecules
 for index, entry in KLIFSData.iterrows():
@@ -56,13 +63,16 @@ for index, entry in KLIFSData.iterrows():
     # discard substrates
     if entry.pdb_id in ['AMP', 'ADP', 'ATP', 'ACP', 'ANP', 'ADN', 'ADE']:
         filtered_data = filtered_data.drop(index)
-        substrates.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
+        count_substrates += 1
+        entry['violation'] = 'Substrate'
+        discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
 
     # load ligand and binding pocket to rdkit molecules
     ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
     pocket = Chem.MolFromMol2File(str(path_to_data / folder / 'pocket.mol2'), removeHs=False)
 
+    # check if KLIFS ligand and protein are loadable with RDKit
     try:
         ligandConf = ligand.GetConformer()
     except AttributeError:  # empty molecule
@@ -70,7 +80,8 @@ for index, entry in KLIFSData.iterrows():
         print('Ligand '+entry.pdb_id+' ('+folder+') could not be loaded. \n')
         count_ligand_errors += 1
         filtered_data = filtered_data.drop(index)
-        errors.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
+        entry['violation'] = 'Unloadable ligand'
+        discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
     try:
         pocketConf = pocket.GetConformer()
@@ -79,21 +90,26 @@ for index, entry in KLIFSData.iterrows():
         print('Pocket '+folder+' could not be loaded. \n')
         count_pocket_errors += 1
         filtered_data = filtered_data.drop(index)
-        errors.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
+        entry['violation'] = 'Unloadable pocket'
+        discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
 
     # discard ligands containing phosphates
     if contains_phosphate(ligand):
         print('Phosphate in', entry.pdb, entry.pdb_id, '\n')
         filtered_data = filtered_data.drop(index)
-        substrates.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
+        count_substrates += 1
+        entry['violation'] = 'Contains phosphate'
+        discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
 
     # discard ligands containing riboses
     if contains_ribose(ligand):
         print('Ribose in', entry.pdb, entry.pdb_id)
         filtered_data = filtered_data.drop(index)
-        substrates.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
+        count_substrates += 1
+        entry['violation'] = 'Contains ribose'
+        discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
 
     # multiple ligands in one structure
@@ -105,18 +121,28 @@ for index, entry in KLIFSData.iterrows():
             print('ERROR in ' + folder + ':')
             print('Ligand consists of multiple molecules. Structure is skipped. \n')
             filtered_data = filtered_data.drop(index)
-            multi_ligands.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
+            count_multi_ligands += 1
+            entry['violation'] = 'Multiple ligands present'
+            discarded_structures = discarded_structures.append(entry, ignore_index=True)
             continue
 
     # discard covalent ligands
     if is_covalent(entry.pdb, entry.pdb_id, entry.chain):
         print('Covalent inhibitor', entry.pdb, entry.pdb_id, entry.chain, '\n')
         filtered_data = filtered_data.drop(index)
-        covalent.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
+        count_covalent += 1
+        entry['violation'] = 'Covalent ligand'
+        discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
 
 
+# write to output files
 filtered_data.to_csv(path_to_data / 'filtered_ligands.csv')
+
+folderName = Path(args.fragmentlibrary) / 'discarded_ligands'
+if not folderName.exists():
+    Path.mkdir(folderName)
+discarded_structures.to_csv(folderName / 'preprocessing.csv')
 
 
 # output statistics
@@ -126,23 +152,6 @@ print('DFG-out/out-like conformations: ', count_dfg_out)
 print('Atypical kinases: ', count_atypical)
 print('Ligand could not be loaded: ', count_ligand_errors)
 print('Pocket could not be loaded: ', count_pocket_errors)
-print('Substrates/substrate analogs: ', len(substrates))
-print('Multiple ligands in structure: ', len(multi_ligands))
-print('Covalent ligands: ', len(covalent))
-
-folderName = Path(args.fragmentlibrary) / 'discarded_ligands'
-if not folderName.exists():
-    Path.mkdir(folderName)
-
-with open(folderName / 'errors.txt', 'w') as o:
-    for struct in errors:
-        o.write(struct+'\n')
-with open(folderName / 'multi_ligands.txt', 'w') as o:
-    for struct in multi_ligands:
-        o.write(struct+'\n')
-with open(folderName / 'substrates.txt', 'w') as o:
-    for struct in substrates:
-        o.write(struct+'\n')
-with open(folderName / 'covalent.txt', 'w') as o:
-    for struct in covalent:
-        o.write(struct+'\n')
+print('Substrates/substrate analogs: ', count_substrates)
+print('Multiple ligands in structure: ', count_multi_ligands)
+print('Covalent ligands: ', count_covalent)

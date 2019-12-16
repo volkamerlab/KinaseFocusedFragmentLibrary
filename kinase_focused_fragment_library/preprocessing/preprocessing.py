@@ -4,15 +4,14 @@ import pandas as pd
 # code taken and adapted from
 # https://github.com/AndreaVolkamer/KinaseSimilarity/blob/master/Bachelorarbeit/structFP_phchem/structFP_phchem_preprocessing.ipynb
 
-def preprocess_klifs_data(path_to_klifs_download, path_to_klifs_export):
+
+def read_klifs_meta_data(path_to_klifs_download, path_to_klifs_export):
 
     """
     Given the two CSV files downloaded from KLIFS:
     - merges the two dataframes
-    - adds a column listing the missing residue numbers
-    - for each PDB code, selects the structure with the best quality score
     - selects relevant columns
-    - returns the filtered dataframe
+    - adds a column listing the missing residue numbers
 
     Parameters
     ----------
@@ -23,77 +22,70 @@ def preprocess_klifs_data(path_to_klifs_download, path_to_klifs_export):
 
     Returns
     -------
-    df_screened: Pandas DataFrame
-        Filtered dataframe including best quality structure for each PDB
+    df: Pandas DataFrame
+        Dataframe including merged KLIFS metadata
 
     """
 
     # read overview file
-    df = pd.read_csv(path_to_klifs_download)
+    df_overview = pd.read_csv(path_to_klifs_download)
     # read export file
-    df_csv = pd.read_csv(path_to_klifs_export)
+    df_export = pd.read_csv(path_to_klifs_export)
     # rename columns
-    df_csv.columns = ['kinase', 'family', 'group', 'pdb', 'chain', 'alt', 'species', 'ligand', 'pdb_id',
+    df_export.columns = ['kinase', 'family', 'group', 'pdb', 'chain', 'alt', 'species', 'ligand', 'pdb_id',
                       'allosteric_name', 'allosteric_PDB', 'dfg', 'ac_helix']
 
     # sync kinase names for both data frames
-    for ix, row in df_csv.iterrows():
-        a = row.alt
-        s = row.kinase
-        if '(' in s:
-            row.kinase = s[s.find("(") + 1:s.find(")")]
-        if a == '-':
+    for ix, row in df_export.iterrows():
+        alt = row.alt
+        kinase = row.kinase
+        if '(' in kinase:
+            row.kinase = kinase[kinase.find("(") + 1:kinase.find(")")]
+        if alt == '-':
             row.alt = ' '
 
     # outer merge, as information from both data frames should be kept
-    df_screen = pd.merge(df, df_csv, how='outer', on=['species', 'kinase', 'pdb', 'chain', 'alt', 'allosteric_PDB'])
+    df = pd.merge(df_overview, df_export, how='outer', on=['species', 'kinase', 'pdb', 'chain', 'alt', 'allosteric_PDB'])
 
     # loose irrelevant data
-    df_screen = df_screen[['kinase', 'family', 'group', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix',
+    df = df[['kinase', 'family', 'group', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix',
                            'missing_residues', 'pocket']]
 
     # add column with positions of missing residues (replacing column with number of missing residues)
-    df_screen = add_missing_residues(df_screen)
+    df = add_missing_residues(df)
+
+    return df
+
+
+def choose_best_klifs_structure(klifs_meta_data):
+
+    """
+    Chooses the best quality KLIFS structure for each PDB in a dataframe containing metadata from KLIFS
+
+    Parameters
+    ----------
+    klifs_meta_data: Pandas DataFrame
+        DataFrame containing metadata from KLIFS, created using read_klifs_meta_data
+
+    Returns
+    -------
+    klifs_meta_data_filtered: Pandas DataFrame
+        Filtered dataframe including only the best quality structure for each PDB
+
+    """
 
     # For each kinase with x different pdb codes: for each pdb code keep the structure with the best quality score
-    df_screened = df_screen.groupby(["kinase", "pdb"]).max()["qualityscore"].reset_index()
+    klifs_meta_data_filtered = klifs_meta_data.groupby(["kinase", "pdb"]).max()["qualityscore"].reset_index()
 
     # Merge with df_screen, because we need chain information for next filtering step
     # left merge, as meta data from right frame is added to the left frame
-    df_screened = pd.merge(df_screened, df_screen, how='left', on=['kinase', 'pdb', 'qualityscore'])
+    klifs_meta_data_filtered = pd.merge(klifs_meta_data_filtered, klifs_meta_data, how='left', on=['kinase', 'pdb', 'qualityscore'])
 
     # if same pdb code with same best score but different chain number: keep first chain
-    df_screened.drop_duplicates(subset=["kinase", "pdb", "qualityscore"], keep='first', inplace=True)
-    df_screened.reset_index(drop=True, inplace=True)
+    klifs_meta_data_filtered.drop_duplicates(subset=["kinase", "pdb", "qualityscore"], keep='first', inplace=True)
+    klifs_meta_data_filtered.reset_index(drop=True, inplace=True)
 
-    # ------------ CHECKING --------------
-
-    # # number of distinct pdb codes existing for each kinase (just for checking with database)
-    # df_group = df_screened.groupby(["kinase"]).pdb.nunique().reset_index()
-    # # print(df_group)
-    # # check if there are still multiple pdb codes per kinase
-    # if df_screened.shape[0] != df_group.pdb.sum():
-    #     print('ERROR: Something went wrong. Multiple PDB codes per kinase!')
-    #     sys.exit()
-    # # Check if there is a unique pdb code for every kinase structure in the screened data set
-    # df_group = df_screened.groupby(["kinase"]).pdb.nunique().reset_index()
-    # if df_screened.shape[0] != df_group.pdb.sum():
-    #     print('PDB codes not unique amongst kinases!')
-
-    # # plot gap rate
-    # missingResidues = []
-    # for entry in df_screened.missing_residues:
-    #     missingResidues.extend(entry)
-    # plt.hist(missingResidues, density=True, bins=85, rwidth=0.8)
-    # plt.title('Gap rate of 85 binding pocket residues')
-    # plt.xticks(range(5, 85, 5))
-    # plt.xlabel('KLIFS residue number')
-    # plt.show()
-    # sys.exit()
-
-    # -------------------------------------
-
-    return df_screened
+    return klifs_meta_data_filtered
 
 
 def add_missing_residues(df):
