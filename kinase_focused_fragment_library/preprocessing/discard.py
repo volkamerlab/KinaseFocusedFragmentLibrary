@@ -2,17 +2,16 @@ import parmed as pmd
 from rdkit import Chem
 
 
-phosphate = Chem.MolFromSmiles('O[P](O)(O)O')
-phosphate2 = Chem.MolFromSmiles('O[P](=O)(O)O')
-phosphatep = Chem.MolFromSmiles('O[P+](O)(O)O')
-ribose = Chem.MolFromSmiles('OC1COCC1O')
+PHOSPHATES = [Chem.MolFromSmiles('O[P](O)(O)O'), Chem.MolFromSmiles('O[P](=O)(O)O'), Chem.MolFromSmiles('O[P+](O)(O)O')]
+RIBOSE = Chem.MolFromSmiles('OC1COCC1O')
 
-# covalent inhibitors that were not found using the is_covalent function below
-covalent = ['4d9t', '4hct', '4kio']
-# non-covalent inhibitors that were identified as covalent using the is_covalent function below
-not_covalent = ['2clx', '4cfn']
+# These ligands are not correctly identified as covalent/non-covalent using the is_covalent function below.
+# This problem was identified after correspondence with Albert Kooistra
+COVALENT_LIGAND_PDB_IDS = ['4d9t', '4hct', '4kio']
+NON_COVALENT_LIGAND_PDB_IDS = ['2clx', '4cfn']
+
 # three letter codes of all amino acids (used to identify protein atoms in PDB file)
-aa = '\t'.join(["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN",
+AMINO_ACIDS = '\t'.join(["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN",
                 "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE",
                 "PRO", "SER", "THR", "TRP", "TYR", "VAL"])
 
@@ -55,19 +54,19 @@ def contains_phosphate(mol):
     """
     Check if given molecule contains a phosphate group
     """
-    return mol.HasSubstructMatch(phosphate) \
-    or mol.HasSubstructMatch(phosphate2) \
-    or mol.HasSubstructMatch(phosphatep)
+    return mol.HasSubstructMatch(PHOSPHATES[0]) \
+    or mol.HasSubstructMatch(PHOSPHATES[1]) \
+    or mol.HasSubstructMatch(PHOSPHATES[2])
 
 
 def contains_ribose(mol):
     """
     Check if given molecule contains a ribose
     """
-    return mol.HasSubstructMatch(ribose)
+    return mol.HasSubstructMatch(RIBOSE)
 
 
-def is_covalent(pdb, pdb_id, chain):
+def is_covalent(pdb, ligand_pdb, chain):
 
     """
     Check if in a given protein-ligand complex, the ligand is covalently linked to the protein
@@ -75,11 +74,11 @@ def is_covalent(pdb, pdb_id, chain):
 
     Parameters
     ----------
-    pdb: Str
+    pdb: str
         PDB ID of a protein-ligand structure
-    pdb_id: Str
+    ligand_pdb: str
         PDB ID of the ligand of interest
-    chain: Str
+    chain: str
         Chain of interest
 
     Returns
@@ -88,36 +87,37 @@ def is_covalent(pdb, pdb_id, chain):
 
     """
 
-    if pdb in covalent:
+    # These ligands are not correctly identified as covalent/non-covalent using this function.
+    # This problem was identified after correspondence with Albert Kooistra
+    if pdb in COVALENT_LIGAND_PDB_IDS:
         return True
-
-    if pdb in not_covalent:
+    if pdb in NON_COVALENT_LIGAND_PDB_IDS:
         return False
 
     protein_atom_numbers = []
 
-    print('Download PDB', pdb, pdb_id)
+    print('Download PDB', pdb, ligand_pdb)
     try:
         struct = pmd.download_PDB(pdb)
     except OSError:
         print('ERROR: Could not retrieve PDB', pdb, '\n')
         return False
 
+    ligand_atoms = None
+
     # find protein and ligand atoms
     for res in struct.residues:
         if res.chain == chain:
             # protein residue
-            if res.name in aa:
+            if res.name in AMINO_ACIDS:
                 protein_atom_numbers.extend([atom.idx for atom in res.atoms])
             # ligand found
-            elif res.name == pdb_id:
+            elif res.name == ligand_pdb:
                 ligand_atoms = res.atoms
                 break
 
-    try:
-        ligand_atoms
-    except NameError:
-        print('ERROR: Ligand not found in PDB file: ', pdb, pdb_id, '\n')
+    if ligand_atoms is None:
+        print('ERROR: Ligand not found in PDB file: ', pdb, ligand_pdb, '\n')
         return False
 
     # check if there is a connection between the ligand and the protein
