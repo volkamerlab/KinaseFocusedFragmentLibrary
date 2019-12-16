@@ -7,6 +7,15 @@ phosphate2 = Chem.MolFromSmiles('O[P](=O)(O)O')
 phosphatep = Chem.MolFromSmiles('O[P+](O)(O)O')
 ribose = Chem.MolFromSmiles('OC1COCC1O')
 
+# covalent inhibitors that were not found using the is_covalent function below
+covalent = ['4d9t', '4hct', '4kio']
+# non-covalent inhibitors that were identified as covalent using the is_covalent function below
+not_covalent = ['2clx', '4cfn']
+# three letter codes of all amino acids (used to identify protein atoms in PDB file)
+aa = '\t'.join(["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN",
+                "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE",
+                "PRO", "SER", "THR", "TRP", "TYR", "VAL"])
+
 
 def get_ligand_from_multi_ligands(ligand):
 
@@ -18,12 +27,13 @@ def get_ligand_from_multi_ligands(ligand):
 
     Parameters
     ----------
-    ligand: Mol
+    ligand: rdkit.Chem.Mol
         RDKit molecule object which should include multiple molecules
 
     Returns
     -------
-    Mol if a single molecule was extracted, None otherwise
+    rdkit.Chem.Mol or None
+        Molecule if a single molecule was extracted, None otherwise
 
     """
 
@@ -42,21 +52,19 @@ def get_ligand_from_multi_ligands(ligand):
 
 
 def contains_phosphate(mol):
+    """
+    Check if given molecule contains a phosphate group
+    """
     return mol.HasSubstructMatch(phosphate) \
     or mol.HasSubstructMatch(phosphate2) \
     or mol.HasSubstructMatch(phosphatep)
 
 
 def contains_ribose(mol):
+    """
+    Check if given molecule contains a ribose
+    """
     return mol.HasSubstructMatch(ribose)
-
-
-covalent = ['4d9t', '4hct', '4kio']
-not_covalent = ['2clx', '4cfn']
-
-aa = '\t'.join(["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN",
-                "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE",
-                "PRO", "SER", "THR", "TRP", "TYR", "VAL"])
 
 
 def is_covalent(pdb, pdb_id, chain):

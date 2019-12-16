@@ -18,11 +18,14 @@ path_to_data = Path(args.klifsdata) / 'KLIFS_download'
 path_to_KLIFS_download = path_to_data / 'overview.csv'
 path_to_KLIFS_export = path_to_data / 'KLIFS_export.csv'
 
-# ============================= PREPROCESSING ===============================================
+# ============================= READ METADATA ===============================================
 
 # select one structure per PDB
 KLIFSData = read_klifs_meta_data(path_to_KLIFS_download, path_to_KLIFS_export)
 count_structures = len(KLIFSData)
+
+# ================== Filter by kinase group, species, DFG-conformation ======================
+
 # We are not interested in Atypical kinases
 KLIFSData = KLIFSData[KLIFSData.group != 'Atypical']
 count_atypical = count_structures - len(KLIFSData)
@@ -33,12 +36,15 @@ before = len(KLIFSData)
 KLIFSData = KLIFSData[KLIFSData.dfg == 'in']
 after_dfg = len(KLIFSData)
 count_dfg_out = before - after_dfg
+
+# ======================= SELECT ONE STRUCTURE PER PDB =======================================
+
 # select best structure per PDB
 KLIFSData = choose_best_klifs_structure(KLIFSData)
 count_structures = len(KLIFSData)
 count_duplicate_pdbs = after_dfg - count_structures
 
-# ============================= INITIALIZATIONS ===============================================
+# ============================= INITIALIZATIONS ==============================================
 
 # count discarded structures
 count_ligand_errors = 0
@@ -53,12 +59,14 @@ filtered_data = KLIFSData.copy()
 # output file with metadata of discarded structures
 discarded_structures = pd.DataFrame()
 
+# =========================== ITERATE OVER STRUCTURES =========================================
+
 # iterate over molecules
 for index, entry in KLIFSData.iterrows():
 
-    # ================================== READ DATA ============================================
-
     folder = get_folder_name(entry)
+
+    # ============================ FILTER SUBSTRATES ==========================================
 
     # discard substrates
     if entry.pdb_id in ['AMP', 'ADP', 'ATP', 'ACP', 'ANP', 'ADN', 'ADE']:
@@ -67,6 +75,8 @@ for index, entry in KLIFSData.iterrows():
         entry['violation'] = 'Substrate'
         discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
+
+    # ==================== FILTER UNLOADBALE STRUCTURES =======================================
 
     # load ligand and binding pocket to rdkit molecules
     ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
@@ -94,6 +104,8 @@ for index, entry in KLIFSData.iterrows():
         discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
 
+    # ===================== FILTER PHOSPHATES AND RIBOSES ===================================
+
     # discard ligands containing phosphates
     if contains_phosphate(ligand):
         print('Phosphate in', entry.pdb, entry.pdb_id, '\n')
@@ -112,6 +124,8 @@ for index, entry in KLIFSData.iterrows():
         discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
 
+    # =================== FILTER MULTIPLE LIGANDS PER STRUCTURE ==============================
+
     # multiple ligands in one structure
     if '.' in Chem.MolToSmiles(ligand):
 
@@ -126,6 +140,8 @@ for index, entry in KLIFSData.iterrows():
             discarded_structures = discarded_structures.append(entry, ignore_index=True)
             continue
 
+    # ============================ FILTER COVALENT LIGANDS ===================================
+
     # discard covalent ligands
     if is_covalent(entry.pdb, entry.pdb_id, entry.chain):
         print('Covalent inhibitor', entry.pdb, entry.pdb_id, entry.chain, '\n')
@@ -135,6 +151,8 @@ for index, entry in KLIFSData.iterrows():
         discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
 
+
+# ============================= OUTPUT ===============================================
 
 # write to output files
 filtered_data.to_csv(path_to_data / 'filtered_ligands.csv')
