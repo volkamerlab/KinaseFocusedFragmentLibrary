@@ -1,6 +1,5 @@
 import pandas as pd
 
-
 # code taken and adapted from
 # https://github.com/AndreaVolkamer/KinaseSimilarity/blob/master/Bachelorarbeit/structFP_phchem/structFP_phchem_preprocessing.ipynb
 
@@ -93,7 +92,7 @@ def add_missing_residues(df):
     """
 
     Given a dataframe with a 'pocket' column listing the 85 residues of a kinase binding pocket,
-    create a list of missing residues and add/replace the 'missing_residue' column
+    create a list of missing residues and store it in 'missing_residue' column
 
     Parameters
     ----------
@@ -114,12 +113,11 @@ def add_missing_residues(df):
     return df
 
 
-def find_missing_residues(sequence):  # , numMissing):
+def find_missing_residues(sequence):
 
     """
 
     Given a sequence of binding pocket residues, find positions of missing residues ('_')
-    (numMissing was used to save time, but this value is not always correct.)
 
     Parameters
     ----------
@@ -136,13 +134,8 @@ def find_missing_residues(sequence):  # , numMissing):
     # iterate over sequence string
     missing_residues = []
     for i, aa in enumerate(sequence):
-        # all missing residues found
-        # if numMissing == 0:
-        #     return missingResidues
-        # missing residue
         if aa == '_':
             missing_residues.append(i+1)
-            # numMissing -= 1
     return missing_residues
 
 
