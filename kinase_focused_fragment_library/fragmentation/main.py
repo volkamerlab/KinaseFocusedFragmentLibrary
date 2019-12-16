@@ -26,19 +26,22 @@ subpockets = [Subpocket('SE', residues=[51], color='0.0, 1.0, 1.0'),  # cyan
               Subpocket('B1', residues=[81, 28, 43, 38], color='0.0, 0.5, 1.0'),  # marine
               Subpocket('B2', residues=[18, 24, 70, 83], color='0.5, 0.0, 1.0')  # purple blue # +/- 70
               ]
-se, ap, fp, ga, b1, b2 = subpockets[0], subpockets[1], subpockets[2], subpockets[3], subpockets[4], subpockets[5]
+SE, AP, FP, GA, B1, B2 = subpockets
 
 # count discarded structures
-missing_res = []
-not_ap = []
-large_brics = []
+count_missing_res = 0
+count_not_ap = 0
+count_large_brics = 0
+count_unwanted_subpocket_connections = 0
 count_x = 0
 count_structures = 0
-unwanted_subpocket_connections = {}
 # count number of subpockets occupied by the ligands
 count_sps = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
 # count number of each subpocket connection
 subpocket_connections = {}
+
+# output file with metadata of discarded structures
+discarded_structures = pd.DataFrame()
 
 # ============================= INPUT AND OUTPUT ===============================================
 
@@ -96,6 +99,8 @@ for index, entry in KLIFSData.iterrows():
         if not ligand:
             print('ERROR in ' + folder + ':')
             print('Ligand consists of multiple molecules.\n')
+            entry['violation'] = 'Multiple ligands present'
+            discarded_structures = discarded_structures.append(entry, ignore_index=True)
             continue
 
     lenLigand = ligand.GetNumAtoms()
@@ -119,12 +124,14 @@ for index, entry in KLIFSData.iterrows():
         subpocket.center = calc_subpocket_center(subpocket, pocket, pocketMol2, folder)
         # skip structure if no center could be calculated because of missing residues
         if subpocket.center is None:
-            missing_res.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
             skipStructure = True
             break
 
     # skip this molecule if important residues are missing
     if skipStructure:
+        count_missing_res += 1
+        entry['violation'] = 'Missing residues'
+        discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
 
     # visualize subpocket centers using PyMOL
@@ -153,11 +160,13 @@ for index, entry in KLIFSData.iterrows():
 
     # discard any ligands where a BRICS fragment is larger than 22 heavy atoms (e.g. staurosporine)
         if BRICSFragment.mol.GetNumHeavyAtoms() > 22:
-            large_brics.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
             skipStructure = True
             break
 
     if skipStructure:
+        count_large_brics += 1
+        entry['violation'] = 'Large BRICS fragment'
+        discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
 
     # Adjust subpocket assignments in order to keep small fragments uncleaved
@@ -199,8 +208,10 @@ for index, entry in KLIFSData.iterrows():
         fragments.append(Fragment(mol=mol, atomNumbers=atomNumbers, subpocket=subpocket))
 
     # skip this structure if it does not contain an AP fragment
-    if ap not in [fragment.subpocket for fragment in fragments]:
-        not_ap.append(entry.pdb+' '+entry.chain+' '+entry.pdb_id)
+    if AP not in [fragment.subpocket for fragment in fragments]:
+        count_not_ap += 1
+        entry['violation'] = 'AP not occupied'
+        discarded_structures = discarded_structures.append(entry, ignore_index=True)
         continue
 
     # check for FP-BP connections
@@ -220,16 +231,17 @@ for index, entry in KLIFSData.iterrows():
             fp_frag.center = calc_geo_center(fp_frag.mol.GetAtoms(), fp_frag.mol.GetConformer())
 
             # if FP fragment is close to GA
-            if calc_3d_dist(fp_frag.center, ga.center) < 5:
+            if calc_3d_dist(fp_frag.center, GA.center) < 5:
                 # assign FP fragment to GA pocket
-                fp_frag.subpocket = ga
+                fp_frag.subpocket = GA
 
             # if FP is not close to GA, there is an actual FP-BP connection which we do not want to have
             # hence we assign the BP fragment to X
             else:
                 bp_frag.subpocket = Subpocket('X-'+bp_frag.subpocket.name)
 
-    conns = set()  # subpocket connections in this ligand
+    # subpocket connections in this ligand
+    conns = set()
     # check subpocket connections again after adaptation
     for (beginAtom, endAtom) in atom_tuples:
 
@@ -241,19 +253,19 @@ for index, entry in KLIFSData.iterrows():
         conn = frozenset((sp_1.name, sp_2.name))
         conns.add(conn)
 
+    # unwanted subpocket connection found
         if not is_valid_subpocket_connection(sp_1, sp_2):
 
             print(folder+':')
             print('Unwanted subpocket connection:', sp_1.name, '-', sp_2.name, '. Structure is skipped.\n')
 
-            # store unwanted subpocket connections
-            if conn in unwanted_subpocket_connections:
-                unwanted_subpocket_connections[conn].append(entry.pdb + ' ' + entry.chain + ' ' + entry.pdb_id)
-            else:
-                unwanted_subpocket_connections[conn] = [entry.pdb + ' ' + entry.chain + ' ' + entry.pdb_id]
-
             skipStructure = True
-            break
+
+    if skipStructure:
+        count_unwanted_subpocket_connections += 1
+        entry['violation'] = 'Unwanted subpocket connection'
+        discarded_structures = discarded_structures.append(entry, ignore_index=True)
+        continue
 
     # store all occurring subpocket connections
     for conn in conns:
@@ -261,10 +273,6 @@ for index, entry in KLIFSData.iterrows():
             subpocket_connections[conn] += 1
         else:
             subpocket_connections[conn] = 1
-
-
-    if skipStructure:
-        continue
 
     # set atom properties: atom ids, subpockets, and BRICS environments
     set_atom_properties(fragments, atom_tuples, BRICSFragments)
@@ -276,7 +284,6 @@ for index, entry in KLIFSData.iterrows():
     # ================================ FRAGMENT LIBRARY ========================================
 
     # add fragments to their respective pool
-
     for fragment in fragments:
 
         # store PDB where this fragment came from
@@ -327,6 +334,8 @@ for subpocket in subpockets+[Subpocket('X')]:
     output_files[subpocket.name].close()
     w.close()
 
+# ============================= OUTPUT ===============================================
+
 # output statistics
 print('Number of fragmented structures: ', count_structures)
 print('Number of ligands occupying each possible number of subpockets:')
@@ -334,29 +343,14 @@ print(count_sps)
 print('Number of ligands showing each subpocket connection:')
 print(subpocket_connections)
 print('\nNumber of discarded structures: ')
-print('Missing residue position could not be inferred: ', len(missing_res))
-print('Ligands with too large BRICS fragments: ', len(large_brics))
-print('Ligands not occupying AP:', len(not_ap))
-print('Unwanted subpocket connections:', sum([len(unwanted_subpocket_connections[conn]) for conn in unwanted_subpocket_connections]))
+print('Missing residue position could not be inferred: ', count_missing_res)
+print('Ligands with too large BRICS fragments: ', count_large_brics)
+print('Ligands not occupying AP:', count_not_ap)
+print('Unwanted subpocket connections:', count_unwanted_subpocket_connections)
 print('Fragments in X pool:', count_x)
 
+# write discarded ligands to file
 folderName = Path(args.fragmentlibrary) / 'discarded_ligands'
 if not folderName.exists():
     Path.mkdir(folderName)
-
-# write discarded ligands to files
-with open(folderName / 'large_brics.txt', 'w') as o:
-    for struct in large_brics:
-        o.write(struct+'\n')
-with open(folderName / 'missing_res.txt', 'w') as o:
-    for struct in missing_res:
-        o.write(struct+'\n')
-with open(folderName / 'not_ap.txt', 'w') as o:
-    for struct in not_ap:
-        o.write(struct+'\n')
-
-with open(folderName / 'unwanted_subpocket_connections.txt', 'w') as o:
-    for conn in unwanted_subpocket_connections:
-        lst = [sp for sp in conn]
-        for struct in unwanted_subpocket_connections[conn]:
-            o.write(struct+' '+lst[0] + '-' + lst[1]+'\n')
+discarded_structures.to_csv(folderName / 'fragmentation.csv')
