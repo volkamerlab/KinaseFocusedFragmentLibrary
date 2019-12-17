@@ -11,7 +11,7 @@ This fragment library enables an in-depth analysis of the chemical space of know
 
 ##### Fragmentation:
 
-For each input kinase-ligand complex, the kinase binding pocket is divided into six subpockets. The ligands are fragmented according to these subpockets, and a fragment library with several pools is created, where each pool corresponds to one subpocket and contains the fragments that were assigned to this subpockets.
+For each input kinase-ligand complex, the kinase binding pocket is divided into six subpockets. The ligands are fragmented according to these subpockets, and a fragment library with several pools is created, where each pool corresponds to one subpocket and contains the fragments that were assigned to this subpocket.
 
 <img src ="./docs/img/subpocket_centers.png" width = "600" align="left"> 
 
@@ -33,6 +33,8 @@ conda env create -f devtools/conda-envs/environment.yml
 Kinase-ligand structures, and two CSV files containing metadata are downloaded from the [KLIFS database](https://klifs.vu-compmedchem.nl/index.php) using the following Search options:
 
 <img src ="./docs/img/klifs_download.png" width = "800" align="left"> 
+
+<br clear="all" />
 
 The downloaded data should have the following folder structure:
 
