@@ -234,11 +234,15 @@ for index, entry in KLIFSData.iterrows():
             if calc_3d_dist(fp_frag.center, GA.center) < 5:
                 # assign FP fragment to GA pocket
                 fp_frag.subpocket = GA
+                print(folder + ':')
+                print('Unwanted subpocket connection:', sp_1.name, '-', sp_2.name, 'fixed by assigning FP fragment to GA.\n')
 
             # if FP is not close to GA, there is an actual FP-BP connection which we do not want to have
             # hence we assign the BP fragment to X
             else:
                 bp_frag.subpocket = Subpocket('X-'+bp_frag.subpocket.name)
+                print(folder + ':')
+                print('Unwanted subpocket connection:', sp_1.name, '-', sp_2.name, 'fixed by assigning BP fragment to X.\n')
 
     # subpocket connections in this ligand
     conns = set()
@@ -253,7 +257,7 @@ for index, entry in KLIFSData.iterrows():
         conn = frozenset((sp_1.name, sp_2.name))
         conns.add(conn)
 
-    # unwanted subpocket connection found
+        # unwanted subpocket connection found
         if not is_valid_subpocket_connection(sp_1, sp_2):
 
             print(folder+':')
@@ -342,6 +346,7 @@ print('Number of ligands occupying each possible number of subpockets:')
 print(count_sps)
 print('Number of ligands showing each subpocket connection:')
 print(subpocket_connections)
+
 print('\nNumber of discarded structures: ')
 print('Missing residue position could not be inferred: ', count_missing_res)
 print('Ligands with too large BRICS fragments: ', count_large_brics)
