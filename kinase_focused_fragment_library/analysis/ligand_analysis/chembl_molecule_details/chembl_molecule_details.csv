@@ -1,0 +1,14 @@
+,molecule_chembl_id,xName,shape,fill,size,stroke,strokeWidth
+0,CHEMBL2030386,CDC7,circle,yellow,10,black,3.0
+1,CHEMBL2030386,CK2a1,circle,yellow,15,black,1.5
+2,CHEMBL2030386,CK2a2,circle,yellow,15,black,1.5
+3,CHEMBL2030386,PIM1,circle,yellow,20,black,3.0
+4,CHEMBL2030386,PIM2,circle,yellow,15,black,1.5
+5,CHEMBL2030386,PIM3,circle,yellow,25,black,1.5
+6,CHEMBL269827,CDK2,circle,green,20,black,10.5
+7,CHEMBL311992,CDK2,circle,orange,20,black,1.5
+8,CHEMBL3326132,LRRK2,circle,magenta,10,black,3.0
+9,CHEMBL4068426,FRAP,circle,brown,15,black,1.5
+10,CHEMBL470288,CHK1,circle,black,20,black,1.5
+11,CHEMBL520734,CHK1,circle,darkgreen,20,black,1.5
+12,CHEMBL526133,CDC7,circle,darkblue,20,black,1.5
