@@ -53,7 +53,7 @@ The downloaded data should have the following folder structure:
 #### Preprocessing:
 
 ```bash
-python kinase_focused_fragment_library/preprocessing/main.py -f /path/to/KLIFS/data -o put/path/to/FragmentLibrary
+python kinase_focused_fragment_library/preprocessing/main.py -f /path/to/KLIFS_download -o put/path/to/FragmentLibrary
 ```
 The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands that were chosen for the fragmentation. 
 Metadata on the discarded ligands is written to ```put/path/to/FragmentLibrary/discarded_ligands/preprocessing.csv```.
@@ -61,7 +61,7 @@ Metadata on the discarded ligands is written to ```put/path/to/FragmentLibrary/d
 #### Fragmentation:
 
 ```bash
-python kinase_focused_fragment_library/fragmentation/main.py -f /path/to/KLIFS/data -o /path/to/FragmentLibrary
+python kinase_focused_fragment_library/fragmentation/main.py -f /path/to/KLIFS_download -o /path/to/FragmentLibrary
 ```
 A picture of each fragmented ligand is drawn and stored in ```/path/to/FragmentLibrary/fragmented_molecules/```
 Metadata on discarded ligands is written to ```/path/to/FragmentLibrary/discarded_ligands/fragmentation.csv```.
