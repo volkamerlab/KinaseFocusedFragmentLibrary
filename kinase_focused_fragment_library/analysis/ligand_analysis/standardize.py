@@ -1,7 +1,8 @@
+import argparse
+
 from rdkit import Chem
 from rdkit.Chem.MolStandardize import rdMolStandardize
 from rdkit import RDLogger
-import argparse
 
 RDLogger.DisableLog('rdApp.*')
 

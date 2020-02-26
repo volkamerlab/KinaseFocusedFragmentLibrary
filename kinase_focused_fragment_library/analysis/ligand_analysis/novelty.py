@@ -1,8 +1,7 @@
 from rdkit import Chem
 import pandas as pd
-from rdkit.Chem import PandasTools
 
-from standardize import standardize_mol, standardize_inchi
+from .standardize import standardize_mol, standardize_inchi
 
 
 def read_chembl(in_file):
