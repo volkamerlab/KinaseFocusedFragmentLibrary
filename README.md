@@ -9,7 +9,7 @@ Here, we present a data-driven fragmentation and recombination approach instead.
 A novel computational fragmentation method was implemented, which splits known kinase inhibitors into fragments with respect to the subpockets that they occupy. Thereby, a fragment library with several pools, representing the subpockets, is created.
 This fragment library enables an in-depth analysis of the chemical space of known kinase inhibitors, and is used to recombine fragments in order to generate novel potential inhibitors.
 
-##### Fragmentation:
+##### Fragmentation
 
 For each input kinase-ligand complex, the kinase binding pocket is divided into six subpockets. The ligands are fragmented according to these subpockets, and a fragment library with several pools is created, where each pool corresponds to one subpocket and contains the fragments that were assigned to this subpocket.
 
@@ -17,19 +17,27 @@ For each input kinase-ligand complex, the kinase binding pocket is divided into 
 
 <br clear="all" />
 
-##### Recombination:
+##### Recombination
 
 Every possible fragment recombination is enumerated in order to create a virtual combinatorial compound library. The fragments are reconnected only at the broken bonds, while preserving the original subpocket connection of each bond. 
 
 ### Usage
-#### Dependencies:
+#### Dependencies
 
-A conda environment file (yml file) containing all required packages is provided.
+Create and activate conda environment containing all required packages:
 ```bash
 conda env create -f devtools/conda-envs/environment.yml
+conda activate kffl
 ```
 
-#### Input:
+Download and install `kinase_focused_fragment_library` package:
+```bash
+git clone https://github.com/volkamerlab/KinaseFocusedFragmentLibrary.git
+pip install -e KinaseFocusedFragmentLibrary
+```
+
+#### Input
+
 Kinase-ligand structures, and two CSV files containing metadata are downloaded from the [KLIFS database](https://klifs.vu-compmedchem.nl/index.php) using the following Search options:
 
 <img src ="./docs/img/klifs_download.png" width = "800" align="left"> 
@@ -50,10 +58,10 @@ The downloaded data should have the following folder structure:
             │   └── ...
             └── ...
 
-#### Preprocessing:
+#### Preprocessing
 
 ```bash
-python kinase_focused_fragment_library/preprocessing/main.py -f /path/to/KLIFS_download -o put/path/to/FragmentLibrary
+kffl-preprocessing -f /path/to/KLIFS_download -o put/path/to/FragmentLibrary
 ```
 The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands that were chosen for the fragmentation. 
 Metadata on the discarded ligands is written to ```put/path/to/FragmentLibrary/discarded_ligands/preprocessing.csv```.
@@ -61,7 +69,7 @@ Metadata on the discarded ligands is written to ```put/path/to/FragmentLibrary/d
 #### Fragmentation:
 
 ```bash
-python kinase_focused_fragment_library/fragmentation/main.py -f /path/to/KLIFS_download -o /path/to/FragmentLibrary
+kffl-fragmentation -f /path/to/KLIFS_download -o /path/to/FragmentLibrary
 ```
 A picture of each fragmented ligand is drawn and stored in ```/path/to/FragmentLibrary/fragmented_molecules/```
 Metadata on discarded ligands is written to ```/path/to/FragmentLibrary/discarded_ligands/fragmentation.csv```.
@@ -104,7 +112,7 @@ Jupyter notebooks for analyzing the fragment library are stored in ```kinase_foc
 #### Recombination:
 
 ```bash
-python kinase_focused_fragment_library/recombination/main.py -f /path/to/FragmentLibrary -o /path/to/CombinatorialLibrary -s AP -d 4
+kffl-recombination -f /path/to/FragmentLibrary -o /path/to/CombinatorialLibrary -s AP -d 4
 ```
 The SD files in the ```/path/to/FragmentLibrary``` are used as input for the recombination, while the above folder structure and file names are expected.
 The ```-s``` option specifies one or multiple subpockets from which the recombination procedure will start, meaning that all resulting molecules will contain a fragment coming from this subpocket/these subpockets (default: all subpockets). The ```-d``` option specifies the maximum number of fragments to combine (default: 6).
