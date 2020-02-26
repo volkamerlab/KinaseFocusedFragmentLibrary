@@ -1,6 +1,6 @@
 from pathlib import Path
 import pickle
-from pickle_loader import pickle_loader
+from .pickle_loader import pickle_loader
 
 
 def results_to_file(results, n_results_out, output_path):
