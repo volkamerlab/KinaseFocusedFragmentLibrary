@@ -66,7 +66,7 @@ kffl-preprocessing -f /path/to/KLIFS_download -o put/path/to/FragmentLibrary
 The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands that were chosen for the fragmentation. 
 Metadata on the discarded ligands is written to ```put/path/to/FragmentLibrary/discarded_ligands/preprocessing.csv```.
 
-#### Fragmentation:
+#### Fragmentation
 
 ```bash
 kffl-fragmentation -f /path/to/KLIFS_download -o /path/to/FragmentLibrary
@@ -107,6 +107,10 @@ In addition to the standard fields of the SDF format (3D coordinates of each ato
 
 #### Fragment analysis
 
+```bash
+kffl-fragment-analysis TBA
+```
+
 Jupyter notebooks for analyzing the fragment library are stored in ```kinase_focused_fragment_library/analysis/fragment_analysis/```.
 
 #### Recombination
@@ -119,8 +123,9 @@ The ```-s``` option specifies one or multiple subpockets from which the recombin
 Multiple binary (pickle) files are written to ```/path/to/CombinatorialLibrary/results/```, which contain pickled objects representing the recombined molecules. For each molecule, this object contains the fragment IDs and the bonds (as tuples of atom IDs) between the fragments. 
 
 #### Recombined molecule analysis
+
 ```bash
-python kinase_focused_fragment_library/analysis/ligand_analysis/main.py -f /path/to/FragmentLibrary -klifs /path/to/KLIFS/data -chembl chembl_standardized_inchi.txt -o /path/to/CombinatorialLibrary
+kffl-ligand-analysis -f /path/to/FragmentLibrary -klifs /path/to/KLIFS/data -chembl chembl_standardized_inchi.txt -o /path/to/CombinatorialLibrary
 ```
 
 Only in this step, the recombined molecules are constructed as actual Molecule objects. These molecules are then compared to the molecules given in ```chembl_standardized_inchi.txt``` (which should contain one standardized InChI string per line) and to the original KLIFS ligands from which the fragments were built.
