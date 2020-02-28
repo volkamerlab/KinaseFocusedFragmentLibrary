@@ -4,31 +4,6 @@ import pandas as pd
 from .standardize import standardize_mol, standardize_inchi
 
 
-def read_chembl(in_file):
-
-    print('Read', in_file)
-
-    # chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
-
-    mols = pd.read_csv(in_file, sep='\t')
-    chembl = mols.drop(['canonical_smiles', 'chembl_id', 'standard_inchi_key'], axis='columns')
-
-    print('Number of ChEMBL molecules:', mols.shape[0])
-
-    chembl['standard_inchi_new'] = chembl['standard_inchi'].apply(standardize_inchi)
-    chembl['diff'] = chembl.apply(lambda x: x['standard_inchi'] != x['standard_inchi_new'], axis=1)
-    print('Standardized ChEMBL molecules:', sum(chembl['diff']))
-
-    chembl = chembl['standard_inchi_new']
-    chembl = chembl.dropna(how='any')
-
-    chembl.to_csv('chembl_standardized_inchi', header=0, index=0)
-
-    print('Number of filtered ChEMBL molecules:', len(chembl), mols.shape[0]-len(chembl))
-
-    return chembl
-
-
 def read_original_ligands(frag_dict, path_to_klifs):
 
     print('Read original ligands.')
