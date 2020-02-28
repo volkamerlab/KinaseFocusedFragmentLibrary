@@ -157,4 +157,4 @@ kffl-ligand-analysis -f /path/to/FragmentLibrary -klifs /path/to/KLIFS/data -che
   * is a true substructure of an original ligand,
   * was found in ChEMBL.
 
-* Jupyter notebooks for analyzing these objects are stored in ```kinase_focused_fragment_library/analysis/ligand_analysis/```, include a ```quick_start.ipynb``` introducing the basic steps for working with the combinatorial library data.
+* Jupyter notebooks for analyzing these objects are stored in ```kinase_focused_fragment_library/analysis/ligand_analysis/```, including a ```quick_start.ipynb``` introducing the basic steps for working with the combinatorial library data.
