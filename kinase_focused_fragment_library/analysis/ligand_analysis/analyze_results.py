@@ -42,8 +42,8 @@ def analyze_result(meta, data, original_ligands, chembl):
             original = 1
 
         # true substructure of original ligands?
-        elif not original_ligands[original_ligands.mol >= ligand].empty:
-            original_sub = 1
+        #elif not original_ligands[original_ligands.mol >= ligand].empty:
+        #    original_sub = 1
 
         # exact chembl match
         chembl_match = 0
