@@ -109,17 +109,14 @@ In addition to the standard fields of the SDF format (3D coordinates of each ato
 
 #### Fragment analysis
 
-```bash
-kffl-fragment-analysis TBA
-```
-
-Jupyter notebooks for analyzing the fragment library are stored in ```kinase_focused_fragment_library/analysis/fragment_analysis/```.
-
-#### Recombination
-
+Necessary step to proceed with recombination step: 
 To reduce the number of fragments in the fragment library using Butina Clustering, run the notebook
 
 ```kinase_focused_fragment_library/analysis/fragment_analysis/cluster_centroids.ipynb```.
+
+Further Jupyter notebooks for analyzing the fragment library are stored in ```kinase_focused_fragment_library/analysis/fragment_analysis/```.
+
+#### Recombination
 
 The recombination step should be performed on a cluster:
 
