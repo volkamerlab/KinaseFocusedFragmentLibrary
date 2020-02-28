@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 
-from classes import Subpocket
+from .classes import Subpocket
 
 
 def get_subpocket_from_pos(pos, subpockets):

@@ -1,4 +1,4 @@
-from classes_meta import PermutationStep
+from .classes_meta import PermutationStep
 
 
 def add_to_queue(queue, compound):

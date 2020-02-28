@@ -1,9 +1,9 @@
-from construct_ligand import construct_ligand
-from drug_likeliness import is_drug_like
-from Result import Result
 from rdkit import Chem
 
-from standardize import standardize_mol
+from .construct_ligand import construct_ligand
+from .drug_likeliness import is_drug_like
+from .Result import Result
+from .standardize import standardize_mol
 
 
 def analyze_result(meta, data, original_ligands, chembl):

@@ -1,7 +1,7 @@
 from rdkit import Chem
 from rdkit.Chem import BRICS
 
-from classes import Fragment
+from .classes import Fragment
 
 
 def find_brics_fragments(mol):

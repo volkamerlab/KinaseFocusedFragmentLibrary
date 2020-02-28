@@ -22,14 +22,22 @@ except:
 setup(
     # Self-descriptive entries which should always be present
     name='kinase_focused_fragment_library',
-    author='Paula Schmiel',
-    author_email='paula@schmiel.berlin',
+    author='Paula Schmiel, Dominique Sydow, Volkamer Lab',
+    author_email='paula@schmiel.berlin, dominique.sydow@charite.de, andrea.volkamer@charite.de',
     description=short_description[0],
     long_description=long_description,
     long_description_content_type="text/markdown",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     license='MIT',
+    entry_points={
+            "console_scripts": [
+                "kffl-preprocessing=kinase_focused_fragment_library.preprocessing.cli:main",
+                "kffl-fragmentation=kinase_focused_fragment_library.fragmentation.cli:main",
+                "kffl-recombination=kinase_focused_fragment_library.recombination.cli:main",
+                "kffl-ligand-analysis=kinase_focused_fragment_library.analysis.ligand_analysis.cli:main",
+            ],
+        },
 
     # Which Python importable modules should be included when your package is installed
     # Handled automatically by setuptools. Use 'exclude' to prevent some specific
