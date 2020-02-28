@@ -117,7 +117,11 @@ Jupyter notebooks for analyzing the fragment library are stored in ```kinase_foc
 
 #### Recombination
 
-This step should be performed on a cluster.
+To reduce the number of fragments in the fragment library using Butina Clustering, run the notebook
+
+```kinase_focused_fragment_library/analysis/fragment_analysis/cluster_centroids.ipynb```.
+
+The recombination step should be performed on a cluster:
 
 ```bash
 kffl-recombination -f /path/to/FragmentLibrary -o /path/to/CombinatorialLibrary -s AP -d 4
