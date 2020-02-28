@@ -1,21 +1,7 @@
+import argparse
 import pandas as pd
-import time
-from rdkit.Chem.MolStandardize import rdMolStandardize
-from rdkit import RDLogger
 
-RDLogger.DisableLog('rdApp.*')
-
-
-def standardize_smiles(input_smiles):
-
-    try:
-        smiles = rdMolStandardize.StandardizeSmiles(input_smiles)
-    except Exception as e:
-        print(e, input_smiles)
-        return None
-
-    return smiles
-
+from standardize import standardize_inchi
 
 def read_chembl(in_file, out_file):
 
@@ -23,27 +9,34 @@ def read_chembl(in_file, out_file):
 
     # chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
 
-    mols = pd.read_csv(in_file, sep='\t').head(100)
-    # mols = mols.drop(['canonical_smiles', 'chembl_id', 'standard_inchi_key'], axis='columns')
+    mols = pd.read_csv(in_file, sep='\t')
+    chembl = mols.drop(['canonical_smiles', 'chembl_id', 'standard_inchi_key'], axis='columns')
 
-    # mols['smiles'] = mols.standard_inchi.apply(inchi_to_smiles, meta=('smiles', str))
     print('Number of ChEMBL molecules:', mols.shape[0])
 
-    # TODO: standardize molecules instead of removing p+1 from InChI
-    # write to file
-    # mols['standard_inchi'].compute().to_csv(out_file, header=0, index=0)
+    chembl['standard_inchi_new'] = chembl['standard_inchi'].apply(standardize_inchi)
+    chembl['diff'] = chembl.apply(lambda x: x['standard_inchi'] != x['standard_inchi_new'], axis=1)
+    print('Standardized ChEMBL molecules:', sum(chembl['diff']))
 
-    start = time.time()
-    chembl = mols['canonical_smiles'].apply(standardize_smiles)
-    print(time.time()-start)
-
+    chembl = chembl['standard_inchi_new']
     chembl = chembl.dropna(how='any')
-
-    print('Number of filtered ChEMBL molecules:', len(chembl))
 
     chembl.to_csv(out_file, header=0, index=0)
 
+    print('Number of filtered ChEMBL molecules:', len(chembl), mols.shape[0]-len(chembl))
+
     return chembl
 
+def main():
 
-read_chembl('chembl_25_chemreps.txt', 'chembl_smiles.txt')
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-f', type=str, help='file with downloaded ChEMBL data', required=True)
+	parser.add_argument('-o', type=str, help='output file for standardized ChEMBL InChIs', required=True)
+	args = parser.parse_args()
+
+	# standardize chembl
+	chembl = read_chembl(args.f, args.o)
+
+
+if __name__ == "__main__":
+    main()
