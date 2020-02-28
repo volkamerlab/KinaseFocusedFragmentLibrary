@@ -115,6 +115,8 @@ Jupyter notebooks for analyzing the fragment library are stored in ```kinase_foc
 
 #### Recombination
 
+This step should be performed on a cluster.
+
 ```bash
 kffl-recombination -f /path/to/FragmentLibrary -o /path/to/CombinatorialLibrary -s AP -d 4
 ```
@@ -123,6 +125,8 @@ The ```-s``` option specifies one or multiple subpockets from which the recombin
 Multiple binary (pickle) files are written to ```/path/to/CombinatorialLibrary/results/```, which contain pickled objects representing the recombined molecules. For each molecule, this object contains the fragment IDs and the bonds (as tuples of atom IDs) between the fragments. 
 
 #### Recombined molecule analysis
+
+This step should be performed on a cluster.
 
 ```bash
 kffl-ligand-analysis -f /path/to/FragmentLibrary -klifs /path/to/KLIFS/data -chembl chembl_standardized_inchi.txt -o /path/to/CombinatorialLibrary
