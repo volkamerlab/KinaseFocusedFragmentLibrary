@@ -133,7 +133,14 @@ kffl-recombination -f /path/to/FragmentLibrary -o /path/to/CombinatorialLibrary 
 
 #### Recombined molecule analysis
 
-This step should be performed on a cluster.
+Download file ```chembl_25_chemreps.txt``` here: https://chembl.gitbook.io/chembl-interface-documentation/downloads.
+
+Standardize ChEMBL data in this file using 
+```bash
+kinase_focused_fragment_library/analysis/ligand_analysis/standardize_chembl.py -f chembl_25_chemreps.txt -o chembl_standardized_inchi.txt
+```
+
+The analysis step should be performed on a cluster:
 
 ```bash
 kffl-ligand-analysis -f /path/to/FragmentLibrary -klifs /path/to/KLIFS/data -chembl chembl_standardized_inchi.txt -o /path/to/CombinatorialLibrary
