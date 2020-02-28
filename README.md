@@ -137,7 +137,7 @@ kffl-recombination -f /path/to/FragmentLibrary -o /path/to/CombinatorialLibrary 
 * The ```-d``` option specifies the maximum number of fragments to combine (default: 6).
 * Multiple binary (pickle) files are written to ```/path/to/CombinatorialLibrary/results/```, which contain pickled objects representing the recombined molecules. For each molecule, this object contains the fragment IDs and the bonds (as tuples of atom IDs) between the fragments. 
 
-#### 5. Recombined molecule analysis
+##### 5. Recombined molecule analysis
 
 Download file ```chembl_25_chemreps.txt``` here: https://chembl.gitbook.io/chembl-interface-documentation/downloads.
 
