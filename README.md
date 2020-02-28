@@ -63,17 +63,19 @@ The downloaded data should have the following folder structure:
 ```bash
 kffl-preprocessing -f /path/to/KLIFS_download -o put/path/to/FragmentLibrary
 ```
-The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands that were chosen for the fragmentation. 
-Metadata on the discarded ligands is written to ```put/path/to/FragmentLibrary/discarded_ligands/preprocessing.csv```.
+* The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands that were chosen for the fragmentation. 
+* Metadata on the discarded ligands is written to ```put/path/to/FragmentLibrary/discarded_ligands/preprocessing.csv```.
 
 #### Fragmentation
 
 ```bash
 kffl-fragmentation -f /path/to/KLIFS_download -o /path/to/FragmentLibrary
 ```
-A picture of each fragmented ligand is drawn and stored in ```/path/to/FragmentLibrary/fragmented_molecules/```
-Metadata on discarded ligands is written to ```/path/to/FragmentLibrary/discarded_ligands/fragmentation.csv```.
-The fragment library is written to  ```/path/to/FragmentLibrary```. For each subpocket, one folder containing one SD file exists:
+* A picture of each fragmented ligand is drawn and stored in ```/path/to/FragmentLibrary/fragmented_molecules/```
+* Metadata on discarded ligands is written to ```/path/to/FragmentLibrary/discarded_ligands/fragmentation.csv```.
+* The fragment library is written to  ```/path/to/FragmentLibrary```. 
+
+For each subpocket, one folder containing one SD file exists:
 
     └── FragmentLibrary/
         ├── AP
@@ -120,9 +122,10 @@ This step should be performed on a cluster.
 ```bash
 kffl-recombination -f /path/to/FragmentLibrary -o /path/to/CombinatorialLibrary -s AP -d 4
 ```
-The SD files in the ```/path/to/FragmentLibrary``` are used as input for the recombination, while the above folder structure and file names are expected.
-The ```-s``` option specifies one or multiple subpockets from which the recombination procedure will start, meaning that all resulting molecules will contain a fragment coming from this subpocket/these subpockets (default: all subpockets). The ```-d``` option specifies the maximum number of fragments to combine (default: 6).
-Multiple binary (pickle) files are written to ```/path/to/CombinatorialLibrary/results/```, which contain pickled objects representing the recombined molecules. For each molecule, this object contains the fragment IDs and the bonds (as tuples of atom IDs) between the fragments. 
+* The SDF files in the ```/path/to/FragmentLibrary``` are used as input for the recombination, while the above folder structure and file names are expected.
+* The ```-s``` option specifies one or multiple subpockets from which the recombination procedure will start, meaning that all resulting molecules will contain a fragment coming from this subpocket/these subpockets (default: all subpockets). 
+* The ```-d``` option specifies the maximum number of fragments to combine (default: 6).
+* Multiple binary (pickle) files are written to ```/path/to/CombinatorialLibrary/results/```, which contain pickled objects representing the recombined molecules. For each molecule, this object contains the fragment IDs and the bonds (as tuples of atom IDs) between the fragments. 
 
 #### Recombined molecule analysis
 
@@ -132,14 +135,15 @@ This step should be performed on a cluster.
 kffl-ligand-analysis -f /path/to/FragmentLibrary -klifs /path/to/KLIFS/data -chembl chembl_standardized_inchi.txt -o /path/to/CombinatorialLibrary
 ```
 
-Only in this step, the recombined molecules are constructed as actual Molecule objects. These molecules are then compared to the molecules given in ```chembl_standardized_inchi.txt``` (which should contain one standardized InChI string per line) and to the original KLIFS ligands from which the fragments were built.
-For each molecule, an object is stored in the file ```/path/to/CombinatorialLibrary/cominatorial_library.pickle``` which includes the representation of the molecule as created in the recombination step, its number of heavy atoms, as well as binary values describing whether the molecule
-* fulfills Lipinski's rule of five,
-* has a molecular weight <= 500,
-* has a logP <= 5,
-* has a number of hydrogen bond donors <=5 and acceptors <= 10,
-* was found in the original ligands,
-* is a true substructure of an original ligand,
-* was found in ChEMBL.
+* Only in this step, the recombined molecules are constructed as actual Molecule objects. 
+* These molecules are then compared to the molecules given in ```chembl_standardized_inchi.txt``` (which should contain one standardized InChI string per line) and to the original KLIFS ligands from which the fragments were built.
+* For each molecule, an object is stored in the file ```/path/to/CombinatorialLibrary/cominatorial_library.pickle``` which includes the representation of the molecule as created in the recombination step, its number of heavy atoms, as well as binary values describing whether the molecule
+  * fulfills Lipinski's rule of five,
+  * has a molecular weight <= 500,
+  * has a logP <= 5,
+  * has a number of hydrogen bond donors <=5 and acceptors <= 10,
+  * was found in the original ligands,
+  * is a true substructure of an original ligand,
+  * was found in ChEMBL.
 
-Jupyter notebooks for analyzing these objects are stored in ```kinase_focused_fragment_library/analysis/ligand_analysis/```.
+* Jupyter notebooks for analyzing these objects are stored in ```kinase_focused_fragment_library/analysis/ligand_analysis/```.
