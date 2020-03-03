@@ -7,3 +7,4 @@ Subpocket-based fragmentation of kinase inhibitors
 from .analyze_results import *
 from .construct_ligand import *
 from .novelty import *
+from .Result import Result
