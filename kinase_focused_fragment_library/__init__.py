@@ -8,6 +8,7 @@ from .kinase_focused_fragment_library import *
 from . import preprocessing
 from . import fragmentation
 from . import recombination
+from . import analysis
 
 # Handle versioneer
 from ._version import get_versions
