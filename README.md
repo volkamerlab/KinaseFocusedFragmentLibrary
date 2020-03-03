@@ -58,7 +58,16 @@ The downloaded data should have the following folder structure:
             │   └── ...
             └── ...
 
-#### Preprocessing
+#### Code
+
+The full fragmentation and recombination workflow consists of the following steps:
+1. Preprocessing
+2. Fragmentation
+3. Fragment analysis
+4. Recombination
+5. Recombined molecule analysis
+
+##### 1. Preprocessing
 
 ```bash
 kffl-preprocessing -f /path/to/KLIFS_download -o put/path/to/FragmentLibrary
@@ -66,7 +75,7 @@ kffl-preprocessing -f /path/to/KLIFS_download -o put/path/to/FragmentLibrary
 * The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands that were chosen for the fragmentation. 
 * Metadata on the discarded ligands is written to ```put/path/to/FragmentLibrary/discarded_ligands/preprocessing.csv```.
 
-#### Fragmentation
+##### 2. Fragmentation
 
 ```bash
 kffl-fragmentation -f /path/to/KLIFS_download -o /path/to/FragmentLibrary
@@ -107,19 +116,16 @@ In addition to the standard fields of the SDF format (3D coordinates of each ato
 * Subpocket of each atom, including dummy atoms
 * BRICS environment type for each atom (with dummy atoms having 'na' assigned)
 
-#### Fragment analysis
+##### 3. Fragment analysis
 
-```bash
-kffl-fragment-analysis TBA
-```
-
-Jupyter notebooks for analyzing the fragment library are stored in ```kinase_focused_fragment_library/analysis/fragment_analysis/```.
-
-#### Recombination
-
+Necessary step to proceed with recombination step: 
 To reduce the number of fragments in the fragment library using Butina Clustering, run the notebook
 
 ```kinase_focused_fragment_library/analysis/fragment_analysis/cluster_centroids.ipynb```.
+
+Further Jupyter notebooks for analyzing the fragment library are stored in ```kinase_focused_fragment_library/analysis/fragment_analysis/```.
+
+##### 4. Recombination
 
 The recombination step should be performed on a cluster:
 
@@ -131,7 +137,7 @@ kffl-recombination -f /path/to/FragmentLibrary -o /path/to/CombinatorialLibrary 
 * The ```-d``` option specifies the maximum number of fragments to combine (default: 6).
 * Multiple binary (pickle) files are written to ```/path/to/CombinatorialLibrary/results/```, which contain pickled objects representing the recombined molecules. For each molecule, this object contains the fragment IDs and the bonds (as tuples of atom IDs) between the fragments. 
 
-#### Recombined molecule analysis
+##### 5. Recombined molecule analysis
 
 Download file ```chembl_25_chemreps.txt``` here: https://chembl.gitbook.io/chembl-interface-documentation/downloads.
 
