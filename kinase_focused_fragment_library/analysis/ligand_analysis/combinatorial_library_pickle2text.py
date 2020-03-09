@@ -37,42 +37,42 @@ def main():
     )
 
 
-def get_combinatorial_library_data(combinatorial_library_file, ligand_ids=None):
+def get_combinatorial_library_data(combinatorial_library_file, ligand_ixs=None):
     """
-    Get ligand properties, ligand fragment IDs and ligand fragment bonds for combinatorial library.
+    Get ligand properties, ligand fragment indices and ligand fragment bonds for combinatorial library.
 
     Parameters
     ----------
     combinatorial_library_file : pathlib.Path
         Path to pickle file containing combinatorial library.
-    ligand_ids : None or list of int
-        If None, full library is processed (default). Alternatively, pass list of ligand IDs.
+    ligand_ixs : None or list of int
+        If None, full library is processed (default). Alternatively, pass list of ligand indices.
 
     Returns
     -------
     tuple
         - numpy.ndarray: Ligand properties for ligands in combinatorial library.
-        - dict of list of str: Ligand fragment IDs (values) for ligands in combinatorial library (keys).
+        - dict of list of str: Ligand fragment indices (values) for ligands in combinatorial library (keys).
         - dict of list of list of str: Ligand fragment atom pairs describing bonds (value) for ligands in combinatorial 
           library (keys).
     """
 
-    if ligand_ids is None:
+    if ligand_ixs is None:
         return _get_combinatorial_library_data_all(combinatorial_library_file)
     else:
-        return _get_combinatorial_library_data_by_index(combinatorial_library_file, ligand_ids)
+        return _get_combinatorial_library_data_by_index(combinatorial_library_file, ligand_ixs)
 
 
 def save_combinatorial_library_data(properties, fragment_ids, fragment_bonds, output_path):
     """
-    Save ligand properties, ligand fragments IDs and bonds to disc in text files.
+    Save ligand properties, ligand fragments indices and bonds to disc in text files.
     
     Parameters
     ----------
     properties : numpy.ndarray
         Ligand properties for ligands in combinatorial library.
     fragment_ids : dict of list of str
-        Ligand fragment IDs (value) for ligands in combinatorial library (keys).
+        Ligand fragment indices (value) for ligands in combinatorial library (keys).
     fragment_bonds : dict of list of list of str
         Ligand fragment atom pairs describing bonds (value) for ligands in combinatorial library (keys).
     output_path : pathlib.Path
@@ -84,7 +84,7 @@ def save_combinatorial_library_data(properties, fragment_ids, fragment_bonds, ou
 
 def _get_combinatorial_library_data_all(combinatorial_library_file):
     """
-    Get ligand properties, ligand fragment IDs and ligand fragment bonds for combinatorial library.
+    Get ligand properties, ligand fragment indices and ligand fragment bonds for combinatorial library.
 
     Parameters
     ----------
@@ -95,7 +95,7 @@ def _get_combinatorial_library_data_all(combinatorial_library_file):
     -------
     tuple
         - numpy.ndarray: Ligand properties for ligands in combinatorial library.
-        - dict of list of str: Ligand fragment IDs (values) for ligands in combinatorial library (keys).
+        - dict of list of str: Ligand fragment indices (values) for ligands in combinatorial library (keys).
         - dict of list of list of str: Ligand fragment atom pairs describing bonds (value) for ligands in combinatorial 
           library (keys).
     """
@@ -114,7 +114,7 @@ def _get_combinatorial_library_data_all(combinatorial_library_file):
                 print(i)
 
             # get ligand properties
-            ligand_properties = _get_ligand_properties(i + 1, ligand)
+            ligand_properties = _get_ligand_properties(i, ligand)
 
             properties = np.append(
                 properties,
@@ -123,28 +123,28 @@ def _get_combinatorial_library_data_all(combinatorial_library_file):
             )
 
             # get fragment bonds and ids
-            fragment_ids[i + 1] = _get_ligand_fragment_ids(ligand)
-            fragment_bonds[i + 1] = _get_ligand_fragment_bonds(ligand)
+            fragment_ids[i] = _get_ligand_fragment_ids(ligand)
+            fragment_bonds[i] = _get_ligand_fragment_bonds(ligand)
 
     return properties, fragment_ids, fragment_bonds
 
 
-def _get_combinatorial_library_data_by_index(combinatorial_library_file, ligand_ids):
+def _get_combinatorial_library_data_by_index(combinatorial_library_file, ligand_ixs):
     """
-    Get ligand properties, ligand fragment IDs and ligand fragment bonds for combinatorial library.
+    Get ligand properties, ligand fragment indices and ligand fragment bonds for combinatorial library.
 
     Parameters
     ----------
     combinatorial_library_file : pathlib.Path
         Path to pickle file containing combinatorial library.
-    ligand_ids : None or list of int
-        If None, full library is processed (default). Alternatively, pass list of ligand IDs.
+    ligand_ixs : None or list of int
+        If None, full library is processed (default). Alternatively, pass list of ligand indices.
 
     Returns
     -------
     tuple
         - numpy.ndarray: Ligand properties for ligands in combinatorial library.
-        - dict of list of str: Ligand fragment IDs (values) for ligands in combinatorial library (keys).
+        - dict of list of str: Ligand fragment indices (values) for ligands in combinatorial library (keys).
         - dict of list of list of str: Ligand fragment atom pairs describing bonds (value) for ligands in combinatorial 
           library (keys).
     """
@@ -156,21 +156,21 @@ def _get_combinatorial_library_data_by_index(combinatorial_library_file, ligand_
     fragment_bonds = {}
 
     # iterate over ligand ids of interest
-    ligand_ids_iterator = iter(sorted(ligand_ids))
-    ligand_id = next(ligand_ids_iterator)
+    ligand_ixs_iterator = iter(sorted(ligand_ixs))
+    ligand_ix = next(ligand_ixs_iterator)
 
     with open(combinatorial_library_file, 'rb') as pickle_file:
 
         # iterate over ligands (up to maximal ligand id of interest)
-        for i in range(max(ligand_ids) + 1):
+        for i in range(max(ligand_ixs) + 1):
 
             ligand = next(pickle_loader(pickle_file))
 
             # store ligand corresponding to entry in list of ligands of interest
-            if i + 1 == ligand_id:
+            if i == ligand_ix:
 
                 # get ligand properties
-                ligand_properties = _get_ligand_properties(i + 1, ligand)
+                ligand_properties = _get_ligand_properties(i, ligand)
 
                 properties = np.append(
                     properties,
@@ -179,24 +179,24 @@ def _get_combinatorial_library_data_by_index(combinatorial_library_file, ligand_
                 )
 
                 # get fragment bonds and ids
-                fragment_ids[i + 1] = _get_ligand_fragment_ids(ligand)
-                fragment_bonds[i + 1] = _get_ligand_fragment_bonds(ligand)
+                fragment_ids[i] = _get_ligand_fragment_ids(ligand)
+                fragment_bonds[i] = _get_ligand_fragment_bonds(ligand)
 
                 # get next ligand index of interest
-                if ligand_id < max(ligand_ids):
-                    ligand_id = next(ligand_ids_iterator)
+                if ligand_ix < max(ligand_ixs):
+                    ligand_ix = next(ligand_ixs_iterator)
 
     return properties, fragment_ids, fragment_bonds
 
 
-def _get_ligand_properties(ligand_id, ligand):
+def _get_ligand_properties(ligand_ix, ligand):
     """
     Get ligand properties from ligand object.
     
     Parameters
     ----------
-    ligand_id : int
-        Ligand ID.
+    ligand_ix : int
+        Ligand index.
     ligand : kinase_focused_fragment_library.analysis.ligand_analysis.Result.Result
         Ligand object.
 
@@ -207,7 +207,7 @@ def _get_ligand_properties(ligand_id, ligand):
     """
 
     return [
-        ligand_id,
+        ligand_ix,
         ligand.mwt,
         ligand.hba,
         ligand.hbd,
@@ -223,7 +223,7 @@ def _get_ligand_properties(ligand_id, ligand):
 
 def _get_ligand_fragment_ids(ligand):
     """
-    Get ligand fragment IDs from ligand object.
+    Get ligand fragment indices from ligand object.
 
     Parameters
     ----------
@@ -233,7 +233,7 @@ def _get_ligand_fragment_ids(ligand):
     Returns
     -------
     dict of list of str
-        Ligand fragment IDs (values) for ligands in combinatorial library (keys).
+        Ligand fragment indices (values) for ligands in combinatorial library (keys).
     """
 
     return list(ligand.meta.frag_ids)
@@ -279,12 +279,12 @@ def _save_properties(properties, output_path):
 
 def _save_fragments(fragment_ids, fragment_bonds, output_path):
     """
-    Save ligand ligand fragments IDs and bonds to disc in text files.
+    Save ligand ligand fragments indices and bonds to disc in text files.
 
     Parameters
     ----------
     fragment_ids : dict of list of str
-        Ligand fragment IDs (value) for ligands in combinatorial library (keys).
+        Ligand fragment indices (value) for ligands in combinatorial library (keys).
     fragment_bonds : dict of list of list of str
         Ligand fragment atom pairs describing bonds (value) for ligands in combinatorial library (keys).
     output_path : pathlib.Path
