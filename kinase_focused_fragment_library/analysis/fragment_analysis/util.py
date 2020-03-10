@@ -24,7 +24,8 @@ def read_fragment_library(path_to_lib, remove_dummy=True):
     Returns
     -------
     dict of pandas.DataFrame
-        Fragment details, i.e. SMILES, kinase groups, and fragment RDKit molecules, (values) for each subpocket (key).
+        Fragment details, i.e. SMILES, and fragment RDKit molecules, KLIFS and fragmentation details (values)
+        for each subpocket (key).
     """
 
     # list of folders for each subpocket
@@ -58,18 +59,25 @@ def _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy=True):
         Fragment details, i.e. SMILES, kinase groups, and fragment RDKit molecules, for input subpocket.
     """
 
-    df = pd.DataFrame()
-
     try:
         mol_supplier = Chem.SDMolSupplier(str(path_to_lib / f'{subpocket}.sdf'), removeHs=False)
     except OSError:
         mol_supplier = Chem.SDMolSupplier(str(path_to_lib / subpocket / f'{subpocket}.sdf'), removeHs=False)
 
-    smiles_list = []
-    fragment_list = []
-    group_list = []
-    complex_pdb_list = []
-    ligand_pdb_list = []
+    data = {
+        'smiles': [],
+        'fragment': [],
+        'kinase': [],
+        'family': [],
+        'group': [],
+        'complex_pdb': [],
+        'ligand_pdb': [],
+        'alt': [],
+        'chain': [],
+        'klifs_code': [],
+        'atom.prop.subpocket': [],
+        'atom.prop.environment': []
+    }
 
     for mol_raw in mol_supplier:
 
@@ -87,11 +95,28 @@ def _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy=True):
 
         # Generate SMILES for comparing fragments
         smiles = Chem.MolToSmiles(mol)
-        smiles_list.append(smiles)
+        data['smiles'].append(smiles)
 
         # 2D coordinates
-        tmp = AllChem.Compute2DCoords(mol)
-        fragment_list.append(mol)
+        AllChem.Compute2DCoords(mol)
+        data['fragment'].append(mol)
+
+        # KLIFS data
+        data['kinase'].append(mol.GetProp('kinase'))
+        data['family'].append(mol.GetProp('family'))
+        data['group'].append(mol.GetProp('group'))
+        data['complex_pdb'].append(mol.GetProp('complex_pdb'))
+        data['ligand_pdb'].append(mol.GetProp('ligand_pdb'))
+        data['alt'].append(mol.GetProp('alt'))
+        data['chain'].append(mol.GetProp('chain'))
+        data['klifs_code'].append(mol.GetProp('_Name'))
+
+        # Fragmentation data
+        data['atom.prop.subpocket'].append(mol.GetProp('atom.prop.subpocket'))
+        data['atom.prop.environment'].append(mol.GetProp('atom.prop.environment'))
+
+    return pd.DataFrame(data)
+
 
         # kinase group
         group_list.append(mol.GetProp('group'))
