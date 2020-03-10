@@ -118,20 +118,38 @@ def _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy=True):
     return pd.DataFrame(data)
 
 
-        # kinase group
-        group_list.append(mol.GetProp('group'))
+def get_deduplicated_original_complexes(fragment_library):
+    """
+    Get the set of complexes (kinase name and KLIFS complex code) from which the fragment library originates.
 
-        # PDBs
-        complex_pdb_list.append(mol.GetProp('complex_pdb'))
-        ligand_pdb_list.append(mol.GetProp('ligand_pdb'))
+    Parameters
+    ----------
+    fragment_library : dict of pandas.DataFrame
+        Fragment details, i.e. SMILES, and fragment RDKit molecules, KLIFS and fragmentation details (values)
+        for each subpocket (key).
 
-    df['smiles'] = smiles_list
-    df['fragment'] = fragment_list
-    df['group'] = group_list
-    df['complex_pdb'] = complex_pdb_list
-    df['ligand_pdb'] = ligand_pdb_list
+    Returns
+    -------
+    pandas.DataFrame
+        Deduplicated kinase-structure pairs.
+    """
 
-    return df
+    # Concatenate all subpockets to one DataFrame
+    fragment_library_concat = pd.concat([values for key, values in fragment_library.items()], axis=0)
+    print(f'Fragments: {len(fragment_library_concat)}')
+
+    # Get deduplicated kinase-structure pairs
+    kinase_structure_pairs = pd.DataFrame(
+        {
+            'kinase': fragment_library_concat.kinase,
+            'klifs_code': fragment_library_concat.klifs_code
+        }
+    )
+    kinase_structure_pairs.drop_duplicates(inplace=True)
+    print(f'Deduplicated kinase-structure pairs from which fragments originate: '
+          f'{len(kinase_structure_pairs)}')
+
+    return kinase_structure_pairs
 
 
 def most_common_fragments(fragments, top_x=50):
