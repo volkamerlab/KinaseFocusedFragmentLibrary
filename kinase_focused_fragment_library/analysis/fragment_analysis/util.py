@@ -9,7 +9,7 @@ from rdkit.Chem import rdFingerprintGenerator
 from rdkit.ML.Cluster import Butina
 
 
-def read_fragment_library(path_to_lib, remove_dummy=True):
+def read_fragment_library(path_to_lib, remove_dummy=True, reduced=''):
     """
     Read fragment library from sdf files (one file per subpocket).
 
@@ -19,6 +19,9 @@ def read_fragment_library(path_to_lib, remove_dummy=True):
         Path to fragment library folder.
     remove_dummy : bool
         Replace dummy atoms with hydrogens in fragments (default), or leave dummy atoms in fragments.
+    reduced : str
+        Add here string in file name describing the library reduction, e.g. add '_reduced_0.5' if file name is
+        'AP_reduced_0.5.sdf'.
 
 
     Returns
@@ -35,12 +38,16 @@ def read_fragment_library(path_to_lib, remove_dummy=True):
 
     # iterate over subpockets
     for subpocket in subpockets:
-        data[subpocket] = _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy)
+
+        if subpocket=='X':
+            data[subpocket] = _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy)
+        else:
+            data[subpocket] = _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy, reduced)
 
     return data
 
 
-def _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy=True):
+def _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy=True, reduced=''):
     """
     Read fragments for input subpocket.
 
@@ -52,6 +59,9 @@ def _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy=True):
         Path to fragment library folder.
     remove_dummy : bool
         Replace dummy atoms with hydrogens in fragments (default), or leave dummy atoms in fragments.
+    reduced : str
+        Add here string in file name describing the library reduction, e.g. add '_reduced_0.5' if file name is
+        'AP_reduced_0.5.sdf'.
 
     Returns
     -------
@@ -60,9 +70,9 @@ def _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy=True):
     """
 
     try:
-        mol_supplier = Chem.SDMolSupplier(str(path_to_lib / f'{subpocket}.sdf'), removeHs=False)
+        mol_supplier = Chem.SDMolSupplier(str(path_to_lib / f'{subpocket}{reduced}.sdf'), removeHs=False)
     except OSError:
-        mol_supplier = Chem.SDMolSupplier(str(path_to_lib / subpocket / f'{subpocket}.sdf'), removeHs=False)
+        mol_supplier = Chem.SDMolSupplier(str(path_to_lib / subpocket / f'{subpocket}{reduced}.sdf'), removeHs=False)
 
     data = {
         'smiles': [],
