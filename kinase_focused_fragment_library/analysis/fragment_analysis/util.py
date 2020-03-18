@@ -2,6 +2,8 @@
 Utility functions to work with the fragment library.
 """
 
+from pathlib import Path
+
 import pandas as pd
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem, Draw
@@ -15,7 +17,7 @@ def read_fragment_library(path_to_lib, remove_dummy=True, reduced=''):
 
     Parameters
     ----------
-    path_to_lib : str
+    path_to_lib : pathlib.Path or str
         Path to fragment library folder.
     remove_dummy : bool
         Replace dummy atoms with hydrogens in fragments (default), or leave dummy atoms in fragments.
@@ -55,7 +57,7 @@ def _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy=True, reduced
     ----------
     subpocket : str
         Subpocket name, i.e. AP, SE, FP, GA, B1, or B2.
-    path_to_lib : str
+    path_to_lib : pathlib.Path or str
         Path to fragment library folder.
     remove_dummy : bool
         Replace dummy atoms with hydrogens in fragments (default), or leave dummy atoms in fragments.
@@ -68,6 +70,8 @@ def _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy=True, reduced
     pandas.DataFrame
         Fragment details, i.e. SMILES, kinase groups, and fragment RDKit molecules, for input subpocket.
     """
+    
+    path_to_lib = Path(path_to_lib)
 
     try:
         mol_supplier = Chem.SDMolSupplier(str(path_to_lib / f'{subpocket}{reduced}.sdf'), removeHs=False)
@@ -126,6 +130,69 @@ def _read_subpocket_fragments(subpocket, path_to_lib, remove_dummy=True, reduced
         data['atom.prop.environment'].append(mol.GetProp('atom.prop.environment'))
 
     return pd.DataFrame(data)
+
+
+def get_fragmented_ligand(fragment_library, pdb_id):
+    """
+    Show fragments per subpocket for ligand by PDB ID.
+    
+    Parameters
+    ----------
+    fragment_library : dict of pandas.DataFrame
+        Fragment details, i.e. SMILES, and fragment RDKit molecules, KLIFS and fragmentation details (values)
+        for each subpocket (key).
+    pdb_id : str
+        PDB ID for structure with ligand of interest.
+    
+    Returns
+    -------
+    PIL.PngImagePlugin.PngImageFile
+        Fragmented ligand.
+    """
+    
+    subpockets = ['SE', 'AP', 'GA', 'B1', 'B2', 'FP', 'X']  # order taken from paper Figure 4
+
+    fragments = []
+
+    for subpocket in subpockets:
+        
+        subpocket_fragments = fragment_library[subpocket]
+        subpocket_fragments = subpocket_fragments[subpocket_fragments.complex_pdb == pdb_id].copy()
+        subpocket_fragments['subpocket'] = subpocket
+        fragments.append(subpocket_fragments)
+
+    fragmented_ligand = pd.concat(fragments)
+    
+    return fragmented_ligand
+
+
+def draw_fragmented_ligand(fragment_library, pdb_id, mols_per_row=6):
+    """
+    Show fragments per subpocket for ligand by PDB ID.
+    
+    Parameters
+    ----------
+    fragment_library : dict of pandas.DataFrame
+        Fragment details, i.e. SMILES, and fragment RDKit molecules, KLIFS and fragmentation details (values)
+        for each subpocket (key).
+    pdb_id : str
+        PDB ID for structure with ligand of interest.
+    
+    Returns
+    -------
+    PIL.PngImagePlugin.PngImageFile
+        Fragmented ligand.
+    """
+    
+    fragmented_ligand = get_fragmented_ligand(fragment_library, pdb_id)
+    
+    img = Draw.MolsToGridImage(
+        fragmented_ligand.fragment.tolist(), 
+        legends=fragmented_ligand.subpocket.tolist(), 
+        molsPerRow=mols_per_row
+    )
+    
+    return img
 
 
 def get_deduplicated_original_complexes(fragment_library):
