@@ -110,3 +110,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Example data output (from preprocessing and fragmentation)
+docs/data/FragmentLibrary/
+docs/data/KLIFS_download/filtered_ligands.csv
