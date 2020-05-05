@@ -89,7 +89,7 @@ def main():
         # ================================== READ DATA ============================================
 
         folder = get_folder_name(entry)
-        print(f'\n{folder}')
+        #print(f'\n{folder}')
 
         skipStructure = False
 
@@ -286,7 +286,9 @@ def main():
                 subpocket_connections[conn] = 1
 
         # set atom properties: atom ids, subpockets, and BRICS environments
-        set_atom_properties(fragments, atom_tuples, BRICSFragments)
+        fragments_with_multiple_subpocket_bonds_per_atom = set_atom_properties(fragments, atom_tuples, BRICSFragments)
+        if len(fragments_with_multiple_subpocket_bonds_per_atom) > 0:
+            print(folder, fragments_with_multiple_subpocket_bonds_per_atom)
 
         # number of occupied subpockets (excluding X)
         n_sps = len(set([fragment.subpocket.name for fragment in fragments if 'X' not in fragment.subpocket.name]))

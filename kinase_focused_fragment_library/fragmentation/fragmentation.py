@@ -105,12 +105,14 @@ def set_atom_properties(fragments, atom_tuples, brics_fragments):
 
     """
 
-    print(f'Fragment bonds: {atom_tuples}')
+    #print(f'Fragment bonds: {atom_tuples}')
+
+    fragments_with_multiple_subpocket_bonds_per_atom = []
 
     for fragment in fragments:
 
-        print(f'\nFragment subpocket: {fragment.subpocket.name}')
-        print(f'Fragment atom numbers: {fragment.atomNumbers}')
+        #print(f'\nFragment subpocket: {fragment.subpocket.name}')
+        #print(f'Fragment atom numbers: {fragment.atomNumbers}')
 
         # Make copy of atom tuples (=bonds between atoms which are in different subpockets)
         # Why? We need this later when we iterate over the dummy atoms; each bond, which could be linked to a dummy
@@ -137,8 +139,8 @@ def set_atom_properties(fragments, atom_tuples, brics_fragments):
             # the else loop will be entered at the end (dummy atoms are listed at the end)
             else:
 
-                print(f'> Dummy atom:')
-                print(f'Dummy atom (initially): {atomNumber}')
+                #print(f'> Dummy atom:')
+                #print(f'Dummy atom (initially): {atomNumber}')
 
                 # neighbor = atom next to a dummy
                 # can several neighbors exist?
@@ -154,7 +156,7 @@ def set_atom_properties(fragments, atom_tuples, brics_fragments):
                 # DS: The sentence in the line above refers to which code line?
 
                 neighbor_atom = neighbor.GetIntProp('atomNumber')
-                print(f'Atom connected to dummy atom: {neighbor_atom}')
+                #print(f'Atom connected to dummy atom: {neighbor_atom}')
 
                 # get and set atom number w.r.t ligand of the dummy atom
                 # (dummy atoms have just been consecutively numbered as additional atoms,
@@ -165,24 +167,24 @@ def set_atom_properties(fragments, atom_tuples, brics_fragments):
                 # DS: This is problematic when one atom connects multiple times to neighboring subpockets
                 # Alternative:
                 bond_atoms = [atomTuple for atomTuple in atom_tuples_tmp if neighbor_atom in atomTuple]
-                print(f'Bond(s) involving this dummy atom: {bond_atoms}')
+                #print(f'Bond(s) involving this dummy atom: {bond_atoms}')
 
                 # Take always first hit (one atom can have one or multiple dummy atoms)
-                bond_atoms = bond_atoms[0]
+                bond_atoms_first_hit = bond_atoms[0]
                 # Trick is: First hit will always be removed from list, thus if there are multiple hits,
                 # the other hits will be found in future iterations
-                atom_tuples_tmp.remove(bond_atoms)
+                atom_tuples_tmp.remove(bond_atoms_first_hit)
 
                 #dummy_atom = next(atomNumber for atomNumber in bond_atoms if atomNumber != neighbor_atom)
                 dummy_atom = [
-                    atomNumber for atomNumber in bond_atoms if atomNumber != neighbor_atom
+                    atomNumber for atomNumber in bond_atoms_first_hit if atomNumber != neighbor_atom
                 ]
                 if len(dummy_atom) != 1:
                     raise ValueError(f'Unexpected number of dummy atoms: {len(dummy_atom)}')
                 else:
                     dummy_atom = dummy_atom[0]
                 atom.SetIntProp('atomNumber', dummy_atom)
-                print(f'Dummy atom (finally): {dummy_atom}')
+                #print(f'Dummy atom (finally): {dummy_atom}')
 
                 # get and set subpocket of the dummy atom
                 #neighboring_subpocket = next(f.subpocket for f in fragments if dummy_atom in f.atomNumbers)
@@ -197,7 +199,20 @@ def set_atom_properties(fragments, atom_tuples, brics_fragments):
                 else:
                     neighboring_subpocket = neighboring_subpocket[0]
                 atom.SetProp('subpocket', neighboring_subpocket.name)
-                print(f'Neighboring subpocket(s): {neighboring_subpocket.name}')
+                #print(f'Neighboring subpocket(s): {neighboring_subpocket.name}')
 
                 # dummy atoms do not get an environment type assigned
                 atom.SetProp('environment', 'na')
+
+                # Report fragments with mulitple subpocket-connecting-bonds per atom
+                if len(bond_atoms) > 1:
+                    fragments_with_multiple_subpocket_bonds_per_atom.append(
+                        {
+                            'dummy_atom': dummy_atom,
+                            'subpocket_dummy': neighboring_subpocket.name,
+                            'subpocket_fragment': fragment.subpocket.name,
+                            'bonds': bond_atoms
+                        }
+                    )
+
+    return fragments_with_multiple_subpocket_bonds_per_atom
