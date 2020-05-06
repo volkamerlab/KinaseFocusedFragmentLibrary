@@ -1,3 +1,4 @@
+import numpy as np
 from rdkit import Chem
 from rdkit.Chem import BRICS
 
@@ -81,10 +82,9 @@ def fragment_between_atoms(mol, atom_tuples):
 def set_atom_properties(fragments, atom_tuples, brics_fragments):
 
     """
-
-    Assigns properties to the atoms of each fragment (in place):
-    - subpocket -> Neighboring subpocket is stored at the dummy atoms
-    - atom number w.r.t. original ligand
+    Assign properties to the atoms of each fragment (in place):
+    - subpocket (in case of dummy atoms: neighboring subpocket is stored)
+    - atom number w.r.t. the original ligand
     - BRICS environment type
 
     Assumption: When iterating over the fragment atoms, dummy atoms are last.
@@ -94,125 +94,349 @@ def set_atom_properties(fragments, atom_tuples, brics_fragments):
     fragments: list(Fragment)
         list of fragments that the ligand consists of
     atom_tuples: list(tuple(int))
-            list of atom index tuples, where each tuple represents a bond between two atoms in the ligand (final bonds, NOT BRICS bonds!)
+        list of atom index tuples, where each tuple represents a bond between two atoms in the ligand
+        (final bonds, NOT BRICS bonds!)
+    brics_fragments: list(Fragment)
+        list of BRICS fragments of the ligand as Fragment objects
+    """
+
+    for fragment in fragments:
+
+        atoms = fragment.mol.GetAtoms()
+        atom_numbers = fragment.atomNumbers
+
+        for atom, atom_number in zip(atoms, atom_numbers):
+
+            if atom.GetSymbol() != '*':  # regular atom
+
+                atom_number, subpocket, environment = _get_atom_properties_regular(
+                    atom_number,
+                    fragment,
+                    brics_fragments
+                )
+                atom.SetIntProp('atomNumber', atom_number)
+                atom.SetProp('subpocket', subpocket)
+                atom.SetProp('environment', environment)
+
+            else:  # dummy atom
+
+                atom_number, subpocket, environment = _get_atom_properties_dummy(
+                    atom_number,
+                    atom,
+                    atom_tuples,
+                    fragments
+                )
+                atom.SetIntProp('atomNumber', atom_number)
+                atom.SetProp('subpocket', subpocket)
+                atom.SetProp('environment', environment)
+
+
+def _get_atom_properties_regular(atom_number, fragment, brics_fragments):
+
+    """
+    Set atom properties for an atom which is no dummy atom (regular atom):
+    each atom's number, subpocket and BRICS environment.
+
+    Parameters
+    ----------
+    atom_number: int
+        atom number
+    fragment: Fragment
+        fragment
     brics_fragments: list(Fragment)
         list of BRICS fragments of the ligand as Fragment objects
 
     Returns
     -------
-    fragment: Fragment
-        Fragment object of the given fragment, including its subpocket
-
+    tuple(int, str, int/str)
+        atom's number, subpocket and BRICS environment
     """
 
-    #print(f'Fragment bonds: {atom_tuples}')
+    # get the atom's subpocket (= the fragment's subpocket)
+    subpocket = fragment.subpocket.name
 
-    fragments_with_multiple_subpocket_bonds_per_atom = []
+    # get environment type of the brics fragment that the current atom belongs to
+    environment = next(
+        brics_fragment.environment
+        for brics_fragment
+        in brics_fragments
+        if atom_number in brics_fragment.atomNumbers
+    )
+
+    return atom_number, subpocket, environment
+
+
+def _get_atom_properties_dummy(atom_number, atom, atom_tuples, fragments):
+
+    """
+    Set atom properties for an atom which is a dummy atom:
+    each atom's number, subpocket and BRICS environment.
+
+    Difficulty:
+    Dummy atoms have been consecutively numbered as additional ligand atoms.
+    However, needed is the atom number of the atom, which was replaced by the dummy atom (dummy-replaced atom).
+    The dummy-replaced atom is backtracked via its bond to the atom connected to the dummy atom (dummy-connected atom).
+    Note, the dummy-connected atom lives in the same fragment as the dummy atom, whereas the dummy-replaced atom lives
+    in another, neighboring fragment.
+
+    Parameters
+    ----------
+    atom_number: int
+        atom number
+    atom: Chem.rdchem.Atom
+        dummy atom
+    atom_tuples: list(tuple(int))
+        list of atom index tuples, where each tuple represents a bond between two atoms in the ligand
+        (final bonds, NOT BRICS bonds!)
+    fragments: list(Fragment)
+        list of fragments that the ligand consists of
+
+    Returns
+    -------
+    tuple(int, str, int/str)
+        atom's number, subpocket and BRICS environment
+    """
+
+    if atom.GetSymbol() != '*':
+        raise ValueError(f'Input atom must be dummy atom.')
+
+    # get dummy-connected atom (int)
+    dummy_connected_atom_number = _get_dummy_connected_atom_from_dummy_atom(atom)
+
+    # get all bond(s) (atom tuple(s)), which include the dummy-connected atom number (list(tuple(int)))
+    bonds_involving_dummy_connected_atom = _get_bonds_from_dummy_connected_atom(
+        dummy_connected_atom_number,
+        atom_tuples
+    )
+
+    # get all dummy-replaced atoms, i.e. atoms that were replaced by the dummy atom(s) during fragmentation (list(int))
+    dummy_replaced_atom_numbers = _get_dummy_replaced_atoms_from_bonds(
+        dummy_connected_atom_number,
+        bonds_involving_dummy_connected_atom
+    )
+
+    # if multiple dummy atoms at dummy-connecting atom, select the correct dummy-replaced atom number (int)
+    dummy_replaced_atom_number = _select_dummy_replaced_atom(dummy_replaced_atom_numbers, atom_number, fragments)
+
+    # get subpocket of the dummy-replaced atom
+    subpocket = _get_dummy_replaced_atom_subpocket(dummy_replaced_atom_number, fragments)
+
+    # dummy atoms do not get an environment type assigned
+    environment = 'na'
+
+    return dummy_replaced_atom_number, subpocket, environment
+
+
+def _get_dummy_connected_atom_from_dummy_atom(atom):
+    """
+    Get dummy-connected atom number, i.e. the atom that is connected to the dummy atom (all in the same fragment).
+
+    Parameters
+    ----------
+    atom: Chem.rdchem.Atom
+        dummy atom
+
+    Returns
+    -------
+    int
+        atom number of dummy-connected atom
+    """
+
+    if atom.GetSymbol() != '*':
+        raise ValueError(f'Input atom is not dummy atom.')
+
+    # get neighbor atom connected to dummy atoms (dummy-connected atom)
+    dummy_connected_atoms = atom.GetNeighbors()
+
+    # this should yield only one dummy-connected atom since BRICS does not cut in rings
+    if len(dummy_connected_atoms) == 1:
+        dummy_connected_atom = dummy_connected_atoms[0]
+    else:
+        raise ValueError(f'Unexpected number of dummy-connected atoms: {len(dummy_connected_atoms)}')
+
+    dummy_connected_atom_number = dummy_connected_atom.GetIntProp('atomNumber')
+
+    return dummy_connected_atom_number
+
+
+def _get_bonds_from_dummy_connected_atom(dummy_connected_atom_number, atom_tuples):
+    """
+    Get all ligand cleavage bonds involving the input dummy-connected atom.
+
+    Parameters
+    ----------
+    dummy_connected_atom_number: int
+        atom number of atom connected to dummy atom (dummy-connected atom)
+    atom_tuples: list(tuple(int))
+        list of atom index tuples, where each tuple represents a bond between two atoms in the ligand
+        (final bonds, NOT BRICS bonds!)
+
+    Returns
+    -------
+    list(tuple(int))
+        list of atom index tuples which involve the neighbor atom
+    """
+
+    # select only ligand cleavage bonds involving the dummy-connected atom
+    bonds_involving_dummy_connected_atom = [
+        atom_tuple
+        for atom_tuple
+        in atom_tuples
+        if dummy_connected_atom_number in atom_tuple
+    ]
+
+    return bonds_involving_dummy_connected_atom
+
+
+def _get_dummy_replaced_atoms_from_bonds(dummy_connected_atom_number, atom_tuples_involving_neighbor):
+    """
+    Get the number(s) of dummy-replaced atoms, i.e. of atoms that were replaced by dummy atoms during fragmentation.
+
+    Parameters
+    ----------
+    dummy_connected_atom_number: int
+        atom number of atom connected to dummy atom (dummy-connected atom)
+    atom_tuples_involving_neighbor: list(tuple(int))
+        list of atom index tuples which involve the neighbor atom
+
+    Returns
+    -------
+    list(int)
+        List of atom numbers that are connected to neighbor atom in full ligand.
+    """
+
+    dummy_replaced_atom_numbers = []
+
+    for atom_tuple_involving_neighbor in atom_tuples_involving_neighbor:
+
+        # Select dummy-replaced atom from (dummy-replaced atom, dummy-connected atom) tuple/pair
+        dummy_replaced_atom_number = [
+            atom_number
+            for atom_number
+            in atom_tuple_involving_neighbor
+            if atom_number != dummy_connected_atom_number
+        ]
+
+        if len(dummy_replaced_atom_number) != 1:
+            raise ValueError(f'Unexpected number of dummy-replaced atoms: {len(dummy_replaced_atom_number)}')
+
+        dummy_replaced_atom_numbers.extend(
+           dummy_replaced_atom_number
+        )
+
+    return dummy_replaced_atom_numbers
+
+
+def _select_dummy_replaced_atom(dummy_replaced_atom_numbers, dummy_atom_number, fragments):
+    """
+    Select dummy-replaced atom number:
+    If only one dummy-replaced atom, select this dummy-replaced atom (this is almost always the case).
+    If multiple dummy-replaced atoms are available (this is rarely the case when one atom is connected to multiple
+    dummy atoms),select the correct dummy-replaced atom based on matching coordinates of the dummy-replaced atom and
+    the dummy atom.
+
+    Parameters
+    ----------
+    dummy_replaced_atom_numbers: list(int)
+        dummy-replaced atom numbers (number retrieved from atom which was replaced by dummy atom during fragmentation)
+    dummy_atom_number: int
+        dummy atom number (initial number cast during fragmentation)
+    fragments: list(Fragment)
+        list of fragments that the ligand consists of
+
+    Returns
+    -------
+    int
+        dummy-replaced atom number whose coordinates match the dummy atom's coordinates
+    """
+
+    # in almost all cases one dummy atom per dummy-connected atom
+    if len(dummy_replaced_atom_numbers) == 1:
+        selected_dummy_replaced_atom_number = dummy_replaced_atom_numbers[0]
+
+    # in very rare cases more than one dummy atom per dummy-connected atom
+    else:
+
+        selected_dummy_replaced_atom_number = []  # Should have 1 element at the end of iteration
+
+        dummy_atom_position = _get_atom_position_from_atom_number(dummy_atom_number, fragments)
+
+        for dummy_replaced_atom_number in dummy_replaced_atom_numbers:
+            dummy_replaced_atom_position = _get_atom_position_from_atom_number(dummy_replaced_atom_number, fragments)
+
+            if np.isclose(dummy_replaced_atom_position.Length(), dummy_atom_position.Length(), rtol=1e-04):
+                selected_dummy_replaced_atom_number.append(dummy_replaced_atom_number)
+
+        if len(selected_dummy_replaced_atom_number) != 1:
+            raise ValueError(f'Unexpected number of selected dummy-replaced atoms: '
+                             f'{len(selected_dummy_replaced_atom_number)}')
+
+        selected_dummy_replaced_atom_number = selected_dummy_replaced_atom_number[0]
+
+    return selected_dummy_replaced_atom_number
+
+
+def _get_atom_position_from_atom_number(atom_number_of_interest, fragments):
+
+    """
+    Get atom position based on the atom number (iterate over fragments to fetch correct atom).
+
+    Parameters
+    ----------
+    atom_number_of_interest: int
+        atom number of interest
+    fragments: list(Fragment)
+        list of fragments that the ligand consists of
+
+    Returns
+    -------
+    rdkit.Geometry.rdGeometry.Point3D
+        3D coordinates of atom of interest
+    """
+
+    atom_position = []  # Should have 1 element at the end of iteration
 
     for fragment in fragments:
 
-        #print(f'\nFragment subpocket: {fragment.subpocket.name}')
-        #print(f'Fragment atom numbers: {fragment.atomNumbers}')
+        for i, atom_number in enumerate(fragment.atomNumbers):
 
-        # Make copy of atom tuples (=bonds between atoms which are in different subpockets)
-        # Why? We need this later when we iterate over the dummy atoms; each bond, which could be linked to a dummy
-        # atom, will be removed. This ensures that always all bonds are considered, even in case there are multiple
-        # dummy atoms (and therefore subpocket-bonds for one atom).
-        atom_tuples_tmp = atom_tuples.copy()
+            if atom_number == atom_number_of_interest:
+                atom_position.append(fragment.mol.GetConformer().GetAtomPosition(i))
 
-        # set atom properties for the created fragment
-        for atom, atomNumber in zip(fragment.mol.GetAtoms(), fragment.atomNumbers):
+    if len(atom_position) != 1:
+        raise ValueError(f'Unexpected number of atom positions: {len(atom_position)}')
 
-            # if atom is not a dummy atom
-            if atom.GetSymbol() != '*':
+    return atom_position[0]
 
-                # get environment type of the brics fragment that the current atom belongs to
-                env_type = next(brics_fragment.environment for brics_fragment in brics_fragments if atomNumber in brics_fragment.atomNumbers)
 
-                # set atom number w.r.t. ligand as property of the fragment atom
-                # IS THIS ALWAYS TRUE? (Does order of atoms always stay the same after fragmentation?)
-                atom.SetIntProp('atomNumber', atomNumber)
-                atom.SetProp('subpocket', fragment.subpocket.name)
-                atom.SetProp('environment', env_type)
+def _get_dummy_replaced_atom_subpocket(dummy_replaced_atom_number, fragments):
 
-            # if atom = dummy atom
-            # the else loop will be entered at the end (dummy atoms are listed at the end)
-            else:
+    """
+    Get the dummy atom's subpocket; search in all fragments for the dummy atom number.
+    Parameters
+    ----------
+    dummy_replaced_atom_number: int
+        dummy-replaced atom number
+    fragments: list(Fragment)
+        list of fragments that the ligand consists of
 
-                #print(f'> Dummy atom:')
-                #print(f'Dummy atom (initially): {atomNumber}')
+    Returns
+    -------
+    str
+        subpocket name
+    """
 
-                # neighbor = atom next to a dummy
-                # can several neighbors exist?
-                # DS: Since BRICS does not cut in rings, this should not be possible.
-                # DS: Added here test in case there are multiple neighbors nevertheless
-                neighbor = atom.GetNeighbors()
-                if len(neighbor) != 1:
-                    raise ValueError(f'Unexpected number of dummy atom neighbors: {len(neighbor)}')
-                else:
-                    neighbor = neighbor[0]
+    dummy_replaced_atom_subpockets = [
+        fragment.subpocket
+        for fragment
+        in fragments
+        if dummy_replaced_atom_number in fragment.atomNumbers
+    ]
 
-                # -> This works only because dummy atoms are always last in the iteration
-                # DS: The sentence in the line above refers to which code line?
+    # this should yield only one subpocket atom since each atom number occurs only once in a ligand
+    if len(dummy_replaced_atom_subpockets) == 1:
+        dummy_replaced_atom_subpocket = dummy_replaced_atom_subpockets[0]
+    else:
+        raise ValueError(f'Unexpected number of subpockets: {len(dummy_replaced_atom_subpockets)}')
 
-                neighbor_atom = neighbor.GetIntProp('atomNumber')
-                #print(f'Atom connected to dummy atom: {neighbor_atom}')
-
-                # get and set atom number w.r.t ligand of the dummy atom
-                # (dummy atoms have just been consecutively numbered as additional atoms,
-                # we want to have the atom number of the atom that the dummy atom corresponds to)
-
-                #bond_atoms = next(atomTuple for atomTuple in atom_tuples if neighbor_atom in atomTuple)
-                # DS: Why do you use next() here? Why not a simple list comprehension?
-                # DS: This is problematic when one atom connects multiple times to neighboring subpockets
-                # Alternative:
-                bond_atoms = [atomTuple for atomTuple in atom_tuples_tmp if neighbor_atom in atomTuple]
-                #print(f'Bond(s) involving this dummy atom: {bond_atoms}')
-
-                # Take always first hit (one atom can have one or multiple dummy atoms)
-                bond_atoms_first_hit = bond_atoms[0]
-                # Trick is: First hit will always be removed from list, thus if there are multiple hits,
-                # the other hits will be found in future iterations
-                atom_tuples_tmp.remove(bond_atoms_first_hit)
-
-                #dummy_atom = next(atomNumber for atomNumber in bond_atoms if atomNumber != neighbor_atom)
-                dummy_atom = [
-                    atomNumber for atomNumber in bond_atoms_first_hit if atomNumber != neighbor_atom
-                ]
-                if len(dummy_atom) != 1:
-                    raise ValueError(f'Unexpected number of dummy atoms: {len(dummy_atom)}')
-                else:
-                    dummy_atom = dummy_atom[0]
-                atom.SetIntProp('atomNumber', dummy_atom)
-                #print(f'Dummy atom (finally): {dummy_atom}')
-
-                # get and set subpocket of the dummy atom
-                #neighboring_subpocket = next(f.subpocket for f in fragments if dummy_atom in f.atomNumbers)
-                neighboring_subpocket = [
-                    fragment.subpocket
-                    for fragment
-                    in fragments
-                    if dummy_atom in fragment.atomNumbers
-                ]
-                if len(neighboring_subpocket) != 1:
-                    raise ValueError(f'Unexpected number of subpockets: {len(neighboring_subpocket)}')
-                else:
-                    neighboring_subpocket = neighboring_subpocket[0]
-                atom.SetProp('subpocket', neighboring_subpocket.name)
-                #print(f'Neighboring subpocket(s): {neighboring_subpocket.name}')
-
-                # dummy atoms do not get an environment type assigned
-                atom.SetProp('environment', 'na')
-
-                # Report fragments with mulitple subpocket-connecting-bonds per atom
-                if len(bond_atoms) > 1:
-                    fragments_with_multiple_subpocket_bonds_per_atom.append(
-                        {
-                            'dummy_atom': dummy_atom,
-                            'subpocket_dummy': neighboring_subpocket.name,
-                            'subpocket_fragment': fragment.subpocket.name,
-                            'bonds': bond_atoms
-                        }
-                    )
-
-    return fragments_with_multiple_subpocket_bonds_per_atom
+    return dummy_replaced_atom_subpocket.name
