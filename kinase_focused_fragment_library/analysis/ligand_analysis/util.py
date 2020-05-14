@@ -10,9 +10,12 @@ import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import Descriptors, Lipinski
 
-import sys
-sys.path.append('../../recombination')  # Not pretty but pickle file can only be loaded with explicit paths
-from pickle_loader import pickle_loader
+try:
+    from kinase_focused_fragment_library.recombination.pickle_loader import pickle_loader  # if kffl is run as package
+except ModuleNotFoundError:
+    import sys
+    sys.path.append('../../recombination')  # Not pretty but pickle file can only be loaded with explicit paths
+    from pickle_loader import pickle_loader  # if kffl is not run as package
 
 
 def load_combinatorial_library_properties(recombined_ligand_properties_path, ligand_indices_deduplicated=None):
