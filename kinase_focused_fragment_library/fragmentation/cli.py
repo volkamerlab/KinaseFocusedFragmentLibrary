@@ -89,7 +89,6 @@ def main():
         # ================================== READ DATA ============================================
 
         folder = get_folder_name(entry)
-        #print(f'\n{folder}')
 
         skipStructure = False
 
