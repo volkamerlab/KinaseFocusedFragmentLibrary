@@ -6,7 +6,7 @@ from functools import reduce
 
 # ============================= READ FRAGMENT ===============================================
 
-def read_fragment_library(path_to_library, subpockets, n=None):
+def read_fragment_library(path_to_library, subpockets):
 
     """
     Read fragment library
@@ -24,17 +24,17 @@ def read_fragment_library(path_to_library, subpockets, n=None):
     """
 
     # list of folders for each subpocket
-    folders = [path_to_library / subpocket for subpocket in subpockets]
+    folders = [path_to_library for subpocket in subpockets]
 
     data = {}
     for folder, subpocket in zip(folders, subpockets):
 
-        file = folder / (subpocket + '_reduced_0.6.sdf')
+        file = folder / (subpocket + '.sdf')
 
         # read molecules
         # keep hydrogen atoms
         suppl = Chem.SDMolSupplier(str(file), removeHs=False)
-        mols = [f for f in suppl][:n]
+        mols = [f for f in suppl]
 
         fragments = []
         for i, fragment in enumerate(mols):
