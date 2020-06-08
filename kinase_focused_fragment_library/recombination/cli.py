@@ -63,7 +63,7 @@ def main():
 
     # list of folders for each subpocket
     subpockets = ['AP', 'FP', 'SE', 'GA', 'B1', 'B2']
-    folders = [path_to_library / subpocket for subpocket in subpockets]
+    folders = [path_to_library for subpocket in subpockets]
 
     if args.subpockets:
         start_subpockets = args.subpockets
@@ -83,7 +83,7 @@ def main():
     data = {}  # (Fragments)
     for folder, subpocket in zip(folders, subpockets):
 
-        file = folder / (subpocket + '_reduced_0.6.sdf')
+        file = folder / (subpocket + '.sdf')
 
         # read molecules, keep hydrogen atoms
         suppl = Chem.SDMolSupplier(str(file), removeHs=False)
