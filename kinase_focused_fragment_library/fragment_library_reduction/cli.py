@@ -25,7 +25,7 @@ def main():
 
     fragment_library = read_fragment_library(PATH_FRAG_LIB)
 
-    # ============================= OUTPUT DATA ===============================================
+    # ============================= OUTPUT DATA kff===============================================
 
     _save_top_n_fragments(fragment_library, 5, PATH_FRAG_LIB_REDUCED)
 
