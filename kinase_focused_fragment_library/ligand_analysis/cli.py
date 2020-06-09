@@ -1,11 +1,10 @@
 import argparse
 from pathlib import Path
 
-import pandas as pd
 from rdkit import Chem
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 
-from kinase_focused_fragment_library.ligand_analysis.utils import read_fragment_library, read_original_ligands
+from kinase_focused_fragment_library.ligand_analysis.utils import read_fragment_library, read_original_ligands, read_chembl_ligands
 from kinase_focused_fragment_library.ligand_analysis.analyze import analyze_ligands
 
 
@@ -34,9 +33,7 @@ def main():
     fragment_library = read_fragment_library(path_fragment_library, subpockets)
 
     # load standardized ChEMBL InChIs
-    print('Read', path_chembl_data)
-    chembl = pd.read_csv(path_chembl_data, header=None, names=['standard_inchi'])
-    print('Number of ChEMBL molecules:', chembl.shape[0])
+    chembl = read_chembl_ligands(path_chembl_data)
 
     # load original ligands from KLIFS
     original_ligands = read_original_ligands(fragment_library, path_klifs_data)

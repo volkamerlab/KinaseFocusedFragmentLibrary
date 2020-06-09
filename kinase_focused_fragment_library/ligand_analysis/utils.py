@@ -3,7 +3,7 @@ from functools import reduce
 import pandas as pd
 from rdkit import Chem
 from rdkit import RDLogger
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, rdFingerprintGenerator
 from rdkit.Chem.MolStandardize import rdMolStandardize
 from rdkit.Chem.PropertyMol import PropertyMol
 
@@ -98,6 +98,37 @@ def read_original_ligands(frag_dict, path_to_klifs):
     ligands['mol'] = mols
 
     return ligands
+
+
+def read_chembl_ligands(path_to_chembl):
+    """
+    Read ChEMBL ligands (ChEMBL compound ID and standardized InChI) from file and add fingerprints.
+
+    Parameters
+    ----------
+    path_to_chembl : pathlib.Path
+        Path to standardized ChEMBL data file.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ChEMBL ligands with each the ChEMBL compound ID, standardized InChI, and fingerprint.
+    """
+
+    # read chembl ligands from file
+    print('Read', path_to_chembl)
+    mols = pd.read_csv(path_to_chembl, header=None, names=['chembl_id', 'standard_inchi'])
+    print('Number of ChEMBL molecules:', mols.shape[0])
+
+    # generate fingerprint
+    rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
+    mols['fingerprint'] = mols.standard_inchi.apply(
+        lambda x: rdkit_gen.GetFingerprint(Chem.MolFromInchi(x))
+    )
+
+    print(f'ChEMBL data columns: {mols.columns}')
+
+    return mols
 
 
 def construct_ligand(meta, data):

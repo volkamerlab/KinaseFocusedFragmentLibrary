@@ -1,9 +1,6 @@
 import argparse
 import pandas as pd
 
-from rdkit import Chem
-from rdkit.Chem import rdFingerprintGenerator
-
 from .utils import standardize_inchi
 
 
@@ -12,7 +9,6 @@ def prepare_chembl(in_file, out_file):
     print('Read', in_file)
 
     mols = pd.read_csv(in_file, sep='\t')
-    mols = mols[:100]
     print('Number of ChEMBL molecules:', mols.shape[0])
     # downloaded ChEMBL file contains data on: chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
     # drop columns not needed
@@ -28,17 +24,12 @@ def prepare_chembl(in_file, out_file):
     # drop "old" standardized molecules and diff column
     mols.drop(['standard_inchi', 'diff'], axis='columns', inplace=True)
 
-    # generate fingerprint
-    rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
-    mols['fingerprint'] = mols.standard_inchi_new.apply(
-        lambda x: rdkit_gen.GetFingerprint(Chem.MolFromInchi(x))
-    )
-
     # drop rows with any data missing
     chembl = mols.dropna(how='any')
     print(chembl.columns)
 
-    chembl[['chembl_id', 'standard_inchi_new', 'fingerprint']].to_csv(out_file, index=0)
+    # save data to file
+    chembl.to_csv(out_file, index=0)
 
     print(f'Number of filtered ChEMBL molecules: {len(chembl)}')
     print(f'Number of dropped ChEMBL molecules: {mols.shape[0]-len(chembl)}')
