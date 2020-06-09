@@ -13,8 +13,7 @@ import numpy as np
 import pandas as pd
 from rdkit import Chem
 
-from kinase_focused_fragment_library.ligand_analysis import construct_ligand, read_fragment_library
-from kinase_focused_fragment_library.ligand_analysis import standardize_mol
+from kinase_focused_fragment_library.ligand_analysis.utils import read_fragment_library, construct_ligand, standardize_mol
 
 """
 At the moment:

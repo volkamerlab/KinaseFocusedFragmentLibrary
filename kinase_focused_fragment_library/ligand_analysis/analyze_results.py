@@ -1,8 +1,7 @@
 from rdkit import Chem
 from rdkit.Chem import Descriptors, Lipinski
 
-from .construct_ligand import construct_ligand
-from .utils import standardize_mol
+from .utils import standardize_mol, construct_ligand
 
 
 def analyze_result(meta, data, original_ligands, chembl):

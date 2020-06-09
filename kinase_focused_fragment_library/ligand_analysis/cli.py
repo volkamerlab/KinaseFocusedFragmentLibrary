@@ -8,10 +8,9 @@ import pandas as pd
 from rdkit import Chem
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 
-from kinase_focused_fragment_library.ligand_analysis.construct_ligand import read_fragment_library
 from kinase_focused_fragment_library.recombination.pickle_loader import pickle_loader
 from kinase_focused_fragment_library.ligand_analysis.analyze_results import analyze_result
-from kinase_focused_fragment_library.ligand_analysis.utils import read_original_ligands
+from kinase_focused_fragment_library.ligand_analysis.utils import read_fragment_library, read_original_ligands
 
 
 def main():
