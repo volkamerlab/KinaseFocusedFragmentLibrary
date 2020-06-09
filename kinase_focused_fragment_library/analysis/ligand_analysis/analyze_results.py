@@ -2,7 +2,6 @@ from rdkit import Chem
 
 from .construct_ligand import construct_ligand
 from .drug_likeliness import is_drug_like
-from .Result import Result
 from .standardize import standardize_mol
 
 
