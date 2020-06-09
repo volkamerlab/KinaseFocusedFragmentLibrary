@@ -1,4 +1,0 @@
-"NAME","FAMILY","GROUPS","PDB","CHAIN","ALTERNATE_MODEL","SPECIES","LIGAND","PDB_IDENTIFIER","ALLOSTERIC_NAME","ALLOSTERIC_PDB","DFG","AC_HELIX"
-"EGFR","EGFR","TK","3w2s","A","A","Human","1-{3-[2-chloro-4-({5-[2-(2-hydroxyethoxy)ethyl]-5H-pyrrolo[3,2-d]pyrimidin-4-yl}amino)phenoxy]phenyl}-3-cyclohexylurea","W2R","-","-","in","out"
-"SYK","Syk","TK","4yjq","A","A","Human","3-[1H-indazol-4-yl(2-{[3-(4-methyl-1,3-oxazol-5-yl)phenyl]amino}pyrimidin-4-yl)amino]propan-1-ol","4DK","-","-","in","in"
-"EGFR","EGFR","TK","4jr3","A","-","Human","N-[3-(4-{[(1S)-2-hydroxy-1-phenylethyl]amino}-6-phenylfuro[2,3-d]pyrimidin-5-yl)phenyl]acetamide","KJR","-","-","in","in"

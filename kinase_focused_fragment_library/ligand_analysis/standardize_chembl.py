@@ -1,7 +1,8 @@
 import argparse
 import pandas as pd
 
-from .standardize import standardize_inchi
+from .utils import standardize_inchi
+
 
 def read_chembl(in_file, out_file):
 
@@ -25,17 +26,16 @@ def read_chembl(in_file, out_file):
 
     print('Number of filtered ChEMBL molecules:', len(chembl), mols.shape[0]-len(chembl))
 
-    return chembl
 
 def main():
 
-	parser = argparse.ArgumentParser()
-	parser.add_argument('-f', type=str, help='file with downloaded ChEMBL data', required=True)
-	parser.add_argument('-o', type=str, help='output file for standardized ChEMBL InChIs', required=True)
-	args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', type=str, help='file with downloaded ChEMBL data', required=True)
+    parser.add_argument('-o', type=str, help='output file for standardized ChEMBL InChIs', required=True)
+    args = parser.parse_args()
 
-	# standardize chembl
-	chembl = read_chembl(args.f, args.o)
+    # standardize chembl
+    read_chembl(args.f, args.o)
 
 
 if __name__ == "__main__":
