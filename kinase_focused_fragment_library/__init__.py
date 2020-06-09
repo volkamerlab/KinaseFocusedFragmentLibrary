@@ -8,7 +8,7 @@ from . import preprocessing
 from . import fragmentation
 from . import fragment_library_reduction
 from . import recombination
-from . import analysis
+from . import ligand_analysis
 
 # Handle versioneer
 from ._version import get_versions
