@@ -33,6 +33,7 @@ def main():
     max_depth = args.depth
 
     output_path = Path(args.combinatoriallibrary)
+    output_path.mkdir(parents=False, exist_ok=True)
 
     # create tmp path
     path = output_path / 'tmp'
