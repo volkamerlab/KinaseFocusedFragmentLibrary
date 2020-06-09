@@ -30,8 +30,8 @@ def read_chembl(in_file, out_file):
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', type=str, help='file with downloaded ChEMBL data', required=True)
-    parser.add_argument('-o', type=str, help='output file for standardized ChEMBL InChIs', required=True)
+    parser.add_argument('-f', '--chembl_downloaded_file', type=str, help='file with downloaded ChEMBL data', required=True)
+    parser.add_argument('-o', '--chembl_standardized_file', type=str, help='output file for standardized ChEMBL InChIs', required=True)
     args = parser.parse_args()
 
     # standardize chembl

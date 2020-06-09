@@ -36,6 +36,7 @@ setup(
                 "kffl-fragmentation=kinase_focused_fragment_library.fragmentation.cli:main",
                 "kffl-reduction=kinase_focused_fragment_library.fragment_library_reduction.cli:main",
                 "kffl-recombination=kinase_focused_fragment_library.recombination.cli:main",
+                "kffl-chembl=kinase_focused_fragment_library.ligand_analysis.cli_prepare_chembl:main",
                 "kffl-ligand-analysis=kinase_focused_fragment_library.ligand_analysis.cli:main",
             ],
         },
