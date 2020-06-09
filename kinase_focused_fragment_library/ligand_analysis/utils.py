@@ -1,7 +1,9 @@
-from rdkit import Chem
 import pandas as pd
+from rdkit import Chem
+from rdkit import RDLogger
+from rdkit.Chem.MolStandardize import rdMolStandardize
 
-from .standardize import standardize_mol
+RDLogger.DisableLog('rdApp.*')
 
 
 def read_original_ligands(frag_dict, path_to_klifs):
@@ -39,3 +41,48 @@ def read_original_ligands(frag_dict, path_to_klifs):
     ligands['mol'] = mols
 
     return ligands
+
+
+def standardize_mol(mol):
+    try:
+        Chem.SanitizeMol(mol)
+        mol = Chem.RemoveHs(mol)
+        mol = rdMolStandardize.MetalDisconnector().Disconnect(mol)
+        mol = rdMolStandardize.Normalize(mol)
+        mol = rdMolStandardize.Reionize(mol)
+        u = rdMolStandardize.Uncharger()
+        mol = u.uncharge(mol)
+        Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
+        return mol
+    except Exception as e:
+        print(e)
+        return None
+
+
+def standardize_inchi(input_inchi):
+    try:
+        mol = Chem.MolFromInchi(input_inchi)
+    except:
+        print('ERROR in MolFromInchi:', input_inchi)
+        return None
+    if not mol:
+        print('ERROR in MolFromInchi:', input_inchi)
+        return None
+    try:
+        Chem.SanitizeMol(mol)
+        mol = Chem.RemoveHs(mol)
+        mol = rdMolStandardize.MetalDisconnector().Disconnect(mol)
+        mol = rdMolStandardize.Normalize(mol)
+        mol = rdMolStandardize.Reionize(mol)
+        u = rdMolStandardize.Uncharger()
+        mol = u.uncharge(mol)
+        Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
+    except:
+        print('ERROR in standardization:', input_inchi)
+        return None
+    try:
+        inchi = Chem.MolToInchi(mol)
+    except:
+        print('ERROR in MolToInchi:', input_inchi)
+        return None
+    return inchi
