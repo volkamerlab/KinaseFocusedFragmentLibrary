@@ -25,22 +25,21 @@ def analyze_result(meta, data, original_ligands, chembl):
             print('ERROR: Ligand could not be standardized:', meta.frag_ids)
             return
 
-        inchi = Chem.MolToInchi(ligand)
-
         # Lipinski rule
         lipinski, wt, logp, hbd, hba = is_drug_like(ligand)
 
         # number of atoms
-        n = ligand.GetNumHeavyAtoms()
+        n_atoms = ligand.GetNumHeavyAtoms()
+
+        # get INCHI for molecular comparisons
+        inchi = Chem.MolToInchi(ligand)
 
         # search in original ligands
         original = 0
         original_sub = 0
-
         # exact match in original ligand
         if not original_ligands[original_ligands.inchi == inchi].empty:
             original = 1
-
         # true substructure of original ligands?
         #elif not original_ligands[original_ligands.mol >= ligand].empty:
         #    original_sub = 1
@@ -51,10 +50,21 @@ def analyze_result(meta, data, original_ligands, chembl):
         if not chembl_matches.empty:
             chembl_match = 1
 
-        # construct Result object
-        result = Result(meta, lipinski, wt, logp, hbd, hba, n, original, original_sub, chembl_match)
+        # save results to dictionary
+        ligand_dict = {
+            'bonds': [list(i) for i in meta.bonds],
+            'frag_ids': list(meta.frag_ids),
+            'hba': hba,
+            'hbd': hbd,
+            'mwt': wt,
+            'logp': logp,
+            'n_atoms': n_atoms,
+            'chembl_match': chembl_match,
+            'original': original,
+            'original_sub': original_sub
+        }
 
-        return result
+        return ligand_dict
 
     except Exception as e:
 
