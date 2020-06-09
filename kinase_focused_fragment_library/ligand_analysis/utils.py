@@ -1,7 +1,7 @@
 from rdkit import Chem
 import pandas as pd
 
-from .standardize import standardize_mol, standardize_inchi
+from .standardize import standardize_mol
 
 
 def read_original_ligands(frag_dict, path_to_klifs):
