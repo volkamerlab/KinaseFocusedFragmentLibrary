@@ -1,7 +1,7 @@
 import argparse
 import pandas as pd
 
-from standardize import standardize_inchi
+from .standardize import standardize_inchi
 
 def read_chembl(in_file, out_file):
 
