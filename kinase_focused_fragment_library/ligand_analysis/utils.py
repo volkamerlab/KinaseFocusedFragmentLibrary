@@ -232,14 +232,18 @@ def standardize_mol(mol):
 
 
 def standardize_inchi(input_inchi):
+
+    # convert InChI to molecule
     try:
         mol = Chem.MolFromInchi(input_inchi)
-    except:
-        print('ERROR in MolFromInchi:', input_inchi)
+    except Exception as e:
+        print(f'ERROR in MolFromInchi for {input_inchi}: {e}')
         return None
     if not mol:
-        print('ERROR in MolFromInchi:', input_inchi)
+        print(f'ERROR in MolFromInchi for {input_inchi}: Empty molecule')
         return None
+
+    # standardize molecule
     try:
         Chem.SanitizeMol(mol)
         mol = Chem.RemoveHs(mol)
@@ -249,12 +253,14 @@ def standardize_inchi(input_inchi):
         u = rdMolStandardize.Uncharger()
         mol = u.uncharge(mol)
         Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
-    except:
-        print('ERROR in standardization:', input_inchi)
+    except Exception as e:
+        print(f'ERROR in standardization for {input_inchi}: {e}')
         return None
+
+    # convert molecule to InChI
     try:
         inchi = Chem.MolToInchi(mol)
-    except:
-        print('ERROR in MolToInchi:', input_inchi)
+    except Exception as e:
+        print(f'ERROR in MolToInchi for {input_inchi}: {e}')
         return None
     return inchi
