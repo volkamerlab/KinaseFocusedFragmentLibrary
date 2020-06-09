@@ -6,6 +6,7 @@ Subpocket-based fragmentation of kinase inhibitors
 # Add imports here
 from . import preprocessing
 from . import fragmentation
+from . import fragment_library_reduction
 from . import recombination
 from . import analysis
 
