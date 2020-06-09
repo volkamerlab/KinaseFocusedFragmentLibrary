@@ -9,7 +9,7 @@ from .utils import standardize_mol, construct_ligand
 from kinase_focused_fragment_library.recombination.pickle_loader import pickle_loader
 
 
-def get_ligands_analysis(fragment_library, original_ligands, chembl, in_paths, combinatorial_library_file):
+def analyze_ligands(fragment_library, original_ligands, chembl, path_combinatorial_library):
     """
     Construct ligands from fragment library based on meta data (fragment and bond ids) and analyze ligands with respect
     to the following properties:
@@ -26,10 +26,9 @@ def get_ligands_analysis(fragment_library, original_ligands, chembl, in_paths, c
         Standardized original ligands (ligands from with fragment library is originating): InCHI and ROMol.
     chembl : pandas.DataFrame
         Standardized ChEMBL molecules: InCHI.
-    in_paths : list of pathlib.Path
-        Paths to ligand pickle files.
-    combinatorial_library_file : pathlib.Path
-        Path to output json file containing combinatorial library meta data and properties.
+    path_combinatorial_library : pathlib.Path
+        Path to combinatorial library folder, contains pickled molecules from recombination and is used to output final
+        json file.
     """
 
     start = time.time()
@@ -40,15 +39,18 @@ def get_ligands_analysis(fragment_library, original_ligands, chembl, in_paths, c
 
     results = []
 
-    # iterate over pickle files
-    for in_path in in_paths:
+    # get all paths to pickle files with molecules from recombination
+    paths_pickle_combinatorial_library = list((path_combinatorial_library / 'results').glob('*.pickle'))
 
-        print(str(in_path))
-        with open(str(in_path), 'rb') as pickle_in:
+    # iterate over pickle files
+    for path_pickle_combinatorial_library in paths_pickle_combinatorial_library:
+
+        print(str(path_pickle_combinatorial_library))
+        with open(str(path_pickle_combinatorial_library), 'rb') as pickle_in:
 
             # process ligands in pickle file (returns list of dict)
             results_tmp = pool.starmap(
-                _get_ligand_analysis,
+                _analyze_ligand,
                 [(meta, fragment_library, original_ligands, chembl) for meta in pickle_loader(pickle_in)]
             )
             print(f'Number of ligands in current iteration: {len(results_tmp)}')
@@ -58,14 +60,14 @@ def get_ligands_analysis(fragment_library, original_ligands, chembl, in_paths, c
 
     print(f'Number of ligands from all iterations: {len(results)}')
 
-    with open(str(combinatorial_library_file), 'w') as f:
+    with open(str((path_combinatorial_library / 'combinatorial_library.json')), 'w') as f:
         json.dump(results, f)
 
     runtime = time.time() - start
     print('Time: ', runtime)
 
 
-def _get_ligand_analysis(meta, fragment_library, original_ligands, chembl):
+def _analyze_ligand(meta, fragment_library, original_ligands, chembl):
     """
     Construct ligand from fragment library based on meta data (fragment and bond ids) and analyze ligand with respect
     to the following properties:
@@ -76,8 +78,9 @@ def _get_ligand_analysis(meta, fragment_library, original_ligands, chembl):
 
     Parameters
     ----------
-    meta : TBA
-        TBA
+    meta : kinase_focused_fragment_library.recombination.classes_meta.Combination
+        Ligand's meta data: fragment IDs (list of str) and bond IDs (list of list of str), where the strings are
+        composed of: "subpocket_name"_"fragment_index".
     fragment_library : dict of pandas.DataFrame
         Fragment library, i.e. fragments (value) per subpocket (key).
     original_ligands : pandas.DataFrame
@@ -91,8 +94,6 @@ def _get_ligand_analysis(meta, fragment_library, original_ligands, chembl):
         Ligand's fragment IDs, bond IDs, Lipinski's rule of five criteria, exact matches in ChEMBL and in the original
         ligand as well as substructure matches in the original ligands.
     """
-
-    print('hallo!')
 
     # initialize ligand details
     ligand_dict = {
@@ -127,7 +128,7 @@ def _get_ligand_analysis(meta, fragment_library, original_ligands, chembl):
     try:
         inchi = Chem.MolToInchi(ligand)
     except Exception as e:
-        print(f'Error {e}: Mol to InChI conversion failed for molecule with fragment IDs {result.meta.frag_ids}')
+        print(f'Error {e}: Mol to InChI conversion failed for molecule with fragment IDs {meta.frag_ids}')
         return
 
     # Lipinski's rule of five

@@ -6,7 +6,7 @@ from rdkit import Chem
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 
 from kinase_focused_fragment_library.ligand_analysis.utils import read_fragment_library, read_original_ligands
-from kinase_focused_fragment_library.ligand_analysis.analyze_results import get_ligands_analysis
+from kinase_focused_fragment_library.ligand_analysis.analyze import analyze_ligands
 
 
 def main():
@@ -20,32 +20,38 @@ def main():
     parser.add_argument('-o', '--combinatoriallibrary', type=str, help='output path', required=True)
     args = parser.parse_args()
 
+    # ============================= PATHS =====================================================
+
+    path_fragment_library = Path(args.fragmentlibrary)
+    path_chembl_data = Path(args.chembl)
+    path_klifs_data = Path(args.klifs) / 'KLIFS_download'
+    path_combinatorial_library = Path(args.combinatoriallibrary)
+
     # ============================= INPUT DATA ================================================
 
+    # load fragment library
     subpockets = ['AP', 'FP', 'SE', 'GA', 'B1', 'B2']
-    fragment_library = read_fragment_library(Path(args.fragmentlibrary), subpockets)
+    fragment_library = read_fragment_library(path_fragment_library, subpockets)
 
-    # read standardized chembl inchis
-    print('Read', args.chembl)
-    chembl = pd.read_csv(args.chembl, header=None, names=['standard_inchi'])
+    # load standardized ChEMBL InChIs
+    print('Read', path_chembl_data)
+    chembl = pd.read_csv(path_chembl_data, header=None, names=['standard_inchi'])
     print('Number of ChEMBL molecules:', chembl.shape[0])
 
-    # original ligands from KLIFS
-    path_to_klifs = Path(args.klifs) / 'KLIFS_download'
-    original_ligands = read_original_ligands(fragment_library, path_to_klifs)
+    # load original ligands from KLIFS
+    original_ligands = read_original_ligands(fragment_library, path_klifs_data)
 
-    # output file
-    combinatorial_library_folder = Path(args.combinatoriallibrary)
-    combinatorial_library_file = combinatorial_library_folder / 'combinatorial_library.json'
-
-    # objects create by the recombination algorithm
-    path_to_results = combinatorial_library_folder / 'results'
-    in_paths = list(path_to_results.glob('*.pickle'))
+    # recombined ligands will be loaded within the following function
 
     # ========================= CONSTRUCT AND ANALYZE LIGANDS ==============================
 
     # write ligand analysis to json file
-    get_ligands_analysis(fragment_library, original_ligands, chembl, in_paths, combinatorial_library_file)
+    analyze_ligands(
+        fragment_library,
+        original_ligands,
+        chembl,
+        path_combinatorial_library
+    )
 
 
 if __name__ == "__main__":
