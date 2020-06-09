@@ -103,7 +103,7 @@ def _construct_and_analyze_ligands(fragment_library, original_ligands, chembl, i
     print(f'Number of ligands from all iterations: {len(results)}')
 
     with open(str(combinatorial_library_file), 'w') as f:
-        json.dump(results, f, indent=4)
+        json.dump(results, f)
 
     runtime = time.time() - start
     print('Time: ', runtime)
