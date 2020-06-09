@@ -33,7 +33,7 @@ def analyze_ligands(fragment_library, original_ligands, chembl, path_combinatori
 
     start = time.time()
 
-    n_processes = 2  # mp.cpu_count()
+    n_processes = mp.cpu_count() - 1
     print("Number of processors: ", n_processes)
     pool = mp.Pool(n_processes)
 
