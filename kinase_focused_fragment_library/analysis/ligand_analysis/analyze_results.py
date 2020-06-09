@@ -15,52 +15,48 @@ def analyze_result(meta, data, original_ligands, chembl):
             print('ERROR: Ligand could not be constructed:', meta.frag_ids)
             return
 
-        # necessary for Lipinski rule
-        # Chem.GetSymmSSSR(ligand)
-
         ligand = standardize_mol(ligand)
         # if ligand could not be standardized, skip
         if not ligand:
             print('ERROR: Ligand could not be standardized:', meta.frag_ids)
             return
 
-        # Lipinski rule
+        # Lipinski's rule of five
         lipinski, wt, logp, hbd, hba = is_drug_like(ligand)
 
         # number of atoms
         n_atoms = ligand.GetNumHeavyAtoms()
 
-        # get INCHI for molecular comparisons
+        # get InCHI for molecular comparisons
         inchi = Chem.MolToInchi(ligand)
 
-        # search in original ligands
-        original = 0
-        original_sub = 0
-        # exact match in original ligand
-        if not original_ligands[original_ligands.inchi == inchi].empty:
-            original = 1
-        # true substructure of original ligands?
-        #elif not original_ligands[original_ligands.mol >= ligand].empty:
-        #    original_sub = 1
+        # ligand has exact match in original ligands?
+        original_exact_matches = original_ligands[
+            original_ligands.inchi == inchi
+        ].index.to_list()
 
-        # exact chembl match
-        chembl_match = 0
-        chembl_matches = chembl[chembl.standard_inchi == inchi]
-        if not chembl_matches.empty:
-            chembl_match = 1
+        # ligand has substructure match in original ligands?
+        original_substructure_matches = original_ligands[
+            original_ligands.mol.apply(lambda x: x.HasSubstructMatch(ligand))
+        ].index.to_list()
+
+        # ligand has exact match in ChEMBL?
+        chembl_exact_matches = chembl[
+            chembl.standard_inchi == inchi
+        ].index.to_list()
 
         # save results to dictionary
         ligand_dict = {
-            'bonds': [list(i) for i in meta.bonds],
-            'frag_ids': list(meta.frag_ids),
+            'bond_ids': [list(i) for i in meta.bonds],
+            'fragment_ids': list(meta.frag_ids),
             'hba': hba,
             'hbd': hbd,
             'mwt': wt,
             'logp': logp,
             'n_atoms': n_atoms,
-            'chembl_match': chembl_match,
-            'original': original,
-            'original_sub': original_sub
+            'chembl_exact': chembl_exact_matches,
+            'original_exact': original_exact_matches,
+            'original_substructure': original_substructure_matches
         }
 
         return ligand_dict
