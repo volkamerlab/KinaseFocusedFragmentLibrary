@@ -33,6 +33,9 @@ def prepare_chembl(in_file, out_file):
     # drop "old" standardized molecules and diff column
     mols.drop(['standard_inchi', 'diff'], axis='columns', inplace=True)
 
+    # rename column
+    mols.rename(columns={'standard_inchi_new': 'standard_inchi'}, inplace=True)
+
     # drop rows with any data missing
     chembl = mols.dropna(how='any')
     print(chembl.columns)
