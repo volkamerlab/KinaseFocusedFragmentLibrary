@@ -4,7 +4,7 @@ from rdkit.Chem import Descriptors, Lipinski
 from .utils import standardize_mol, construct_ligand
 
 
-def analyze_result(meta, data, original_ligands, chembl):
+def get_ligand_analysis(meta, data, original_ligands, chembl):
 
     try:
 

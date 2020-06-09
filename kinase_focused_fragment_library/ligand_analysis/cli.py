@@ -9,7 +9,7 @@ from rdkit import Chem
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 
 from kinase_focused_fragment_library.recombination.pickle_loader import pickle_loader
-from kinase_focused_fragment_library.ligand_analysis.analyze_results import analyze_result
+from kinase_focused_fragment_library.ligand_analysis.analyze_results import get_ligand_analysis
 from kinase_focused_fragment_library.ligand_analysis.utils import read_fragment_library, read_original_ligands
 
 
@@ -91,7 +91,7 @@ def _construct_and_analyze_ligands(fragment_library, original_ligands, chembl, i
 
             # process ligands in pickle file (returns list of dict)
             results_tmp = pool.starmap(
-                analyze_result,
+                get_ligand_analysis,
                 [(meta, fragment_library, original_ligands, chembl) for meta in pickle_loader(pickle_in)]
             )
             print(f'Number of ligands in current iteration: {len(results_tmp)}')
