@@ -4,7 +4,7 @@ import pandas as pd
 from .utils import standardize_inchi
 
 
-def read_chembl(in_file, out_file):
+def prepare_chembl(in_file, out_file):
 
     print('Read', in_file)
 
@@ -35,7 +35,7 @@ def main():
     args = parser.parse_args()
 
     # standardize chembl
-    read_chembl(args.f, args.o)
+    prepare_chembl(args.f, args.o)
 
 
 if __name__ == "__main__":
