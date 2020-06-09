@@ -1,3 +1,12 @@
+"""
+KinaseFocusedFragmentLibrary
+Subpocket-based fragmentation of kinase inhibitors
+
+This is the CLI to prepare the ChEMBL dataset (only run once with new ChEMBL dataset from ChEMBL website).
+Preparation includes the standardization of InChIs and the removal of ligands that have any missing data.
+The standardized dataset is written to a CSV file (ChEMBL compound IDs and the standardized InChIs per ligand).
+"""
+
 import argparse
 import pandas as pd
 
