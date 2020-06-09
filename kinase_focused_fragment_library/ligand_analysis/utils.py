@@ -117,7 +117,7 @@ def read_chembl_ligands(path_to_chembl):
 
     # read chembl ligands from file
     print('Read', path_to_chembl)
-    mols = pd.read_csv(path_to_chembl, header=None, names=['chembl_id', 'standard_inchi'])
+    mols = pd.read_csv(path_to_chembl)
     print('Number of ChEMBL molecules:', mols.shape[0])
 
     # generate fingerprint
