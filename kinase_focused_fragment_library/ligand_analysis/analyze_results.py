@@ -1,7 +1,7 @@
 from rdkit import Chem
+from rdkit.Chem import Descriptors, Lipinski
 
 from .construct_ligand import construct_ligand
-from .drug_likeliness import is_drug_like
 from .standardize import standardize_mol
 
 
@@ -66,3 +66,36 @@ def analyze_result(meta, data, original_ligands, chembl):
         print(e)
         print('ERROR:', meta.frag_ids)
         return
+
+
+def is_drug_like(mol):
+    """
+    Get Lipinski's rule of five criteria for molecule.
+
+    (If used in loop for multiple molecules, it takes about 1s for 2000 molecules.)
+
+    Parameters
+    ----------
+    mol : rdkit.Chem.rdchem.Mol
+        Molecule.
+
+    Returns
+    -------
+    tuple of int
+        Fulfilled criteria (1) or not (0) for Lipinski's rule of five, and its criteria molecule weight, logP, HBD and
+        HBA.
+    """
+
+    print(mol)
+
+    mol_wt = 1 if Descriptors.ExactMolWt(mol) <= 500 else 0
+
+    logp = 1 if Descriptors.MolLogP(mol) <= 5 else 0
+
+    hbd = 1 if Lipinski.NumHDonors(mol) <= 5 else 0
+
+    hba = 1 if Lipinski.NumHAcceptors(mol) <= 10 else 0
+
+    lipinski = 1 if mol_wt + logp + hbd + hba >= 3 else 0
+
+    return lipinski, mol_wt, logp, hbd, hba
