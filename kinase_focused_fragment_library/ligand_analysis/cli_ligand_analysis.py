@@ -1,12 +1,15 @@
 import argparse
+import logging
 from pathlib import Path
+import time
 
-import pandas as pd
 from rdkit import Chem
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
 
-from kinase_focused_fragment_library.ligand_analysis.utils import read_fragment_library, read_original_ligands
+from kinase_focused_fragment_library.ligand_analysis.utils import read_fragment_library, read_original_ligands, read_chembl_ligands
 from kinase_focused_fragment_library.ligand_analysis.analyze import analyze_ligands
+
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -27,6 +30,17 @@ def main():
     path_klifs_data = Path(args.klifs) / 'KLIFS_download'
     path_combinatorial_library = Path(args.combinatoriallibrary)
 
+    # ============================= LOGGING ===================================================
+
+    # configure logging file
+    logging.basicConfig(
+        filename=path_combinatorial_library / f'combinatorial_library.log',
+        level=logging.INFO
+    )
+
+    # get start time of script
+    start = time.time()
+
     # ============================= INPUT DATA ================================================
 
     # load fragment library
@@ -34,9 +48,7 @@ def main():
     fragment_library = read_fragment_library(path_fragment_library, subpockets)
 
     # load standardized ChEMBL InChIs
-    print('Read', path_chembl_data)
-    chembl = pd.read_csv(path_chembl_data, header=None, names=['standard_inchi'])
-    print('Number of ChEMBL molecules:', chembl.shape[0])
+    chembl = read_chembl_ligands(path_chembl_data)
 
     # load original ligands from KLIFS
     original_ligands = read_original_ligands(fragment_library, path_klifs_data)
@@ -52,6 +64,9 @@ def main():
         chembl,
         path_combinatorial_library
     )
+
+    runtime = time.time() - start
+    print('Time: ', runtime)
 
 
 if __name__ == "__main__":
