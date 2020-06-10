@@ -1,12 +1,14 @@
 import json
+import logging
 import multiprocessing as mp
-import time
 
 from rdkit import Chem, DataStructs
 from rdkit.Chem import Descriptors, Lipinski, rdFingerprintGenerator
 
 from .utils import standardize_mol, construct_ligand
 from kinase_focused_fragment_library.recombination.pickle_loader import pickle_loader
+
+logger = logging.getLogger(__name__)
 
 
 def analyze_ligands(fragment_library, original_ligands, chembl, path_combinatorial_library):
@@ -31,10 +33,8 @@ def analyze_ligands(fragment_library, original_ligands, chembl, path_combinatori
         json file.
     """
 
-    start = time.time()
-
     n_processes = mp.cpu_count() - 1
-    print("Number of processors: ", n_processes)
+    logger.info(f'Number of processors: {n_processes}')
     pool = mp.Pool(n_processes)
 
     results = []
@@ -45,7 +45,8 @@ def analyze_ligands(fragment_library, original_ligands, chembl, path_combinatori
     # iterate over pickle files
     for path_pickle_combinatorial_library in paths_pickle_combinatorial_library:
 
-        print(str(path_pickle_combinatorial_library))
+        logger.info(f'Process {path_pickle_combinatorial_library}...')
+
         with open(str(path_pickle_combinatorial_library), 'rb') as pickle_in:
 
             # process ligands in pickle file (returns list of dict)
@@ -53,18 +54,15 @@ def analyze_ligands(fragment_library, original_ligands, chembl, path_combinatori
                 _analyze_ligand,
                 [(meta, fragment_library, original_ligands, chembl) for meta in pickle_loader(pickle_in)]
             )
-            print(f'Number of ligands in current iteration: {len(results_tmp)}')
+            logger.info(f'Number of ligands in current iteration: {len(results_tmp)}')
 
             # extend results list with ligands from current iteration
             results.extend(results_tmp)
 
-    print(f'Number of ligands from all iterations: {len(results)}')
+    logger.info(f'Number of ligands from all iterations: {len(results)}')
 
-    with open(str((path_combinatorial_library / 'combinatorial_library.json')), 'w') as f:
+    with open(path_combinatorial_library / 'combinatorial_library.json', 'w') as f:
         json.dump(results, f)
-
-    runtime = time.time() - start
-    print('Time: ', runtime)
 
 
 def _analyze_ligand(meta, fragment_library, original_ligands, chembl):
