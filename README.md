@@ -84,7 +84,9 @@ Hint: `/path/to/KLIFS_download` means `/path/to/folder/with/KLIFS_download/folde
 ##### 1. Preprocessing
 
 ```bash
-kffl-preprocessing -f /path/to/KLIFS_download -o put/path/to/FragmentLibrary
+kffl-preprocessing 
+-f /path/to/KLIFS_download 
+-o put/path/to/FragmentLibrary
 ```
 * The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands 
 that were chosen for the fragmentation. 
@@ -93,7 +95,9 @@ that were chosen for the fragmentation.
 ##### 2. Fragmentation
 
 ```bash
-kffl-fragmentation -f /path/to/KLIFS_download -o /path/to/fragment_library
+kffl-fragmentation 
+-f /path/to/KLIFS_download 
+-o /path/to/fragment_library
 ```
 * A picture of each fragmented ligand is drawn and stored in ```/path/to/fragment_library/fragmented_molecules/```
 * Metadata on discarded ligands is written to ```/path/to/fragment_library/discarded_ligands/fragmentation.csv```.
@@ -171,16 +175,19 @@ fragment IDs and the bonds (as tuples of atom IDs) between the fragments.
 
 Download file ```chembl_25_chemreps.txt``` here: https://chembl.gitbook.io/chembl-interface-documentation/downloads.
 
-Standardize ChEMBL data in this file using 
+Standardize ChEMBL data in this file using:
+ 
 ```bash
-kinase_focused_fragment_library/analysis/ligand_analysis/standardize_chembl.py 
--f chembl_25_chemreps.txt -o chembl_standardized_inchi.txt
+kffl-chembl 
+-f chembl_25_chemreps.txt 
+-o chembl_standardized_inchi.txt
 ```
 
 The analysis step should be performed on a cluster:
 
 ```bash
-kffl-ligand-analysis -f /path/to/fragment_library_reduced (?) 
+kffl-ligand-analysis 
+-f /path/to/fragment_library_reduced 
 -klifs /path/to/KLIFS_download 
 -chembl chembl_standardized_inchi.txt 
 -o /path/to/combinatorial_library
