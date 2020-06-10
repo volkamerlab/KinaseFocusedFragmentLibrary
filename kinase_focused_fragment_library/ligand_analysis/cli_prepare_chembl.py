@@ -19,22 +19,59 @@ from .utils import standardize_inchi
 logger = logging.getLogger(__name__)
 
 
-def prepare_chembl(in_file, out_file):
+def main():
+    """
+    Main CLI function to standardize a ChEMBL dataset downloaded from ChEMBL and write output to csv file.
+    """
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--chembl_downloaded_file', type=str, help='file with downloaded ChEMBL data', required=True)
+    parser.add_argument('-o', '--chembl_standardized_file', type=str, help='output file for standardized ChEMBL InChIs', required=True)
+    args = parser.parse_args()
+
+    # get paths
+    chembl_downloaded_file = Path(args.chembl_downloaded_file)
+    chembl_standardized_file = Path(args.chembl_standardized_file)
+
+    # configure logging file
+    logging.basicConfig(
+        filename=chembl_standardized_file.parent / f'{chembl_standardized_file.stem}.log',
+        level=logging.INFO
+    )
+
+    # get start time of script
     start = time.time()
+
+    # standardize chembl
+    prepare_chembl(chembl_downloaded_file, chembl_standardized_file)
+
+    # get script runtime
+    runtime = time.time() - start
+    logger.info(f'Time: {runtime}')
+
+
+def prepare_chembl(in_file, out_file):
+    """
+    Prepare ChEMBL dataset, i.e. load data, standardize InChIs, drop entries with any missing information,
+    and write data (ChEMBL compound ID, standardized InChI) to output csv file.
+    Write logging output to log file with same file name.
+
+    Parameters
+    ----------
+    in_file : pathlib.Path
+        Path to downloaded ChEMBL file.
+    out_file : pathlib.Path
+        Path to standardized output ChEMBL dataset file.
+    """
 
     in_file = Path(in_file)
     out_file = Path(out_file)
 
-    logging.basicConfig(filename=out_file.parent / f'{out_file.stem}.log', level=logging.INFO)
-
+    # read data with columns: chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
     logger.info(f'Read {in_file}...')
-
     molecules = pd.read_csv(in_file, sep='\t')
-    logger.info(f'Number of initial ChEMBL molecules: {molecules.shape[0]}')
-    # downloaded ChEMBL file contains data on: chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
-    # drop columns not needed
     molecules.drop(['canonical_smiles', 'standard_inchi_key'], axis='columns', inplace=True)
+    logger.info(f'Number of initial ChEMBL molecules: {molecules.shape[0]}')
 
     # standardize InChIs
     logger.info(f'Standardize InChIs...')
@@ -57,24 +94,6 @@ def prepare_chembl(in_file, out_file):
     # save data to file
     logger.info(f'Save to {out_file}...')
     molecules.to_csv(out_file, index=0)
-
-    runtime = time.time() - start
-    logger.info(f'Time: {runtime}')
-
-
-def main():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--chembl_downloaded_file', type=str, help='file with downloaded ChEMBL data', required=True)
-    parser.add_argument('-o', '--chembl_standardized_file', type=str, help='output file for standardized ChEMBL InChIs', required=True)
-    args = parser.parse_args()
-
-    # get paths
-    chembl_downloaded_file = Path(args.chembl_downloaded_file)
-    chembl_standardized_file = Path(args.chembl_standardized_file)
-
-    # standardize chembl
-    prepare_chembl(chembl_downloaded_file, chembl_standardized_file)
 
 
 if __name__ == "__main__":
