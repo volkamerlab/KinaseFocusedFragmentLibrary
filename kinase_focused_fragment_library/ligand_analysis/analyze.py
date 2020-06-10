@@ -2,8 +2,8 @@ import json
 import multiprocessing as mp
 import time
 
-from rdkit import Chem
-from rdkit.Chem import Descriptors, Lipinski
+from rdkit import Chem, DataStructs
+from rdkit.Chem import Descriptors, Lipinski, rdFingerprintGenerator
 
 from .utils import standardize_mol, construct_ligand
 from kinase_focused_fragment_library.recombination.pickle_loader import pickle_loader
@@ -91,8 +91,8 @@ def _analyze_ligand(meta, fragment_library, original_ligands, chembl):
     Returns
     -------
     dict
-        Ligand's fragment IDs, bond IDs, Lipinski's rule of five criteria, exact matches in ChEMBL and in the original
-        ligand as well as substructure matches in the original ligands.
+        Ligand's fragment IDs, bond IDs, Lipinski's rule of five criteria, exact matches in ChEMBL, the highest
+        Tanimoto similarity value to ChEMBL, and exact/substructure matches in the original ligands.
     """
 
     # initialize ligand details
@@ -105,6 +105,7 @@ def _analyze_ligand(meta, fragment_library, original_ligands, chembl):
         'logp': None,
         'n_atoms': None,
         'chembl_exact': None,
+        'chembl_most_similar': None,
         'original_exact': None,
         'original_substructure': None,
         'inchi': None
@@ -152,6 +153,9 @@ def _analyze_ligand(meta, fragment_library, original_ligands, chembl):
         chembl.standard_inchi == inchi
     ].index.to_list()
 
+    # highest Tanimoto similarity between ligand and ChEMBL?
+    chembl_most_similar = _most_similar_chembl_ligand(ligand, chembl)
+
     # save results to dictionary
     ligand_dict['hba'] = hba
     ligand_dict['hbd'] = hbd
@@ -159,11 +163,47 @@ def _analyze_ligand(meta, fragment_library, original_ligands, chembl):
     ligand_dict['logp'] = logp
     ligand_dict['n_atoms'] = n_atoms
     ligand_dict['chembl_exact'] = chembl_exact_matches
+    ligand_dict['chembl_most_similar'] = chembl_most_similar
     ligand_dict['original_exact'] = original_exact_matches
     ligand_dict['original_substructure'] = original_substructure_matches
     ligand_dict['inchi'] = inchi
 
     return ligand_dict
+
+
+def _most_similar_chembl_ligand(ligand, chembl):
+    """
+    Get the most similar ChEMBL ligand (ChEMBL compound ID and Tanimoto similarity) to the query ligand.
+
+    Parameters
+    ----------
+    ligand : rdkit.Chem.rdchem.Mol
+    chembl : pandas.DataFrame
+        ChEMBL ligands, column fingerprint necessary.
+
+    Returns
+    -------
+    tuple of (str, float)
+        ChEMBL compound ID and Tanimoto similarity of ChEMBL ligand most similar to the query ligand.
+    """
+
+    # generate query ligand fingerprint
+    rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
+    query_fingerprint = rdkit_gen.GetFingerprint(ligand)
+
+    # get ChEMBL fingerprints as list
+    chembl_fingerprints = chembl.fingerprint.to_list()
+
+    # get pairwise similarities
+    chembl['similarity'] = DataStructs.BulkTanimotoSimilarity(query_fingerprint, chembl_fingerprints)
+
+    # get ligand with maximal similarity
+    chembl_most_similar_ix = chembl.similarity.idxmax()
+
+    return [
+        chembl.iloc[chembl_most_similar_ix].chembl_id,
+        round(chembl.iloc[chembl_most_similar_ix].similarity, 2)
+    ]
 
 
 def is_drug_like(mol):
