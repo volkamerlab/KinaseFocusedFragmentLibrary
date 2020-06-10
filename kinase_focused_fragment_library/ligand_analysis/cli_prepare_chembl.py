@@ -8,43 +8,58 @@ The standardized dataset is written to a CSV file (ChEMBL compound IDs and the s
 """
 
 import argparse
+import logging
+from pathlib import Path
+import time
+
 import pandas as pd
 
 from .utils import standardize_inchi
 
+logger = logging.getLogger(__name__)
+
 
 def prepare_chembl(in_file, out_file):
 
-    print('Read', in_file)
+    start = time.time()
 
-    mols = pd.read_csv(in_file, sep='\t')
-    print('Number of ChEMBL molecules:', mols.shape[0])
+    in_file = Path(in_file)
+    out_file = Path(out_file)
+
+    logging.basicConfig(filename=out_file.parent / f'{out_file.stem}.log', level=logging.INFO)
+
+    logger.info(f'Read {in_file}...')
+
+    molecules = pd.read_csv(in_file, sep='\t')
+    logger.info(f'Number of initial ChEMBL molecules: {molecules.shape[0]}')
     # downloaded ChEMBL file contains data on: chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
     # drop columns not needed
-    mols.drop(['canonical_smiles', 'standard_inchi_key'], axis='columns', inplace=True)
+    molecules.drop(['canonical_smiles', 'standard_inchi_key'], axis='columns', inplace=True)
 
     # standardize InChIs
-    mols['standard_inchi_new'] = mols['standard_inchi'].apply(standardize_inchi)
+    logger.info(f'Standardize InChIs...')
+    molecules['standard_inchi_new'] = molecules['standard_inchi'].apply(standardize_inchi)
 
     # check how many InChIs are changed after standardization
-    mols['diff'] = mols.apply(lambda x: x['standard_inchi'] != x['standard_inchi_new'], axis=1)
-    print('ChEMBL molecules with InChIs differing before and after standardization:', sum(mols['diff']))
+    molecules['diff'] = molecules.apply(lambda x: x['standard_inchi'] != x['standard_inchi_new'], axis=1)
+    logger.info(f'Number of ChEMBL molecules with changed InChIs after standardization: {sum(molecules["diff"])}')
 
     # drop "old" standardized molecules and diff column
-    mols.drop(['standard_inchi', 'diff'], axis='columns', inplace=True)
+    molecules.drop(['standard_inchi', 'diff'], axis='columns', inplace=True)
 
     # rename column
-    mols.rename(columns={'standard_inchi_new': 'standard_inchi'}, inplace=True)
+    molecules.rename(columns={'standard_inchi_new': 'standard_inchi'}, inplace=True)
 
     # drop rows with any data missing
-    chembl = mols.dropna(how='any')
-    print(chembl.columns)
+    molecules.dropna(how='any', inplace=True)
+    logger.info(f'Number of filtered ChEMBL molecules: {molecules.shape[0]}')
 
     # save data to file
-    chembl.to_csv(out_file, index=0)
+    logger.info(f'Save to {out_file}...')
+    molecules.to_csv(out_file, index=0)
 
-    print(f'Number of filtered ChEMBL molecules: {len(chembl)}')
-    print(f'Number of dropped ChEMBL molecules: {mols.shape[0]-len(chembl)}')
+    runtime = time.time() - start
+    logger.info(f'Time: {runtime}')
 
 
 def main():
@@ -54,8 +69,12 @@ def main():
     parser.add_argument('-o', '--chembl_standardized_file', type=str, help='output file for standardized ChEMBL InChIs', required=True)
     args = parser.parse_args()
 
+    # get paths
+    chembl_downloaded_file = Path(args.chembl_downloaded_file)
+    chembl_standardized_file = Path(args.chembl_standardized_file)
+
     # standardize chembl
-    prepare_chembl(args.chembl_downloaded_file, args.chembl_standardized_file)
+    prepare_chembl(chembl_downloaded_file, chembl_standardized_file)
 
 
 if __name__ == "__main__":

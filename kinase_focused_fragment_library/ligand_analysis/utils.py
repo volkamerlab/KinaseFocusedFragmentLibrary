@@ -1,4 +1,5 @@
 from functools import reduce
+import logging
 
 import pandas as pd
 from rdkit import Chem
@@ -8,6 +9,7 @@ from rdkit.Chem.MolStandardize import rdMolStandardize
 from rdkit.Chem.PropertyMol import PropertyMol
 
 RDLogger.DisableLog('rdApp.*')
+logger = logging.getLogger(__name__)
 
 
 def read_fragment_library(path_to_library, subpockets):
@@ -237,10 +239,10 @@ def standardize_inchi(input_inchi):
     try:
         mol = Chem.MolFromInchi(input_inchi)
     except Exception as e:
-        print(f'ERROR in MolFromInchi for {input_inchi}: {e}')
+        logger.info(f'ERROR in MolFromInchi for {input_inchi}: {e}')
         return None
     if not mol:
-        print(f'ERROR in MolFromInchi for {input_inchi}: Empty molecule')
+        logger.info(f'ERROR in MolFromInchi for {input_inchi}: Empty molecule')
         return None
 
     # standardize molecule
@@ -254,13 +256,13 @@ def standardize_inchi(input_inchi):
         mol = u.uncharge(mol)
         Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
     except Exception as e:
-        print(f'ERROR in standardization for {input_inchi}: {e}')
+        logger.info(f'ERROR in standardization for {input_inchi}: {e}')
         return None
 
     # convert molecule to InChI
     try:
         inchi = Chem.MolToInchi(mol)
     except Exception as e:
-        print(f'ERROR in MolToInchi for {input_inchi}: {e}')
+        logger.info(f'ERROR in MolToInchi for {input_inchi}: {e}')
         return None
     return inchi
