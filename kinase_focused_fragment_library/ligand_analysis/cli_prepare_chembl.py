@@ -67,10 +67,9 @@ def prepare_chembl(in_file, out_file):
     in_file = Path(in_file)
     out_file = Path(out_file)
 
-    # read data with columns: chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
+    # read raw ChEMBL data
     logger.info(f'Read {in_file}...')
-    molecules = pd.read_csv(in_file, sep='\t')
-    molecules.drop(['canonical_smiles', 'standard_inchi_key'], axis='columns', inplace=True)
+    molecules = _read_chembl_raw(in_file)
     logger.info(f'Number of initial ChEMBL molecules: {molecules.shape[0]}')
 
     # standardize InChIs
@@ -94,6 +93,30 @@ def prepare_chembl(in_file, out_file):
     # save data to file
     logger.info(f'Save to {out_file}...')
     molecules.to_csv(out_file, index=0)
+
+
+def _read_chembl_raw(path_to_chembl):
+    """
+    Read the raw ChEMBL data and drop keep only ChEMBL ID and canonical SMILES columns.
+
+    Parameters
+    ----------
+    path_to_chembl : pathlib.Path
+        Path to raw ChEMBL data.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Raw ChEMBL data with ChEMBL ID (chembl_id) and canonical SMILES (canonical_smiles) columns.
+    """
+
+    # read data with columns: chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
+    molecules = pd.read_csv(path_to_chembl, sep='\t')
+
+    # drop unneeded columns
+    molecules.drop(['standard_inchi', 'standard_inchi_key'], axis='columns', inplace=True)
+
+    return molecules
 
 
 if __name__ == "__main__":
