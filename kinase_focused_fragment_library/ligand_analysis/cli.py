@@ -1,18 +1,62 @@
+"""
+KinaseFocusedFragmentLibrary
+Subpocket-based fragmentation of kinase inhibitors
+
+Command line interfaces to (i) prepare the ChEMBL dataset and (ii) analyze the combinatorial library.
+"""
+
 import argparse
 import logging
 from pathlib import Path
 import time
 
-from rdkit import Chem
-Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AtomProps)
-
-from kinase_focused_fragment_library.ligand_analysis.utils import read_fragment_library, read_original_ligands, read_chembl_ligands
-from kinase_focused_fragment_library.ligand_analysis.base import CombinatorialLibraryAnalyzer
+from .base import ChemblPreparer, CombinatorialLibraryAnalyzer
+from .utils import read_fragment_library, read_original_ligands, read_chembl_ligands
 
 logger = logging.getLogger(__name__)
 
 
-def main():
+def prepare_chembl():
+    """
+    Command line interface to prepare ChEMBL dataset for the analysis of the combinatorial library.
+    """
+
+    # get command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--chembl_downloaded_file', type=str, help='file with downloaded ChEMBL data', required=True)
+    parser.add_argument('-o', '--chembl_standardized_file', type=str, help='output file for standardized ChEMBL InChIs', required=True)
+    args = parser.parse_args()
+
+    # get paths
+    chembl_downloaded_file = Path(args.chembl_downloaded_file)
+    chembl_standardized_file = Path(args.chembl_standardized_file)
+
+    # configure logging file
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(chembl_standardized_file.parent / f'{chembl_standardized_file.stem}.log'),
+            logging.StreamHandler()
+        ]
+    )
+
+    # get start time of script
+    start = time.time()
+
+    # prepare ChEMBL dataset
+    chembl_preparer = ChemblPreparer()
+    chembl_preparer.run(chembl_downloaded_file, chembl_standardized_file)
+
+    # get script runtime
+    runtime = time.time() - start
+    logger.info(f'Time: {runtime}')
+
+
+def analyze_combinatorial_library():
+    """
+    Command line interface to analyse the combinatorial library.
+    """
 
     # get command line arguments
     parser = argparse.ArgumentParser()
@@ -62,7 +106,3 @@ def main():
 
     runtime = time.time() - start
     logger.info(f'Time: {runtime}')
-
-
-if __name__ == "__main__":
-    main()
