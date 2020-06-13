@@ -5,6 +5,7 @@ channels:
   - rdkit
   - samoturk
 dependencies:
+  - pytest
   - biopandas
   - jupyter
   - matplotlib
