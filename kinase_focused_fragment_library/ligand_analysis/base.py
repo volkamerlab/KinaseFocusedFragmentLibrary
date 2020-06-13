@@ -47,7 +47,6 @@ class ChemblPreparer:
 
         # read raw ChEMBL data
         smiles = self._read(path_chembl_raw)
-        smiles = smiles[:1000]
 
         # filter raw ChEMBL data
         molecules = self._filter(smiles)
@@ -113,7 +112,7 @@ class ChemblPreparer:
         smiles.drop_duplicates(inplace=True)
         logger.info(f'Number of molecules after SMILES deduplication: {smiles.shape[0]}')
 
-        # get RDKit molecules
+        # get RDKit molecules (conversion returns None if molecules cannot be constructed)
         molecules = smiles.reset_index()
         PandasTools.AddMoleculeColumnToFrame(molecules, 'canonical_smiles')
 
