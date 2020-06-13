@@ -13,8 +13,9 @@ from pathlib import Path
 import time
 
 import pandas as pd
+from rdkit.Chem import PandasTools
 
-from .utils import standardize_inchi
+from .utils import standardize_mol, convert_mol_to_inchi
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +36,12 @@ def main():
 
     # configure logging file
     logging.basicConfig(
-        filename=chembl_standardized_file.parent / f'{chembl_standardized_file.stem}.log',
-        level=logging.INFO
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(chembl_standardized_file.parent / f'{chembl_standardized_file.stem}.log'),
+            logging.StreamHandler()
+        ]
     )
 
     # get start time of script
@@ -68,31 +73,21 @@ def prepare_chembl(in_file, out_file):
     out_file = Path(out_file)
 
     # read raw ChEMBL data
-    logger.info(f'Read {in_file}...')
     molecules = _read_chembl_raw(in_file)
-    logger.info(f'Number of initial ChEMBL molecules: {molecules.shape[0]}')
 
-    # standardize InChIs
-    logger.info(f'Standardize InChIs...')
-    molecules['standard_inchi_new'] = molecules['standard_inchi'].apply(standardize_inchi)
+    # filter raw ChEMBL data
+    molecules = _filter_chembl_raw(molecules)
 
-    # check how many InChIs are changed after standardization
-    molecules['diff'] = molecules.apply(lambda x: x['standard_inchi'] != x['standard_inchi_new'], axis=1)
-    logger.info(f'Number of ChEMBL molecules with changed InChIs after standardization: {sum(molecules["diff"])}')
+    # standardize molecules
+    molecules = _standardize(molecules)
 
-    # drop "old" standardized molecules and diff column
-    molecules.drop(['standard_inchi', 'diff'], axis='columns', inplace=True)
-
-    # rename column
-    molecules.rename(columns={'standard_inchi_new': 'standard_inchi'}, inplace=True)
-
-    # drop rows with any data missing
-    molecules.dropna(how='any', inplace=True)
-    logger.info(f'Number of filtered ChEMBL molecules: {molecules.shape[0]}')
+    # get InChIs
+    inchis = _get_inchis(molecules)
+    print(inchis.head())
 
     # save data to file
     logger.info(f'Save to {out_file}...')
-    molecules.to_csv(out_file, index=0)
+    inchis.to_csv(out_file)
 
 
 def _read_chembl_raw(path_to_chembl):
@@ -106,17 +101,103 @@ def _read_chembl_raw(path_to_chembl):
 
     Returns
     -------
-    pandas.DataFrame
-        Raw ChEMBL data with ChEMBL ID (chembl_id) and canonical SMILES (canonical_smiles) columns.
+    pandas.Series
+        SMILES (canonical_smiles) with ChEMBL ID as index (chembl_id).
     """
 
     # read data with columns: chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
+    logger.info(f'Read {path_to_chembl}...')
     molecules = pd.read_csv(path_to_chembl, sep='\t')
+    logger.info(f'Number of initial ChEMBL molecules: {molecules.shape[0]}')
 
-    # drop unneeded columns
-    molecules.drop(['standard_inchi', 'standard_inchi_key'], axis='columns', inplace=True)
+    return molecules[['chembl_id', 'canonical_smiles']].set_index('chembl_id').squeeze()
+
+
+def _filter_chembl_raw(molecules):
+    """
+    Filter ChEMBL dataset: Extract largest molecule from mixtures, drop SMILES duplicates, add RDKit molecules column,
+    and keep only molecules with more than 5 heavy atoms.
+
+    Parameters
+    ----------
+    molecules : pandas.Series
+        SMILES (canonical_smiles) with ChEMBL ID as index (chembl_id).
+
+    Returns
+    -------
+    pandas.Series
+        RDKit molecules (ROMol) with ChEMBL ID as index (chembl_id).
+    """
+
+    # Overwrite SMILES column with SMILES for longest molecule in original SMILES
+    logger.info(f'Number of mixture SMILES: {molecules[molecules.str.contains(".", regex=False)].shape[0]}')
+    molecules = molecules.apply(lambda x: max(x.split('.'), key=len))
+
+    # Drop SMILES duplicates
+    molecules.drop_duplicates(inplace=True)
+    logger.info(f'Number of molecules after SMILES deduplication: {molecules.shape[0]}')
+
+    # Add RDKit molecules column and drop SMILES column
+    molecules = molecules.reset_index()
+    PandasTools.AddMoleculeColumnToFrame(molecules, 'canonical_smiles')
+
+    # Keep only molecules with more than 5 heavy atoms
+    molecules['n_atoms'] = molecules.apply(lambda x: x.ROMol.GetNumHeavyAtoms(), axis=1)
+    molecules = molecules[molecules.n_atoms > 5].copy()
+    logger.info(f'Number of molecules after filter for number of atoms: {molecules.shape[0]}')
+
+    return molecules[['chembl_id', 'ROMol']].set_index('chembl_id').squeeze()
+
+
+def _standardize(molecules):
+    """
+    Standardize molecules (ROMol).
+
+    Parameters
+    ----------
+    molecules : pandas.Series
+        RDKit molecules (ROMol) with ChEMBL ID as index (chembl_id).
+
+    Returns
+    -------
+    pandas.Series
+        Standardized RDKit molecules (ROMol) with ChEMBL ID as index (chembl_id).
+    """
+
+    # overwrite column with standardized molecules
+    logger.info(f'Standardize molecules...')
+    molecules = molecules.apply(standardize_mol)
+
+    # drop rows with any data missing
+    molecules.dropna(how='any', inplace=True)
+    logger.info(f'Number of ChEMBL molecules after standardization: {molecules.shape[0]}')
 
     return molecules
+
+
+def _get_inchis(molecules):
+    """
+
+    Parameters
+    ----------
+    molecules : pandas.Series
+        RDKit molecules (ROMol) with ChEMBL ID as index (chembl_id).
+
+    Returns
+    -------
+    pandas.Series
+        InChIs (inchi) with ChEMBL ID as index (chembl_id).
+    """
+
+    # molecules to InChIs
+    inchis = molecules.apply(convert_mol_to_inchi)
+    inchis.name = 'inchi'
+
+    # drop rows with any data missing
+    inchis.dropna(how='any', inplace=True)
+    logger.info(f'Number of ChEMBL molecules (InChIs): {inchis.shape[0]}')
+
+    return inchis
 
 
 if __name__ == "__main__":

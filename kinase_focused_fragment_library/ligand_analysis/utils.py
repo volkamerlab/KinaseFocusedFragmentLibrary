@@ -218,32 +218,6 @@ def construct_ligand(meta, data):
 
 
 def standardize_mol(mol):
-    try:
-        Chem.SanitizeMol(mol)
-        mol = Chem.RemoveHs(mol)
-        mol = rdMolStandardize.MetalDisconnector().Disconnect(mol)
-        mol = rdMolStandardize.Normalize(mol)
-        mol = rdMolStandardize.Reionize(mol)
-        u = rdMolStandardize.Uncharger()
-        mol = u.uncharge(mol)
-        Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
-        return mol
-    except Exception as e:
-        print(e)
-        return None
-
-
-def standardize_inchi(input_inchi):
-
-    # convert InChI to molecule
-    try:
-        mol = Chem.MolFromInchi(input_inchi)
-    except Exception as e:
-        logger.info(f'ERROR in MolFromInchi for {input_inchi}: {e}')
-        return None
-    if not mol:
-        logger.info(f'ERROR in MolFromInchi for {input_inchi}: Empty molecule')
-        return None
 
     # standardize molecule
     try:
@@ -255,14 +229,19 @@ def standardize_inchi(input_inchi):
         u = rdMolStandardize.Uncharger()
         mol = u.uncharge(mol)
         Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
+        return mol
+
     except Exception as e:
-        logger.info(f'ERROR in standardization for {input_inchi}: {e}')
+        logger.info(f'ERROR in standardization: {e}')
         return None
+
+
+def convert_mol_to_inchi(mol):
 
     # convert molecule to InChI
     try:
         inchi = Chem.MolToInchi(mol)
     except Exception as e:
-        logger.info(f'ERROR in MolToInchi for {input_inchi}: {e}')
+        logger.info(f'ERROR in MolToInchi: {e}')
         return None
     return inchi
