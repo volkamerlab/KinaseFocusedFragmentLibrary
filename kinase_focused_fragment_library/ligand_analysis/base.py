@@ -116,6 +116,10 @@ class ChemblPreparer:
         molecules = smiles.reset_index()
         PandasTools.AddMoleculeColumnToFrame(molecules, 'canonical_smiles')
 
+        # drop rows with any data missing
+        molecules.dropna(how='any', inplace=True)
+        logger.info(f'Number of ChEMBL molecules after dropping None values (ROMol): {molecules.shape[0]}')
+
         # keep only molecules with more than 5 heavy atoms
         molecules['n_atoms'] = molecules.apply(lambda x: x.ROMol.GetNumHeavyAtoms(), axis=1)
         molecules = molecules[molecules.n_atoms > 5].copy()
