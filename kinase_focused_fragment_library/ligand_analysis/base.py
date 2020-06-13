@@ -43,11 +43,11 @@ class ChemblPreparer:
         path_chembl_out = Path(path_chembl_out)
 
         # read raw ChEMBL data
-        molecules = self._read(path_chembl_raw)
-        molecules = molecules[:100]
+        smiles = self._read(path_chembl_raw)
+        smiles = smiles[:1000]
 
         # filter raw ChEMBL data
-        molecules = self._filter(molecules)
+        molecules = self._filter(smiles)
 
         # standardize molecules
         molecules = self._standardize(molecules)
@@ -82,14 +82,14 @@ class ChemblPreparer:
         return molecules[['chembl_id', 'canonical_smiles']].set_index('chembl_id').squeeze()
 
     @staticmethod
-    def _filter(molecules):
+    def _filter(smiles):
         """
         Filter ChEMBL dataset: Extract largest molecule from mixtures (canonical SMILES), drop SMILES duplicates,
         convert SMILES to RDKit molecules, and keep only molecules with more than 5 heavy atoms.
 
         Parameters
         ----------
-        molecules : pandas.Series
+        smiles : pandas.Series
             SMILES ("canonical_smiles") with ChEMBL ID as index ("chembl_id").
 
         Returns
@@ -99,15 +99,15 @@ class ChemblPreparer:
         """
 
         # get SMILES for longest molecule in original SMILES
-        logger.info(f'Number of mixture SMILES: {molecules[molecules.str.contains(".", regex=False)].shape[0]}')
-        molecules = molecules.apply(lambda x: max(x.split('.'), key=len))
+        logger.info(f'Number of mixture SMILES: {smiles[smiles.str.contains(".", regex=False)].shape[0]}')
+        smiles = smiles.apply(lambda x: max(x.split('.'), key=len))
 
         # drop SMILES duplicates
-        molecules.drop_duplicates(inplace=True)
-        logger.info(f'Number of molecules after SMILES deduplication: {molecules.shape[0]}')
+        smiles.drop_duplicates(inplace=True)
+        logger.info(f'Number of molecules after SMILES deduplication: {smiles.shape[0]}')
 
         # get RDKit molecules
-        molecules = molecules.reset_index()
+        molecules = smiles.reset_index()
         PandasTools.AddMoleculeColumnToFrame(molecules, 'canonical_smiles')
 
         # keep only molecules with more than 5 heavy atoms
