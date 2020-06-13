@@ -218,30 +218,73 @@ def construct_ligand(meta, data):
 
 
 def standardize_mol(mol):
+    """
+    Standardize molecule.
 
-    # standardize molecule
+    Parameters
+    ----------
+    mol : rdkit.Chem.rdchem.Mol
+        Molecule.
+
+    Returns
+    -------
+    rdkit.Chem.rdchem.Mol or None
+        Standardized molecule or None if standardization failed.
+    """
+
     try:
+
+        # sanitize molecule
         Chem.SanitizeMol(mol)
+
+        # remove non-explicit hydrogens
         mol = Chem.RemoveHs(mol)
+
+        # disconnect metals from molecule
         mol = rdMolStandardize.MetalDisconnector().Disconnect(mol)
+
+        # normalize moleucle
         mol = rdMolStandardize.Normalize(mol)
+
+        # reionize molecule
         mol = rdMolStandardize.Reionize(mol)
+
+        # uncharge molecule (this helps to standardize protonation states)
         u = rdMolStandardize.Uncharger()
         mol = u.uncharge(mol)
+
+        # assign stereochemistry
         Chem.AssignStereochemistry(mol, force=True, cleanIt=True)
+
         return mol
 
     except Exception as e:
+
         logger.info(f'ERROR in standardization: {e}')
         return None
 
 
 def convert_mol_to_inchi(mol):
+    """
+    Convert molecule to InChI.
 
-    # convert molecule to InChI
+    Parameters
+    ----------
+    mol : rdkit.Chem.rdchem.Mol
+        Molecule.
+
+    Returns
+    -------
+    str
+        InChI.
+    """
+
     try:
+
         inchi = Chem.MolToInchi(mol)
+        return inchi
+
     except Exception as e:
+
         logger.info(f'ERROR in MolToInchi: {e}')
         return None
-    return inchi
