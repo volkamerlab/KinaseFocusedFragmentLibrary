@@ -12,10 +12,7 @@ import logging
 from pathlib import Path
 import time
 
-import pandas as pd
-from rdkit.Chem import PandasTools
-
-from .utils import standardize_mol, convert_mol_to_inchi
+from .base import ChemblPreparer
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +44,9 @@ def main():
     # get start time of script
     start = time.time()
 
-    # standardize chembl
-    prepare_chembl(chembl_downloaded_file, chembl_standardized_file)
+    # prepare ChEMBL dataset
+    chembl_preparer = ChemblPreparer()
+    chembl_preparer.run(chembl_downloaded_file, chembl_standardized_file)
 
     # get script runtime
     runtime = time.time() - start
