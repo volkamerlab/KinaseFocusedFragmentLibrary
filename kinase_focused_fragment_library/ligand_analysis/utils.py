@@ -1,136 +1,22 @@
+"""
+KinaseFocusedFragmentLibrary
+Subpocket-based fragmentation of kinase inhibitors
+
+This module contains utility functions for the analysis of the combinatorial library.
+"""
+
 from functools import reduce
 import logging
 
 import pandas as pd
 from rdkit import Chem
 from rdkit import RDLogger
-from rdkit.Chem import AllChem, rdFingerprintGenerator
+from rdkit.Chem import AllChem, Descriptors, Lipinski, rdFingerprintGenerator
 from rdkit.Chem.MolStandardize import rdMolStandardize
 from rdkit.Chem.PropertyMol import PropertyMol
 
 RDLogger.DisableLog('rdApp.*')
 logger = logging.getLogger(__name__)
-
-
-def read_fragment_library(path_to_library, subpockets):
-
-    """
-    Read fragment library
-
-    Parameters
-    ----------
-    path_to_library: PosixPath
-        path to the folder containing the fragment library
-
-    Returns
-    -------
-    data: dict(list(RDKit Molecule))
-        dictionary with list of fragments for each subpocket
-
-    """
-
-    # list of folders for each subpocket
-    folders = [path_to_library for subpocket in subpockets]
-
-    data = {}
-    for folder, subpocket in zip(folders, subpockets):
-
-        file = folder / (subpocket + '.sdf')
-
-        # read molecules
-        # keep hydrogen atoms
-        suppl = Chem.SDMolSupplier(str(file), removeHs=False)
-        mols = [f for f in suppl]
-
-        fragments = []
-        for i, fragment in enumerate(mols):
-
-            fragment = Chem.RemoveHs(fragment)
-
-            # store unique atom identifiers
-            for a, atom in enumerate(fragment.GetAtoms()):
-                frag_atom_id = f'{subpocket}_{a}'
-                atom.SetProp('frag_atom_id', frag_atom_id)
-                atom.SetProp('frag_id', fragment.GetProp('complex_pdb'))
-
-            fragment = PropertyMol(fragment)
-
-            fragments.append(fragment)
-
-        data[subpocket] = fragments
-
-        n_frags = len(fragments)
-        print('Number of fragments in', subpocket,  ':', n_frags)
-
-    return data
-
-
-def read_original_ligands(frag_dict, path_to_klifs):
-
-    print('Read original ligands.')
-
-    kinases_pdbs = set()
-
-    for subpocket in frag_dict:
-
-        for frag in frag_dict[subpocket]:
-            kinases_pdbs.add((frag.GetProp('kinase'), frag.GetProp('_Name')))
-
-    inchis = []
-    mols = []
-    for kinase, pdb in kinases_pdbs:
-        f = path_to_klifs / ('HUMAN/' + kinase + '/' + pdb + '/ligand.mol2')
-        ligand = Chem.MolFromMol2File(str(f))
-
-        # standardization
-        ligand = standardize_mol(ligand)
-        # if ligand could not be standardized, skip
-        if not ligand:
-            print('Ligand could not be standardized: ', pdb)
-            return
-
-        mols.append(ligand)
-        inchi = Chem.MolToInchi(ligand)
-        inchis.append(inchi)
-
-    print('Number of original ligands :', len(inchis))
-
-    ligands = pd.DataFrame(data=inchis, dtype=str, columns=['inchi'])
-    # add molecule column
-    ligands['mol'] = mols
-
-    return ligands
-
-
-def read_chembl_ligands(path_to_chembl):
-    """
-    Read ChEMBL ligands (ChEMBL compound ID and standardized InChI) from file and add fingerprints.
-
-    Parameters
-    ----------
-    path_to_chembl : pathlib.Path
-        Path to standardized ChEMBL data file.
-
-    Returns
-    -------
-    pandas.DataFrame
-        ChEMBL ligands with each the ChEMBL compound ID, standardized InChI, and fingerprint.
-    """
-
-    # read chembl ligands from file
-    print('Read', path_to_chembl)
-    mols = pd.read_csv(path_to_chembl)
-    print('Number of ChEMBL molecules:', mols.shape[0])
-
-    # generate fingerprint
-    rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
-    mols['fingerprint'] = mols.standard_inchi.apply(
-        lambda x: rdkit_gen.GetFingerprint(Chem.MolFromInchi(x))
-    )
-
-    print(f'ChEMBL data columns: {mols.columns}')
-
-    return mols
 
 
 def construct_ligand(meta, data):
@@ -217,6 +103,124 @@ def construct_ligand(meta, data):
     return ligand
 
 
+def read_fragment_library(path_to_library, subpockets):
+
+    """
+    Read fragment library
+
+    Parameters
+    ----------
+    path_to_library: PosixPath
+        path to the folder containing the fragment library
+
+    Returns
+    -------
+    data: dict(list(RDKit Molecule))
+        dictionary with list of fragments for each subpocket
+
+    """
+
+    data = {}
+    for subpocket in subpockets:
+
+        file = path_to_library / (subpocket + '.sdf')
+
+        # read molecules
+        # keep hydrogen atoms
+        suppl = Chem.SDMolSupplier(str(file), removeHs=False)
+        mols = [f for f in suppl]
+
+        fragments = []
+        for i, fragment in enumerate(mols):
+
+            fragment = Chem.RemoveHs(fragment)
+
+            # store unique atom identifiers
+            for a, atom in enumerate(fragment.GetAtoms()):
+                frag_atom_id = f'{subpocket}_{a}'
+                atom.SetProp('frag_atom_id', frag_atom_id)
+                atom.SetProp('frag_id', fragment.GetProp('complex_pdb'))
+
+            fragment = PropertyMol(fragment)
+
+            fragments.append(fragment)
+
+        data[subpocket] = fragments
+
+        n_frags = len(fragments)
+        print('Number of fragments in', subpocket, ':', n_frags)
+
+    return data
+
+
+def read_original_ligands(frag_dict, path_to_klifs):
+
+    print('Read original ligands.')
+
+    kinases_pdbs = set()
+
+    for subpocket in frag_dict:
+
+        for frag in frag_dict[subpocket]:
+            kinases_pdbs.add((frag.GetProp('kinase'), frag.GetProp('_Name')))
+
+    inchis = []
+    mols = []
+    for kinase, pdb in kinases_pdbs:
+        f = path_to_klifs / ('HUMAN/' + kinase + '/' + pdb + '/ligand.mol2')
+        ligand = Chem.MolFromMol2File(str(f))
+
+        # standardization
+        ligand = standardize_mol(ligand)
+        # if ligand could not be standardized, skip
+        if not ligand:
+            print('Ligand could not be standardized: ', pdb)
+            return
+
+        mols.append(ligand)
+        inchi = Chem.MolToInchi(ligand)
+        inchis.append(inchi)
+
+    print('Number of original ligands :', len(inchis))
+
+    ligands = pd.DataFrame(data=inchis, dtype=str, columns=['inchi'])
+    # add molecule column
+    ligands['mol'] = mols
+
+    return ligands
+
+
+def read_chembl_ligands(path_to_chembl):
+    """
+    Read ChEMBL ligands (ChEMBL compound ID and standardized InChI) from file and add fingerprints.
+
+    Parameters
+    ----------
+    path_to_chembl : pathlib.Path
+        Path to standardized ChEMBL data file.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ChEMBL ligands with each the ChEMBL compound ID, standardized InChI, and fingerprint.
+    """
+
+    # read chembl ligands from file
+    print('Read', path_to_chembl)
+    mols = pd.read_csv(path_to_chembl)
+    print('Number of ChEMBL molecules:', mols.shape[0])
+
+    # generate fingerprint
+    rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
+    mols['fingerprint'] = mols.inchi.apply(
+        lambda x: rdkit_gen.GetFingerprint(Chem.MolFromInchi(x))
+    )
+
+    print(f'ChEMBL data columns: {mols.columns}')
+
+    return mols
+
+
 def standardize_mol(mol):
     """
     Standardize molecule.
@@ -288,3 +292,29 @@ def convert_mol_to_inchi(mol):
 
         logger.info(f'ERROR in MolToInchi: {e}')
         return None
+
+def is_drug_like(mol):
+    """
+    Get Lipinski's rule of five criteria for molecule.
+
+    (If used in loop for multiple molecules, it takes about 1s for 2000 molecules.)
+
+    Parameters
+    ----------
+    mol : rdkit.Chem.rdchem.Mol
+        Molecule.
+
+    Returns
+    -------
+    tuple of int
+        Fulfilled criteria (1) or not (0) for Lipinski's rule of five, and its criteria molecule weight, logP, HBD and
+        HBA.
+    """
+
+    mol_wt = 1 if Descriptors.ExactMolWt(mol) <= 500 else 0
+    logp = 1 if Descriptors.MolLogP(mol) <= 5 else 0
+    hbd = 1 if Lipinski.NumHDonors(mol) <= 5 else 0
+    hba = 1 if Lipinski.NumHAcceptors(mol) <= 10 else 0
+    lipinski = 1 if mol_wt + logp + hbd + hba >= 3 else 0
+
+    return lipinski, mol_wt, logp, hbd, hba
