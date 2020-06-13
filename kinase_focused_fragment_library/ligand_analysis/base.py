@@ -77,8 +77,10 @@ class ChemblPreparer:
             SMILES ("canonical_smiles") with ChEMBL ID as index ("chembl_id").
         """
 
+        logger.info(f'Read raw ChEMBL data...')
+        logger.info(f'Path: {path_chembl_raw}')
+
         # read data with columns: chembl_id, canonical_smiles, standard_inchi, standard_inchi_key
-        logger.info(f'Read {path_chembl_raw}...')
         molecules = pd.read_csv(path_chembl_raw, sep='\t')
         logger.info(f'Number of initial ChEMBL molecules: {molecules.shape[0]}')
 
@@ -100,6 +102,8 @@ class ChemblPreparer:
         pandas.Series
             RDKit molecules ("ROMol") with ChEMBL ID as index ("chembl_id").
         """
+
+        logger.info(f'Filter molecules (SMILES) and return ROMol...')
 
         # get SMILES for longest molecule in original SMILES
         logger.info(f'Number of mixture SMILES: {smiles[smiles.str.contains(".", regex=False)].shape[0]}')
@@ -136,8 +140,9 @@ class ChemblPreparer:
             Standardized RDKit molecules ("ROMol") with ChEMBL ID as index ("chembl_id").
         """
 
+        logger.info(f'Standardize molecules (ROMol)...')
+
         # get standardized molecules
-        logger.info(f'Standardize molecules...')
         molecules = molecules.apply(standardize_mol)
 
         # drop rows with any data missing
@@ -162,6 +167,8 @@ class ChemblPreparer:
             InChIs ("inchi") with ChEMBL ID as index ("chembl_id").
         """
 
+        logger.info(f'Convert ROMol to InChIs...')
+
         # convert molecules to InChIs
         inchis = molecules.apply(convert_mol_to_inchi)
         inchis.name = 'inchi'
@@ -185,7 +192,8 @@ class ChemblPreparer:
             Path to standardized ChEMBL data (output).
         """
 
-        logger.info(f'Save to {path_chembl_out}...')
+        logger.info(f'Save molecules (InChI)...')
+        logger.info(f'Path: {path_chembl_out}')
         inchis.to_csv(path_chembl_out)
 
 
@@ -225,6 +233,8 @@ class CombinatorialLibraryAnalyzer:
         # get all paths to pickle files with molecules from recombination
         paths_pickle_combinatorial_library = list((path_combinatorial_library / 'results').glob('*.pickle'))
 
+        logger.info(f'Process recombined ligands...')
+
         # iterate over pickle files
         for path_pickle_combinatorial_library in paths_pickle_combinatorial_library:
             logger.info(f'Process {path_pickle_combinatorial_library}...')
@@ -240,7 +250,8 @@ class CombinatorialLibraryAnalyzer:
                 # extend results list with ligands from current iteration
                 results.extend(results_tmp)
 
-        logger.info(f'Number of ligands from all iterations: {len(results)}')
+        logger.info(f'Number of recombined ligands from all iterations: {len(results)}')
+        logger.info(f'Data linked to each ligand: {list(results[0].keys())}')
 
         with open(path_combinatorial_library / 'combinatorial_library.json', 'w') as f:
             json.dump(results, f)

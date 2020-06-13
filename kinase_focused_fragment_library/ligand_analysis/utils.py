@@ -87,7 +87,7 @@ def construct_ligand(meta, data):
     try:
         ligand = Chem.RemoveHs(ligand)
     except ValueError:
-        print(Chem.MolToSmiles(ligand))
+        logger.error(Chem.MolToSmiles(ligand))
         return
 
     # do not construct this ligand if bond types are not matching
@@ -120,6 +120,9 @@ def read_fragment_library(path_to_library, subpockets):
 
     """
 
+    logger.info(f'Read fragment library...')
+    logger.info(f'Path: {path_to_library}')
+
     data = {}
     for subpocket in subpockets:
 
@@ -148,14 +151,15 @@ def read_fragment_library(path_to_library, subpockets):
         data[subpocket] = fragments
 
         n_frags = len(fragments)
-        print('Number of fragments in', subpocket, ':', n_frags)
+        logger.info(f'Number of fragments in {subpocket}: {n_frags}')
 
     return data
 
 
 def read_original_ligands(frag_dict, path_to_klifs):
 
-    print('Read original ligands.')
+    logger.info('Read original ligands...')
+    logger.info(f'Path: {path_to_klifs}')
 
     kinases_pdbs = set()
 
@@ -174,14 +178,14 @@ def read_original_ligands(frag_dict, path_to_klifs):
         ligand = standardize_mol(ligand)
         # if ligand could not be standardized, skip
         if not ligand:
-            print('Ligand could not be standardized: ', pdb)
+            logger.error(f'Ligand could not be standardized: {pdb}')
             return
 
         mols.append(ligand)
         inchi = Chem.MolToInchi(ligand)
         inchis.append(inchi)
 
-    print('Number of original ligands :', len(inchis))
+    logger.info(f'Number of original ligands: {len(inchis)}')
 
     ligands = pd.DataFrame(data=inchis, dtype=str, columns=['inchi'])
     # add molecule column
@@ -206,9 +210,10 @@ def read_chembl_ligands(path_to_chembl):
     """
 
     # read chembl ligands from file
-    print('Read', path_to_chembl)
+    logger.info('Read ChEMBL dataset...')
+    logger.info(f'Path: {path_to_chembl}')
     mols = pd.read_csv(path_to_chembl)
-    print('Number of ChEMBL molecules:', mols.shape[0])
+    logger.info(f'Number of ChEMBL molecules: {mols.shape[0]}')
 
     # generate fingerprint
     rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
@@ -216,7 +221,7 @@ def read_chembl_ligands(path_to_chembl):
         lambda x: rdkit_gen.GetFingerprint(Chem.MolFromInchi(x))
     )
 
-    print(f'ChEMBL data columns: {mols.columns}')
+    logger.info(f'ChEMBL data columns: {mols.columns.to_list()}')
 
     return mols
 
@@ -292,6 +297,7 @@ def convert_mol_to_inchi(mol):
 
         logger.info(f'ERROR in MolToInchi: {e}')
         return None
+
 
 def is_drug_like(mol):
     """
