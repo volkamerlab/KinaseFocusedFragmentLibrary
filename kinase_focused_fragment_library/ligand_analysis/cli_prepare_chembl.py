@@ -22,6 +22,7 @@ def main():
     Main CLI function to standardize a ChEMBL dataset downloaded from ChEMBL and write output to csv file.
     """
 
+    # get command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--chembl_downloaded_file', type=str, help='file with downloaded ChEMBL data', required=True)
     parser.add_argument('-o', '--chembl_standardized_file', type=str, help='output file for standardized ChEMBL InChIs', required=True)
