@@ -99,7 +99,7 @@ class ChemblPreparer:
             RDKit molecules ("canonical_smiles") with ChEMBL ID as index ("chembl_id").
         """
 
-        logger.info(f'Filter molecules (SMILES) and return ROMol...')
+        logger.info(f'Filter molecules (SMILES)...')
 
         # get SMILES for longest molecule in original SMILES
         logger.info(f'Number of mixture SMILES: {smiles[smiles.str.contains(".", regex=False)].shape[0]}')
@@ -128,13 +128,13 @@ class ChemblPreparer:
         return smiles_filtered
 
     @staticmethod
-    def _standardize(molecules):
+    def _standardize(smiles):
         """
         Standardize molecules (from SMILES to InChi).
 
         Parameters
         ----------
-        molecules : pandas.Series
+        smiles : pandas.Series
             Molecule SMILES ("canonical_smiles") with ChEMBL ID as index ("chembl_id").
 
         Returns
@@ -146,13 +146,14 @@ class ChemblPreparer:
         logger.info(f'Standardize molecules (ROMol)...')
 
         # get standardized molecules
-        molecules = molecules.apply(standardize_smiles_to_inchi)
+        inchis = smiles.apply(standardize_smiles_to_inchi)
+        inchis.name = 'inchi'
 
         # drop rows with any data missing
-        molecules.dropna(how='any', inplace=True)
-        logger.info(f'Number of ChEMBL InChIs after standardization: {molecules.shape[0]}')
+        inchis.dropna(how='any', inplace=True)
+        logger.info(f'Number of ChEMBL InChIs after standardization: {inchis.shape[0]}')
 
-        return molecules
+        return inchis
 
     @staticmethod
     def _save(inchis, path_chembl_out):
@@ -227,6 +228,7 @@ class CombinatorialLibraryAnalyzer:
                 results.extend(results_tmp)
 
         logger.info(f'Number of recombined ligands from all iterations: {len(results)}')
+        print(results)
         logger.info(f'Data linked to each ligand: {list(results[0].keys())}')
 
         with open(path_combinatorial_library / 'combinatorial_library.json', 'w') as f:
