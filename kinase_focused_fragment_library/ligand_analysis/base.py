@@ -228,7 +228,6 @@ class CombinatorialLibraryAnalyzer:
                 results.extend(results_tmp)
 
         logger.info(f'Number of recombined ligands from all iterations: {len(results)}')
-        print(results)
         logger.info(f'Data linked to each ligand: {list(results[0].keys())}')
 
         with open(path_combinatorial_library / 'combinatorial_library.json', 'w') as f:
