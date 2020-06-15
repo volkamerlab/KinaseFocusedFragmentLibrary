@@ -14,7 +14,7 @@ import pandas as pd
 from rdkit import Chem, DataStructs
 from rdkit.Chem import PandasTools, rdFingerprintGenerator
 
-from .utils import standardize_smiles_to_inchi, construct_ligand, is_drug_like
+from .utils import standardize_smiles_to_inchi, standardize_mol, construct_ligand, is_drug_like
 from kinase_focused_fragment_library.recombination.pickle_loader import pickle_loader
 
 logger = logging.getLogger(__name__)
