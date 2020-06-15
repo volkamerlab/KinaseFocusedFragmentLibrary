@@ -122,7 +122,7 @@ class ChemblPreparer:
 
         # keep only molecules with more than 5 heavy atoms
         molecules['n_atoms'] = molecules.apply(lambda x: x.ROMol.GetNumHeavyAtoms(), axis=1)
-        molecules = molecules[molecules.n_atoms > 5]  # .copy() leads to memory issue?
+        molecules = molecules[molecules.n_atoms > 5]
         logger.info(f'Number of molecules after filter for number of atoms: {molecules.shape[0]}')
 
         return molecules[['chembl_id', 'ROMol']].set_index('chembl_id').squeeze()
