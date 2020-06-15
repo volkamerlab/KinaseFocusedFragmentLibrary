@@ -299,6 +299,38 @@ def convert_mol_to_inchi(mol):
         return None
 
 
+def standardize_smiles_to_inchi(smiles):
+    """
+    Standardize molecule: input canonical SMILES and output InChI.
+
+    Parameters
+    ----------
+    smiles : str
+        Molecule SMILES.
+
+    Returns
+    -------
+    str
+        Standardized molecule InChI or None if standardization failed.
+    """
+
+    # SMILES to ROMol
+    molecule = Chem.MolFromSmiles(smiles)
+
+    # standardize ROMol
+    molecule_standardized = standardize_mol(molecule)
+
+    # standardized ROMol to InChI
+    if molecule_standardized is not None:
+
+        inchi_standardized = convert_mol_to_inchi(molecule_standardized)
+        return inchi_standardized
+
+    else:
+
+        return None
+
+
 def is_drug_like(mol):
     """
     Get Lipinski's rule of five criteria for molecule.

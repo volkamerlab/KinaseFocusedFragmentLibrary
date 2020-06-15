@@ -14,7 +14,7 @@ import pandas as pd
 from rdkit import Chem, DataStructs
 from rdkit.Chem import PandasTools, rdFingerprintGenerator
 
-from .utils import standardize_mol, convert_mol_to_inchi, construct_ligand, is_drug_like
+from .utils import standardize_smiles_to_inchi, construct_ligand, is_drug_like
 from kinase_focused_fragment_library.recombination.pickle_loader import pickle_loader
 
 logger = logging.getLogger(__name__)
@@ -49,13 +49,10 @@ class ChemblPreparer:
         smiles = self._read(path_chembl_raw)
 
         # filter raw ChEMBL data
-        molecules = self._filter(smiles)
+        smiles = self._filter(smiles)
 
-        # standardize molecules
-        molecules = self._standardize(molecules)
-
-        # get InChIs
-        inchis = self._get_inchis(molecules)
+        # standardize InChIs
+        inchis = self._standardize(smiles)
 
         # save data to file
         self._save(inchis, path_chembl_out)
@@ -99,7 +96,7 @@ class ChemblPreparer:
         Returns
         -------
         pandas.Series
-            RDKit molecules ("ROMol") with ChEMBL ID as index ("chembl_id").
+            RDKit molecules ("canonical_smiles") with ChEMBL ID as index ("chembl_id").
         """
 
         logger.info(f'Filter molecules (SMILES) and return ROMol...')
@@ -125,62 +122,37 @@ class ChemblPreparer:
         molecules = molecules[molecules.n_atoms > 5]
         logger.info(f'Number of molecules after filter for number of atoms: {molecules.shape[0]}')
 
-        return molecules[['chembl_id', 'ROMol']].set_index('chembl_id').squeeze()
+        # cast to Series
+        smiles_filtered = molecules[['chembl_id', 'canonical_smiles']].set_index('chembl_id').squeeze()
+
+        return smiles_filtered
 
     @staticmethod
     def _standardize(molecules):
         """
-        Standardize molecules (ROMol).
+        Standardize molecules (from SMILES to InChi).
 
         Parameters
         ----------
         molecules : pandas.Series
-            RDKit molecules ("ROMol") with ChEMBL ID as index ("chembl_id").
+            Molecule SMILES ("canonical_smiles") with ChEMBL ID as index ("chembl_id").
 
         Returns
         -------
         pandas.Series
-            Standardized RDKit molecules ("ROMol") with ChEMBL ID as index ("chembl_id").
+            Standardized molecule InChIs ("inchi") with ChEMBL ID as index ("chembl_id").
         """
 
         logger.info(f'Standardize molecules (ROMol)...')
 
         # get standardized molecules
-        molecules = molecules.apply(standardize_mol)
+        molecules = molecules.apply(standardize_smiles_to_inchi)
 
         # drop rows with any data missing
         molecules.dropna(how='any', inplace=True)
-        logger.info(f'Number of ChEMBL molecules after standardization: {molecules.shape[0]}')
+        logger.info(f'Number of ChEMBL InChIs after standardization: {molecules.shape[0]}')
 
         return molecules
-
-    @staticmethod
-    def _get_inchis(molecules):
-        """
-        Convert RDKit molecules ("ROMol") to InChIs ("inchi").
-
-        Parameters
-        ----------
-        molecules : pandas.Series
-            RDKit molecules ("ROMol") with ChEMBL ID as index ("chembl_id").
-
-        Returns
-        -------
-        pandas.Series
-            InChIs ("inchi") with ChEMBL ID as index ("chembl_id").
-        """
-
-        logger.info(f'Convert ROMol to InChIs...')
-
-        # convert molecules to InChIs
-        inchis = molecules.apply(convert_mol_to_inchi)
-        inchis.name = 'inchi'
-
-        # drop rows with any data missing
-        inchis.dropna(how='any', inplace=True)
-        logger.info(f'Number of ChEMBL molecules (InChIs): {inchis.shape[0]}')
-
-        return inchis
 
     @staticmethod
     def _save(inchis, path_chembl_out):
@@ -394,6 +366,6 @@ class CombinatorialLibraryAnalyzer:
         chembl_most_similar_ix = chembl.similarity.idxmax()
 
         return [
-            chembl.iloc[chembl_most_similar_ix].chembl_id,
+            chembl.iloc[chembl_most_similar_ix].chembl_id[6:],  # cut off "CHEMBL" from ChEMBL ID
             round(chembl.iloc[chembl_most_similar_ix].similarity, 2)
         ]
