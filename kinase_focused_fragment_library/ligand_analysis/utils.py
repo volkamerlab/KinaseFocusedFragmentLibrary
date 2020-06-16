@@ -216,14 +216,30 @@ def read_chembl_ligands(path_to_chembl):
     logger.info(f'Number of ChEMBL molecules: {mols.shape[0]}')
 
     # generate fingerprint
-    rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
-    mols['fingerprint'] = mols.inchi.apply(
-        lambda x: rdkit_gen.GetFingerprint(Chem.MolFromInchi(x))
-    )
-
+    logger.info('Add fingerprints to ChEMBL dataset...')
+    mols['fingerprint'] = mols.inchi.apply(get_fingerprints_from_inchi)
     logger.info(f'ChEMBL data columns: {mols.columns.to_list()}')
 
+    # drop rows with any data missing
+    mols.dropna(how='any', inplace=True)
+    logger.info(f'Number of ChEMBL molecules after dropping empty fingerprints: {mols.shape[0]}')
+
     return mols
+
+
+def get_fingerprints_from_inchi(inchi):
+
+    mol = Chem.MolFromInchi(inchi)
+
+    rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
+
+    if mol is not None:
+
+        return rdkit_gen.GetFingerprint(mol)
+
+    else:
+
+        return None
 
 
 def standardize_mol(mol):
