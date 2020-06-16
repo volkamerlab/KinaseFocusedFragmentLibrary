@@ -217,7 +217,7 @@ def read_chembl_ligands(path_to_chembl):
 
     # generate fingerprint
     logger.info('Add fingerprints to ChEMBL dataset...')
-    mols['fingerprint'] = mols.inchi.apply(get_fingerprints_from_inchi)
+    mols['fingerprint'] = mols.inchi.apply(get_fingerprint_from_inchi)
     logger.info(f'ChEMBL data columns: {mols.columns.to_list()}')
 
     # drop rows with any data missing
@@ -227,18 +227,31 @@ def read_chembl_ligands(path_to_chembl):
     return mols
 
 
-def get_fingerprints_from_inchi(inchi):
+def get_fingerprint_from_inchi(inchi):
+    """
+    Get fingerprint from InChI.
 
+    Parameters
+    ----------
+    inchi : str
+        InChI.
+
+    Returns
+    -------
+    rdkit.DataStructs.cDataStructs.ExplicitBitVect
+        Fingerprint.
+    """
+
+    # get molecule from InChI
     mol = Chem.MolFromInchi(inchi)
 
+    # get fingerprint generator
     rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
 
+    # get fingerprint
     if mol is not None:
-
         return rdkit_gen.GetFingerprint(mol)
-
     else:
-
         return None
 
 
