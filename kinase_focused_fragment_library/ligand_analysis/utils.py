@@ -156,7 +156,7 @@ def read_fragment_library(path_to_library, subpockets):
     return data
 
 
-def read_original_ligands(frag_dict, path_to_klifs):
+def read_original_ligands(frag_dict, path_to_klifs, path_combinatorial_library):
 
     logger.info('Read original ligands...')
     logger.info(f'Path: {path_to_klifs}')
@@ -167,6 +167,10 @@ def read_original_ligands(frag_dict, path_to_klifs):
 
         for frag in frag_dict[subpocket]:
             kinases_pdbs.add((frag.GetProp('kinase'), frag.GetProp('_Name')))
+
+    # save original ligand index to file
+    original_ligand_index = pd.DataFrame(kinases_pdbs, columns=['kinase', 'pdb'])
+    original_ligand_index.to_csv(path_combinatorial_library / 'original_ligands_index.csv')
 
     inchis = []
     mols = []

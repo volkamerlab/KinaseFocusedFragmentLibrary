@@ -95,7 +95,7 @@ def analyze_combinatorial_library():
     chembl = read_chembl_ligands(path_chembl_data)
 
     # load original ligands from KLIFS
-    original_ligands = read_original_ligands(fragment_library, path_klifs_data)
+    original_ligands = read_original_ligands(fragment_library, path_klifs_data, path_combinatorial_library)
 
     # construct and analyze ligands (write to json file)
     analyzer = CombinatorialLibraryAnalyzer()
