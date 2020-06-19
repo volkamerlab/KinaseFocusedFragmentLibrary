@@ -202,6 +202,7 @@ class CombinatorialLibraryAnalyzer:
             Number of cores to be used for parallel computing.
         """
 
+        n_cores = mp.cpu_count()
         logger.info(f'Number of cores: {n_cores}')
         pool = mp.Pool(n_cores)
 
@@ -226,6 +227,9 @@ class CombinatorialLibraryAnalyzer:
 
                 # extend results list with ligands from current iteration
                 results.extend(results_tmp)
+
+            with open(path_pickle_combinatorial_library.parent / f'{path_pickle_combinatorial_library.stem}.json', 'w') as f:
+                json.dump(results_tmp, f)
 
         logger.info(f'Number of recombined ligands from all iterations: {len(results)}')
         logger.info(f'Data linked to each ligand: {list(results[0].keys())}')
@@ -270,10 +274,9 @@ class CombinatorialLibraryAnalyzer:
             'mwt': None,
             'logp': None,
             'n_atoms': None,
-            'chembl_exact': None,
-            'chembl_most_similar': None,
-            'original_exact': None,
-            'original_substructure': None,
+            'chembl_exact': 0,
+            'original_exact': 0,
+            'original_substructure': 0,
             'inchi': None
         }
 
@@ -294,45 +297,32 @@ class CombinatorialLibraryAnalyzer:
         # convert mol to inchi
         try:
             inchi = Chem.MolToInchi(ligand)
+            ligand_dict['inchi'] = inchi
         except Exception as e:
             print(f'Error {e}: Mol to InChI conversion failed for molecule with fragment IDs {meta.frag_ids}')
             return
 
         # Lipinski's rule of five
         lipinski, wt, logp, hbd, hba = is_drug_like(ligand)
-
-        # number of atoms
-        n_atoms = ligand.GetNumHeavyAtoms()
-
-        # ligand has exact match in original ligands?
-        original_exact_matches = original_ligands[
-            original_ligands.inchi == inchi
-            ].index.to_list()
-
-        # ligand has substructure match in original ligands?
-        original_substructure_matches = original_ligands[
-            original_ligands.mol.apply(lambda x: x.HasSubstructMatch(ligand))
-        ].index.to_list()
-
-        # ligand has exact match in ChEMBL?
-        chembl_exact_matches = chembl[
-            chembl.inchi == inchi
-            ].index.to_list()
-
-        # highest Tanimoto similarity between ligand and ChEMBL?
-        chembl_most_similar = self._most_similar_chembl_ligand(ligand, chembl)
-
-        # save results to dictionary
         ligand_dict['hba'] = hba
         ligand_dict['hbd'] = hbd
         ligand_dict['mwt'] = wt
         ligand_dict['logp'] = logp
-        ligand_dict['n_atoms'] = n_atoms
-        ligand_dict['chembl_exact'] = chembl_exact_matches
-        ligand_dict['chembl_most_similar'] = chembl_most_similar
-        ligand_dict['original_exact'] = original_exact_matches
-        ligand_dict['original_substructure'] = original_substructure_matches
-        ligand_dict['inchi'] = inchi
+
+        # number of atoms
+        ligand_dict['n_atoms'] = ligand.GetNumHeavyAtoms()
+
+        # ligand has exact match in original ligands?
+        if not original_ligands[original_ligands.inchi == inchi].empty:
+            ligand_dict['original_exact'] = 1
+
+        # ligand has substructure match in original ligands?
+        if not original_ligands[original_ligands.mol.apply(lambda x: x.HasSubstructMatch(ligand))].empty:
+            ligand_dict['original_substructure'] = 1
+
+        # ligand has exact match in ChEMBL?
+        if not chembl[chembl.inchi == inchi].empty:
+            ligand_dict['chembl_exact'] = 1
 
         return ligand_dict
 
