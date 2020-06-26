@@ -219,6 +219,11 @@ def read_chembl_ligands(path_to_chembl):
     mols = pd.read_csv(path_to_chembl)
     logger.info(f'Number of ChEMBL molecules: {mols.shape[0]}')
 
+    # generate fingerprint
+    logger.info('Add fingerprints to ChEMBL dataset...')
+    mols['fingerprint'] = mols.inchi.apply(get_fingerprint_from_inchi)
+    logger.info(f'ChEMBL data columns: {mols.columns.to_list()}')
+
     # drop rows with any data missing
     mols.dropna(how='any', inplace=True)
     logger.info(f'Number of ChEMBL molecules after dropping empty fingerprints: {mols.shape[0]}')
