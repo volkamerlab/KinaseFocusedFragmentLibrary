@@ -64,7 +64,6 @@ def analyze_combinatorial_library():
     parser.add_argument('-chembl', type=str, help='file with standardized chembl data (InChIs)', required=True)
     parser.add_argument('-klifs', type=str, help='path to KLIFS_download folder (original ligands)', required=True)
     parser.add_argument('-o', '--combinatoriallibrary', type=str, help='output path', required=True)
-    parser.add_argument('-c', '--ncores', type=str, help='number of cores', required=True)
     args = parser.parse_args()
 
     # set paths and number of cores
@@ -72,7 +71,6 @@ def analyze_combinatorial_library():
     path_chembl_data = Path(args.chembl)
     path_klifs_data = Path(args.klifs) / 'KLIFS_download'
     path_combinatorial_library = Path(args.combinatoriallibrary)
-    n_cores = int(args.ncores)
 
     # configure logging file
     logging.basicConfig(
@@ -103,8 +101,7 @@ def analyze_combinatorial_library():
         fragment_library,
         original_ligands,
         chembl,
-        path_combinatorial_library,
-        n_cores
+        path_combinatorial_library
     )
 
     runtime = time.time() - start

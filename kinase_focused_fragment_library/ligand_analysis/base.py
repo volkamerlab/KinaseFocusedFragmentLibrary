@@ -178,7 +178,7 @@ class CombinatorialLibraryAnalyzer:
     def __init__(self):
         pass
 
-    def run(self, fragment_library, original_ligands, chembl, path_combinatorial_library, n_cores):
+    def run(self, fragment_library, original_ligands, chembl, path_combinatorial_library):
         """
         Construct ligands from fragment library based on meta data (fragment and bond ids) and analyze ligands with respect
         to the following properties:
@@ -198,8 +198,6 @@ class CombinatorialLibraryAnalyzer:
         path_combinatorial_library : pathlib.Path
             Path to combinatorial library folder, contains pickled molecules from recombination and is used to output final
             json file.
-        n_cores : int
-            Number of cores to be used for parallel computing.
         """
 
         n_cores = mp.cpu_count()
