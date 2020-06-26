@@ -273,6 +273,7 @@ class CombinatorialLibraryAnalyzer:
             'logp': None,
             'n_atoms': None,
             'chembl_exact': 0,
+            'chembl_most_similar': None,
             'original_exact': 0,
             'original_substructure': 0,
             'inchi': None
@@ -321,6 +322,10 @@ class CombinatorialLibraryAnalyzer:
         # ligand has exact match in ChEMBL?
         if not chembl[chembl.inchi == inchi].empty:
             ligand_dict['chembl_exact'] = 1
+
+        # highest Tanimoto similarity between ligand and ChEMBL?
+        chembl_most_similar = self._most_similar_chembl_ligand(ligand, chembl)
+        ligand_dict['chembl_most_similar'] = chembl_most_similar
 
         return ligand_dict
 
