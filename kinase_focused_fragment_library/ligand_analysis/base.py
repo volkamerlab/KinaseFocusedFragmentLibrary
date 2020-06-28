@@ -360,6 +360,6 @@ class CombinatorialLibraryAnalyzer:
         chembl_most_similar_ix = chembl.similarity.idxmax()
 
         return [
-            chembl.iloc[chembl_most_similar_ix].chembl_id,
+            chembl.loc[chembl_most_similar_ix].chembl_id,
             round(chembl.iloc[chembl_most_similar_ix].similarity, 2)
         ]
