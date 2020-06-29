@@ -361,5 +361,5 @@ class CombinatorialLibraryAnalyzer:
 
         return [
             chembl.loc[chembl_most_similar_ix].chembl_id,
-            round(chembl.iloc[chembl_most_similar_ix].similarity, 2)
+            round(chembl.loc[chembl_most_similar_ix].similarity, 2)
         ]
