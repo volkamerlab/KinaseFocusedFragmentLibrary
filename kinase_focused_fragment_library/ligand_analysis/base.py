@@ -363,3 +363,27 @@ class CombinatorialLibraryAnalyzer:
             chembl.loc[chembl_most_similar_ix].chembl_id,
             round(chembl.loc[chembl_most_similar_ix].similarity, 2)
         ]
+
+
+class CombinatorialLibraryDeduplicator:
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def run(path_combinatorial_library):
+        """
+        Deduplicate combinatorial library based on InChIs.
+        
+        Parameters
+        ----------
+        path_combinatorial_library : pathlib.Path
+            Path to combinatorial library folder, containing final combinatorial library json file
+        """
+
+        combinatorial_library = pd.read_json(path_combinatorial_library / 'combinatorial_library.json')
+        print(f'Number of recombined ligands before deduplication: {combinatorial_library.shape[0]}')
+        combinatorial_library.drop_duplicates('inchi', inplace=True)
+        print(f'Number of recombined ligands after deduplication: {combinatorial_library.shape[0]}')
+
+        combinatorial_library.to_json(path_combinatorial_library / 'combinatorial_library_deduplicated.json')
