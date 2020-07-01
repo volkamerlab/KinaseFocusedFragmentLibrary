@@ -374,16 +374,20 @@ class CombinatorialLibraryDeduplicator:
     def run(path_combinatorial_library):
         """
         Deduplicate combinatorial library based on InChIs.
-        
+
         Parameters
         ----------
         path_combinatorial_library : pathlib.Path
             Path to combinatorial library folder, containing final combinatorial library json file
         """
 
+        print('Load json file...')
         combinatorial_library = pd.read_json(path_combinatorial_library / 'combinatorial_library.json')
         print(f'Number of recombined ligands before deduplication: {combinatorial_library.shape[0]}')
         combinatorial_library.drop_duplicates('inchi', inplace=True)
         print(f'Number of recombined ligands after deduplication: {combinatorial_library.shape[0]}')
-
-        combinatorial_library.to_json(path_combinatorial_library / 'combinatorial_library_deduplicated.json')
+        print('Convert DataFrame to dict...')
+        combinatorial_library = combinatorial_library.to_dict('records')
+        print('Save as json file...')
+        with open(path_combinatorial_library / 'combinatorial_library_deduplicated.json', 'w') as f:
+            json.dump(combinatorial_library, f)
