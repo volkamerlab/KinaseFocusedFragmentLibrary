@@ -324,19 +324,20 @@ class CombinatorialLibraryAnalyzer:
             ligand_dict['chembl_exact'] = 1
 
         # highest Tanimoto similarity between ligand and ChEMBL?
-        chembl_most_similar = self._most_similar_chembl_ligand(ligand, chembl)
+        chembl_most_similar = self._most_similar_chembl_ligand(inchi, chembl)
         ligand_dict['chembl_most_similar'] = chembl_most_similar
 
         return ligand_dict
 
     @staticmethod
-    def _most_similar_chembl_ligand(ligand, chembl):
+    def _most_similar_chembl_ligand(ligand_inchi, chembl):
         """
         Get the most similar ChEMBL ligand (ChEMBL compound ID and Tanimoto similarity) to the query ligand.
 
         Parameters
         ----------
-        ligand : rdkit.Chem.rdchem.Mol
+        ligand_inchi : str
+            Recombined ligand (InChI)
         chembl : pandas.DataFrame
             ChEMBL ligands, column fingerprint necessary.
 
@@ -345,6 +346,9 @@ class CombinatorialLibraryAnalyzer:
         tuple of (str, float)
             ChEMBL compound ID and Tanimoto similarity of ChEMBL ligand most similar to the query ligand.
         """
+
+        # get ROMol from recombined ligand InChI
+        ligand = Chem.MolFromInchi(ligand_inchi)
 
         # generate query ligand fingerprint
         rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)

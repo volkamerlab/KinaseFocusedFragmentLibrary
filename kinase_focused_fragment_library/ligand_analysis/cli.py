@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 import time
 
-from .base import ChemblPreparer, CombinatorialLibraryAnalyzer
+from .base import ChemblPreparer, CombinatorialLibraryAnalyzer, CombinatorialLibraryDeduplicator
 from .utils import read_fragment_library, read_original_ligands, read_chembl_ligands
 
 logger = logging.getLogger(__name__)
@@ -103,6 +103,10 @@ def analyze_combinatorial_library():
         chembl,
         path_combinatorial_library
     )
+
+    # deduplicate combinatorial library
+    deduplicator = CombinatorialLibraryDeduplicator()
+    deduplicator.run(path_combinatorial_library)
 
     runtime = time.time() - start
     logger.info(f'Time: {runtime}')
