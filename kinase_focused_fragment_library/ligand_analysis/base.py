@@ -347,26 +347,33 @@ class CombinatorialLibraryAnalyzer:
             ChEMBL compound ID and Tanimoto similarity of ChEMBL ligand most similar to the query ligand.
         """
 
-        # get ROMol from recombined ligand InChI
-        ligand = Chem.MolFromInchi(ligand_inchi)
+        try:
 
-        # generate query ligand fingerprint
-        rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
-        query_fingerprint = rdkit_gen.GetFingerprint(ligand)
+            # get ROMol from recombined ligand InChI
+            ligand = Chem.MolFromInchi(ligand_inchi)
 
-        # get ChEMBL fingerprints as list
-        chembl_fingerprints = chembl.fingerprint.to_list()
+            # generate query ligand fingerprint
+            rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
+            query_fingerprint = rdkit_gen.GetFingerprint(ligand)
 
-        # get pairwise similarities
-        chembl['similarity'] = DataStructs.BulkTanimotoSimilarity(query_fingerprint, chembl_fingerprints)
+            # get ChEMBL fingerprints as list
+            chembl_fingerprints = chembl.fingerprint.to_list()
 
-        # get ligand with maximal similarity
-        chembl_most_similar_ix = chembl.similarity.idxmax()
+            # get pairwise similarities
+            chembl['similarity'] = DataStructs.BulkTanimotoSimilarity(query_fingerprint, chembl_fingerprints)
 
-        return [
-            chembl.loc[chembl_most_similar_ix].chembl_id,
-            round(chembl.loc[chembl_most_similar_ix].similarity, 2)
-        ]
+            # get ligand with maximal similarity
+            chembl_most_similar_ix = chembl.similarity.idxmax()
+
+            return [
+                chembl.loc[chembl_most_similar_ix].chembl_id,
+                round(chembl.loc[chembl_most_similar_ix].similarity, 2)
+            ]
+
+        except Exception as e:
+            
+            print(f'Most similar ChEMBL ligand search problem for {ligand_inchi}: {e}')
+            return [None, None]
 
 
 class CombinatorialLibraryDeduplicator:
