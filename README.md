@@ -3,15 +3,22 @@
 ## Exploring the chemical space of kinase inhibitors: Subpocket-based fragmentation for data-driven recombination
 
 ### Introduction
-Protein kinases play a crucial role in many cell signaling processes, making them one of the most important families of drug targets.
-Fragment-based drug design has proven useful as an approach to develop novel kinase inhibitors. However, fragment-based methods are usually limited to a knowledge-driven approach of optimizing a focused set of fragments. 
+Protein kinases play a crucial role in many cell signaling processes, making them one of the most important families of 
+drug targets.
+Fragment-based drug design has proven useful as an approach to develop novel kinase inhibitors. However, fragment-based 
+methods are usually limited to a knowledge-driven approach of optimizing a focused set of fragments. 
 Here, we present a data-driven fragmentation and recombination approach instead. 
-A novel computational fragmentation method was implemented, which splits known kinase inhibitors into fragments with respect to the subpockets that they occupy. Thereby, a fragment library with several pools, representing the subpockets, is created.
-This fragment library enables an in-depth analysis of the chemical space of known kinase inhibitors, and is used to recombine fragments in order to generate novel potential inhibitors.
+A novel computational fragmentation method was implemented, which splits known kinase inhibitors into fragments with 
+respect to the subpockets that they occupy. Thereby, a fragment library with several pools, representing the subpockets, 
+is created.
+This fragment library enables an in-depth analysis of the chemical space of known kinase inhibitors, 
+and is used to recombine fragments in order to generate novel potential inhibitors.
 
 ##### Fragmentation
 
-For each input kinase-ligand complex, the kinase binding pocket is divided into six subpockets. The ligands are fragmented according to these subpockets, and a fragment library with several pools is created, where each pool corresponds to one subpocket and contains the fragments that were assigned to this subpocket.
+For each input kinase-ligand complex, the kinase binding pocket is divided into six subpockets. 
+The ligands are fragmented according to these subpockets, and a fragment library with several pools is created, 
+where each pool corresponds to one subpocket and contains the fragments that were assigned to this subpocket.
 
 <img src ="./docs/img/subpocket_centers.png" width = "600" align="left"> 
 
@@ -19,9 +26,13 @@ For each input kinase-ligand complex, the kinase binding pocket is divided into 
 
 ##### Recombination
 
-Every possible fragment recombination is enumerated in order to create a virtual combinatorial compound library. The fragments are reconnected only at the broken bonds, while preserving the original subpocket connection of each bond. 
+Every possible fragment recombination is enumerated in order to create a virtual combinatorial compound library. 
+The fragments are reconnected only at the broken bonds, while preserving the original subpocket connection of each bond. 
 
 ### Usage
+
+**Note**: Notebooks in this branch will at times not run out of the box due to input/output changes in the library.
+
 #### Dependencies
 
 Create and activate conda environment containing all required packages:
@@ -38,7 +49,8 @@ pip install -e KinaseFocusedFragmentLibrary
 
 #### Input
 
-Kinase-ligand structures, and two CSV files containing metadata are downloaded from the [KLIFS database](https://klifs.vu-compmedchem.nl/index.php) using the following Search options:
+Kinase-ligand structures, and two CSV files containing metadata are downloaded from the 
+[KLIFS database](https://klifs.vu-compmedchem.nl/index.php) using the following Search options:
 
 <img src ="./docs/img/klifs_download.png" width = "800" align="left"> 
 
@@ -63,52 +75,53 @@ The downloaded data should have the following folder structure:
 The full fragmentation and recombination workflow consists of the following steps:
 1. Preprocessing
 2. Fragmentation
-3. Fragment analysis
+3. Optional but highly advised: Fragment library reduction
 4. Recombination
 5. Recombined molecule analysis
+
+Hint: `/path/to/KLIFS_download` means `/path/to/folder/with/KLIFS_download/folder`.
 
 ##### 1. Preprocessing
 
 ```bash
-kffl-preprocessing -f /path/to/KLIFS_download -o put/path/to/FragmentLibrary
+kffl-preprocessing 
+-f /path/to/KLIFS_download 
+-o put/path/to/FragmentLibrary
 ```
-* The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands that were chosen for the fragmentation. 
+* The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands 
+that were chosen for the fragmentation. 
 * Metadata on the discarded ligands is written to ```put/path/to/FragmentLibrary/discarded_ligands/preprocessing.csv```.
 
 ##### 2. Fragmentation
 
 ```bash
-kffl-fragmentation -f /path/to/KLIFS_download -o /path/to/FragmentLibrary
+kffl-fragmentation 
+-f /path/to/KLIFS_download 
+-o /path/to/fragment_library
 ```
-* A picture of each fragmented ligand is drawn and stored in ```/path/to/FragmentLibrary/fragmented_molecules/```
-* Metadata on discarded ligands is written to ```/path/to/FragmentLibrary/discarded_ligands/fragmentation.csv```.
-* The fragment library is written to  ```/path/to/FragmentLibrary```. 
+* A picture of each fragmented ligand is drawn and stored in ```/path/to/fragment_library/fragmented_molecules/```
+* Metadata on discarded ligands is written to ```/path/to/fragment_library/discarded_ligands/fragmentation.csv```.
+* The fragment library is written to  ```/path/to/fragment_library```. 
 
 For each subpocket, one folder containing one SD file exists:
 
-    └── FragmentLibrary/
-        ├── AP
-        │   └── AP.sdf
-        ├── B1
-        │   └── B1.sdf
-        ├── B2
-        │   └── B2.sdf
+    └── fragment_library
+        ├── AP.sdf
+        ├── B1.sdf
+        ├── B2.sdf
+        ├── FP.sdf
+        ├── GA.sdf
+        ├── SE.sdf
+        └── X.sdf
         ├── discarded_ligands
         │   ├── fragmentation.csv
         │   └── preprocessing.csv        
-        ├── FP
-        │   ├── FP.sdf
-        ├── fragmented_molecules
-        │   ├── 4wsq_altA_chainA.png
-        │   └── ...
-        ├── GA
-        │   └── GA.sdf
-        ├── SE
-        │   └── SE.sdf
-        └── X
-            └── X.sdf
+        └── fragmented_molecules
+            ├── 4wsq_altA_chainA.png
+            └── ...
 
-In addition to the standard fields of the SDF format (3D coordinates of each atom and bonds between atoms), the files include the following associated data for each fragment:
+In addition to the standard fields of the SDF format (3D coordinates of each atom and bonds between atoms), 
+the files include the following associated data for each fragment:
 
 * PDB code of the original kinase-ligand complex and of the ligand itself
 * Chain and alternate model of this complex in KLIFS
@@ -116,45 +129,77 @@ In addition to the standard fields of the SDF format (3D coordinates of each ato
 * Subpocket of each atom, including dummy atoms
 * BRICS environment type for each atom (with dummy atoms having 'na' assigned)
 
-##### 3. Fragment analysis
+##### 3. Optional but highly advised: Fragment library reduction
 
-Necessary step to proceed with recombination step: 
+Necessary step to proceed with recombination step (otherwise computational too expensive): 
 To reduce the number of fragments in the fragment library using Butina Clustering, run the notebook
 
-```kinase_focused_fragment_library/analysis/fragment_analysis/cluster_centroids.ipynb```.
+https://github.com/volkamerlab/KinFragLib/blob/master/notebooks/3_1_fragment_library_reduced.ipynb
 
-Further Jupyter notebooks for analyzing the fragment library are stored in ```kinase_focused_fragment_library/analysis/fragment_analysis/```.
+This notebook generates a folder called `fragment_library_reduced`
+
+    └── fragment_library
+        └── ...
+    └── fragment_library_reduced
+        ├── AP.sdf
+        ├── B1.sdf
+        ├── B2.sdf
+        ├── FP.sdf
+        ├── GA.sdf
+        ├── SE.sdf
+        ├── X.sdf    
+        └── configuration.txt
 
 ##### 4. Recombination
 
 The recombination step should be performed on a cluster:
 
 ```bash
-kffl-recombination -f /path/to/FragmentLibrary -o /path/to/CombinatorialLibrary -s AP -d 4
+kffl-recombination 
+-f /path/to/fragment_library_reduced
+-o /path/to/combinatorial_library 
+-s AP 
+-d 4
 ```
-* The SDF files in the ```/path/to/FragmentLibrary``` are used as input for the recombination, while the above folder structure and file names are expected.
-* The ```-s``` option specifies one or multiple subpockets from which the recombination procedure will start, meaning that all resulting molecules will contain a fragment coming from this subpocket/these subpockets (default: all subpockets). 
+* The SDF files in the ```/path/to/fragment_library``` are used as input for the recombination, while the above folder 
+structure and file names are expected.
+* The ```-s``` option specifies one or multiple subpockets from which the recombination procedure will start,
+meaning that all resulting molecules will contain a fragment coming from this subpocket/these subpockets 
+(default: all subpockets). 
 * The ```-d``` option specifies the maximum number of fragments to combine (default: 6).
-* Multiple binary (pickle) files are written to ```/path/to/CombinatorialLibrary/results/```, which contain pickled objects representing the recombined molecules. For each molecule, this object contains the fragment IDs and the bonds (as tuples of atom IDs) between the fragments. 
+* Multiple binary (pickle) files are written to ```/path/to/combinatorial_library/results/```, 
+which contain pickled objects representing the recombined molecules. For each molecule, this object contains the 
+fragment IDs and the bonds (as tuples of atom IDs) between the fragments. 
 
 ##### 5. Recombined molecule analysis
 
 Download file ```chembl_25_chemreps.txt``` here: https://chembl.gitbook.io/chembl-interface-documentation/downloads.
 
-Standardize ChEMBL data in this file using 
+Standardize ChEMBL data in this file using:
+ 
 ```bash
-kinase_focused_fragment_library/analysis/ligand_analysis/standardize_chembl.py -f chembl_25_chemreps.txt -o chembl_standardized_inchi.txt
+kffl-chembl 
+-f chembl_25_chemreps.txt 
+-o chembl_standardized_inchi.txt
 ```
 
 The analysis step should be performed on a cluster:
 
 ```bash
-kffl-ligand-analysis -f /path/to/FragmentLibrary -klifs /path/to/KLIFS/data -chembl chembl_standardized_inchi.txt -o /path/to/CombinatorialLibrary
+kffl-ligand-analysis 
+-f /path/to/fragment_library_reduced 
+-klifs /path/to/KLIFS_download 
+-chembl chembl_standardized_inchi.txt 
+-o /path/to/combinatorial_library
 ```
 
 * Only in this step, the recombined molecules are constructed as actual Molecule objects. 
-* These molecules are then compared to the molecules given in ```chembl_standardized_inchi.txt``` (which should contain one standardized InChI string per line) and to the original KLIFS ligands from which the fragments were built.
-* For each molecule, an object is stored in the file ```/path/to/CombinatorialLibrary/cominatorial_library.pickle``` which includes the representation of the molecule as created in the recombination step, its number of heavy atoms, as well as binary values describing whether the molecule
+* These molecules are then compared to the molecules given in ```chembl_standardized_inchi.txt``` 
+(which should contain one standardized InChI string per line) and 
+to the original KLIFS ligands from which the fragments were built.
+* For each molecule, an object is stored in the file ```/path/to/combinatorial_library/cominatorial_library.pickle``` 
+which includes the representation of the molecule as created in the recombination step, its number of heavy atoms, 
+as well as binary values describing whether the molecule
   * fulfills Lipinski's rule of five,
   * has a molecular weight <= 500,
   * has a logP <= 5,
@@ -163,4 +208,6 @@ kffl-ligand-analysis -f /path/to/FragmentLibrary -klifs /path/to/KLIFS/data -che
   * is a true substructure of an original ligand,
   * was found in ChEMBL.
 
-* Jupyter notebooks for analyzing these objects are stored in ```kinase_focused_fragment_library/analysis/ligand_analysis/```, including a ```quick_start.ipynb``` introducing the basic steps for working with the combinatorial library data.
+* Jupyter notebooks for analyzing these objects are stored in 
+```kinase_focused_fragment_library/analysis/ligand_analysis/```, 
+including a ```quick_start.ipynb``` introducing the basic steps for working with the combinatorial library data.

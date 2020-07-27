@@ -5,12 +5,13 @@ channels:
   - rdkit
   - samoturk
 dependencies:
+  - pytest
   - biopandas
   - jupyter
   - matplotlib
   - numpy
   - pandas
-  - rdkit=2019.03.2
+  - rdkit
   - parmed  
   - pmw
   - pymol

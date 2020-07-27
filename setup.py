@@ -34,8 +34,10 @@ setup(
             "console_scripts": [
                 "kffl-preprocessing=kinase_focused_fragment_library.preprocessing.cli:main",
                 "kffl-fragmentation=kinase_focused_fragment_library.fragmentation.cli:main",
+                "kffl-reduction=kinase_focused_fragment_library.fragment_library_reduction.cli:main",
                 "kffl-recombination=kinase_focused_fragment_library.recombination.cli:main",
-                "kffl-ligand-analysis=kinase_focused_fragment_library.analysis.ligand_analysis.cli:main",
+                "kffl-chembl=kinase_focused_fragment_library.ligand_analysis.cli:prepare_chembl",
+                "kffl-ligand-analysis=kinase_focused_fragment_library.ligand_analysis.cli:analyze_combinatorial_library",
             ],
         },
 

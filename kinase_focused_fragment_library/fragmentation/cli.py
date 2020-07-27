@@ -66,7 +66,7 @@ def main():
     # clear output files and create output folders
     output_files = {}
     for subpocket in subpockets+[Subpocket('X')]:
-        folderName = path_to_library / subpocket.name
+        folderName = path_to_library
         if not folderName.exists():
             Path.mkdir(folderName)
         fileName = folderName / (subpocket.name+'.sdf')
@@ -336,7 +336,6 @@ def main():
         img.save(path_to_library / ('fragmented_molecules/' + get_file_name(entry) + '.png'))
 
         count_structures += 1
-
 
     # close output files
     for subpocket in subpockets+[Subpocket('X')]:
