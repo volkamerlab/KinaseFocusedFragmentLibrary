@@ -178,7 +178,7 @@ class CombinatorialLibraryAnalyzer:
     def __init__(self):
         pass
 
-    def run(self, fragment_library, original_ligands, chembl, path_combinatorial_library, n_cores):
+    def run(self, fragment_library, original_ligands, chembl, path_combinatorial_library):
         """
         Construct ligands from fragment library based on meta data (fragment and bond ids) and analyze ligands with respect
         to the following properties:
@@ -198,10 +198,9 @@ class CombinatorialLibraryAnalyzer:
         path_combinatorial_library : pathlib.Path
             Path to combinatorial library folder, contains pickled molecules from recombination and is used to output final
             json file.
-        n_cores : int
-            Number of cores to be used for parallel computing.
         """
 
+        n_cores = mp.cpu_count()
         logger.info(f'Number of cores: {n_cores}')
         pool = mp.Pool(n_cores)
 
@@ -226,6 +225,9 @@ class CombinatorialLibraryAnalyzer:
 
                 # extend results list with ligands from current iteration
                 results.extend(results_tmp)
+
+            with open(path_pickle_combinatorial_library.parent / f'{path_pickle_combinatorial_library.stem}.json', 'w') as f:
+                json.dump(results_tmp, f)
 
         logger.info(f'Number of recombined ligands from all iterations: {len(results)}')
         logger.info(f'Data linked to each ligand: {list(results[0].keys())}')
@@ -270,10 +272,10 @@ class CombinatorialLibraryAnalyzer:
             'mwt': None,
             'logp': None,
             'n_atoms': None,
-            'chembl_exact': None,
+            'chembl_exact': 0,
             'chembl_most_similar': None,
-            'original_exact': None,
-            'original_substructure': None,
+            'original_exact': 0,
+            'original_substructure': 0,
             'inchi': None
         }
 
@@ -294,56 +296,48 @@ class CombinatorialLibraryAnalyzer:
         # convert mol to inchi
         try:
             inchi = Chem.MolToInchi(ligand)
+            ligand_dict['inchi'] = inchi
         except Exception as e:
             print(f'Error {e}: Mol to InChI conversion failed for molecule with fragment IDs {meta.frag_ids}')
             return
 
         # Lipinski's rule of five
         lipinski, wt, logp, hbd, hba = is_drug_like(ligand)
-
-        # number of atoms
-        n_atoms = ligand.GetNumHeavyAtoms()
-
-        # ligand has exact match in original ligands?
-        original_exact_matches = original_ligands[
-            original_ligands.inchi == inchi
-            ].index.to_list()
-
-        # ligand has substructure match in original ligands?
-        original_substructure_matches = original_ligands[
-            original_ligands.mol.apply(lambda x: x.HasSubstructMatch(ligand))
-        ].index.to_list()
-
-        # ligand has exact match in ChEMBL?
-        chembl_exact_matches = chembl[
-            chembl.inchi == inchi
-            ].index.to_list()
-
-        # highest Tanimoto similarity between ligand and ChEMBL?
-        chembl_most_similar = self._most_similar_chembl_ligand(ligand, chembl)
-
-        # save results to dictionary
         ligand_dict['hba'] = hba
         ligand_dict['hbd'] = hbd
         ligand_dict['mwt'] = wt
         ligand_dict['logp'] = logp
-        ligand_dict['n_atoms'] = n_atoms
-        ligand_dict['chembl_exact'] = chembl_exact_matches
+
+        # number of atoms
+        ligand_dict['n_atoms'] = ligand.GetNumHeavyAtoms()
+
+        # ligand has exact match in original ligands?
+        if not original_ligands[original_ligands.inchi == inchi].empty:
+            ligand_dict['original_exact'] = 1
+
+        # ligand has substructure match in original ligands?
+        if not original_ligands[original_ligands.mol.apply(lambda x: x.HasSubstructMatch(ligand))].empty:
+            ligand_dict['original_substructure'] = 1
+
+        # ligand has exact match in ChEMBL?
+        if not chembl[chembl.inchi == inchi].empty:
+            ligand_dict['chembl_exact'] = 1
+
+        # highest Tanimoto similarity between ligand and ChEMBL?
+        chembl_most_similar = self._most_similar_chembl_ligand(inchi, chembl)
         ligand_dict['chembl_most_similar'] = chembl_most_similar
-        ligand_dict['original_exact'] = original_exact_matches
-        ligand_dict['original_substructure'] = original_substructure_matches
-        ligand_dict['inchi'] = inchi
 
         return ligand_dict
 
     @staticmethod
-    def _most_similar_chembl_ligand(ligand, chembl):
+    def _most_similar_chembl_ligand(ligand_inchi, chembl):
         """
         Get the most similar ChEMBL ligand (ChEMBL compound ID and Tanimoto similarity) to the query ligand.
 
         Parameters
         ----------
-        ligand : rdkit.Chem.rdchem.Mol
+        ligand_inchi : str
+            Recombined ligand (InChI)
         chembl : pandas.DataFrame
             ChEMBL ligands, column fingerprint necessary.
 
@@ -353,20 +347,58 @@ class CombinatorialLibraryAnalyzer:
             ChEMBL compound ID and Tanimoto similarity of ChEMBL ligand most similar to the query ligand.
         """
 
-        # generate query ligand fingerprint
-        rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
-        query_fingerprint = rdkit_gen.GetFingerprint(ligand)
+        try:
 
-        # get ChEMBL fingerprints as list
-        chembl_fingerprints = chembl.fingerprint.to_list()
+            # get ROMol from recombined ligand InChI
+            ligand = Chem.MolFromInchi(ligand_inchi)
 
-        # get pairwise similarities
-        chembl['similarity'] = DataStructs.BulkTanimotoSimilarity(query_fingerprint, chembl_fingerprints)
+            # generate query ligand fingerprint
+            rdkit_gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5)
+            query_fingerprint = rdkit_gen.GetFingerprint(ligand)
 
-        # get ligand with maximal similarity
-        chembl_most_similar_ix = chembl.similarity.idxmax()
+            # get ChEMBL fingerprints as list
+            chembl_fingerprints = chembl.fingerprint.to_list()
 
-        return [
-            chembl.iloc[chembl_most_similar_ix].chembl_id[6:],  # cut off "CHEMBL" from ChEMBL ID
-            round(chembl.iloc[chembl_most_similar_ix].similarity, 2)
-        ]
+            # get pairwise similarities
+            chembl['similarity'] = DataStructs.BulkTanimotoSimilarity(query_fingerprint, chembl_fingerprints)
+
+            # get ligand with maximal similarity
+            chembl_most_similar_ix = chembl.similarity.idxmax()
+
+            return [
+                chembl.loc[chembl_most_similar_ix].chembl_id,
+                round(chembl.loc[chembl_most_similar_ix].similarity, 2)
+            ]
+
+        except Exception as e:
+            
+            print(f'Most similar ChEMBL ligand search problem for {ligand_inchi}: {e}')
+            return [None, None]
+
+
+class CombinatorialLibraryDeduplicator:
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def run(path_combinatorial_library):
+        """
+        Deduplicate combinatorial library based on InChIs.
+
+        Parameters
+        ----------
+        path_combinatorial_library : pathlib.Path
+            Path to combinatorial library folder, containing final combinatorial library json file
+        """
+
+        print('Load json file...')
+        combinatorial_library = pd.read_json(path_combinatorial_library / 'combinatorial_library.json')
+        print(f'Number of recombined ligands before deduplication: {combinatorial_library.shape[0]}')
+        combinatorial_library.drop_duplicates('inchi', inplace=True)
+        print(f'Number of recombined ligands after deduplication: {combinatorial_library.shape[0]}')
+        print('Convert DataFrame to dict...')
+        combinatorial_library = combinatorial_library.to_dict('records')
+        print('Save as json file...')
+        with open(path_combinatorial_library / 'combinatorial_library_deduplicated.json', 'w') as f:
+            json.dump(combinatorial_library, f)
