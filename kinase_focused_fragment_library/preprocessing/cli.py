@@ -84,6 +84,17 @@ def main():
         # ==================== FILTER UNLOADBALE STRUCTURES =======================================
 
         # load ligand and binding pocket to rdkit molecules
+        try:
+            ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
+            pocket = Chem.MolFromMol2File(str(path_to_data / folder / 'pocket.mol2'), removeHs=False)
+        except OSError:
+            print('ERROR in ' + folder + ':')
+            print('Ligand or pocket file '+entry.pdb_id+' ('+folder+') could not be loaded. \n')
+            count_ligand_errors += 1
+            filtered_data = filtered_data.drop(index)
+            entry['violation'] = 'Unloadable ligand or pocket file'
+            discarded_structures.append(entry)
+            continue
 
         # check if KLIFS ligand and protein are loadable with RDKit
         try:
