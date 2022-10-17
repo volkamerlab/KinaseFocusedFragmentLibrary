@@ -47,7 +47,7 @@ def main():
     subpocket_connections = {}
 
     # output file with metadata of discarded structures
-    discarded_structures = pd.DataFrame()
+    discarded_structures = []
 
     # ============================= INPUT AND OUTPUT ===============================================
 
@@ -106,7 +106,7 @@ def main():
                 print('ERROR in ' + folder + ':')
                 print('Ligand consists of multiple molecules.\n')
                 entry['violation'] = 'Multiple ligands present'
-                discarded_structures = discarded_structures.append(entry, ignore_index=True)
+                discarded_structures.append(entry)
                 continue
 
         lenLigand = ligand.GetNumAtoms()
@@ -137,7 +137,7 @@ def main():
         if skipStructure:
             count_missing_res += 1
             entry['violation'] = 'Missing residues'
-            discarded_structures = discarded_structures.append(entry, ignore_index=True)
+            discarded_structures.append(entry)
             continue
 
         # visualize subpocket centers using PyMOL
@@ -172,7 +172,7 @@ def main():
         if skipStructure:
             count_large_brics += 1
             entry['violation'] = 'Large BRICS fragment'
-            discarded_structures = discarded_structures.append(entry, ignore_index=True)
+            discarded_structures.append(entry)
             continue
 
         # Adjust subpocket assignments in order to keep small fragments uncleaved
@@ -217,7 +217,7 @@ def main():
         if AP not in [fragment.subpocket for fragment in fragments]:
             count_not_ap += 1
             entry['violation'] = 'AP not occupied'
-            discarded_structures = discarded_structures.append(entry, ignore_index=True)
+            discarded_structures.append(entry)
             continue
 
         # check for FP-BP connections
@@ -274,7 +274,7 @@ def main():
         if skipStructure:
             count_unwanted_subpocket_connections += 1
             entry['violation'] = 'Unwanted subpocket connection'
-            discarded_structures = discarded_structures.append(entry, ignore_index=True)
+            discarded_structures.append(entry)
             continue
 
         # store all occurring subpocket connections
@@ -363,6 +363,7 @@ def main():
     folderName = Path(args.fragmentlibrary) / 'discarded_ligands'
     if not folderName.exists():
         Path.mkdir(folderName)
+    discarded_structures = pd.DataFrame(discarded_structures).reset_index(drop=True)
     discarded_structures.to_csv(folderName / 'fragmentation.csv')
 
 

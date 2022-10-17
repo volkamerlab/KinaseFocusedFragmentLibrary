@@ -62,7 +62,7 @@ def main():
     filtered_data = KLIFSData.copy()
 
     # output file with metadata of discarded structures
-    discarded_structures = pd.DataFrame()
+    discarded_structures = []
 
     # =========================== ITERATE OVER STRUCTURES =========================================
 
@@ -78,14 +78,23 @@ def main():
             filtered_data = filtered_data.drop(index)
             count_substrates += 1
             entry['violation'] = 'Substrate'
-            discarded_structures = discarded_structures.append(entry, ignore_index=True)
+            discarded_structures.append(entry)
             continue
 
         # ==================== FILTER UNLOADBALE STRUCTURES =======================================
 
         # load ligand and binding pocket to rdkit molecules
-        ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
-        pocket = Chem.MolFromMol2File(str(path_to_data / folder / 'pocket.mol2'), removeHs=False)
+        try:
+            ligand = Chem.MolFromMol2File(str(path_to_data / folder / 'ligand.mol2'), removeHs=False)
+            pocket = Chem.MolFromMol2File(str(path_to_data / folder / 'pocket.mol2'), removeHs=False)
+        except OSError:
+            print('ERROR in ' + folder + ':')
+            print('Ligand or pocket file '+entry.pdb_id+' ('+folder+') could not be loaded. \n')
+            count_ligand_errors += 1
+            filtered_data = filtered_data.drop(index)
+            entry['violation'] = 'Unloadable ligand or pocket file'
+            discarded_structures.append(entry)
+            continue
 
         # check if KLIFS ligand and protein are loadable with RDKit
         try:
@@ -96,7 +105,7 @@ def main():
             count_ligand_errors += 1
             filtered_data = filtered_data.drop(index)
             entry['violation'] = 'Unloadable ligand'
-            discarded_structures = discarded_structures.append(entry, ignore_index=True)
+            discarded_structures.append(entry)
             continue
         try:
             pocketConf = pocket.GetConformer()
@@ -106,7 +115,7 @@ def main():
             count_pocket_errors += 1
             filtered_data = filtered_data.drop(index)
             entry['violation'] = 'Unloadable pocket'
-            discarded_structures = discarded_structures.append(entry, ignore_index=True)
+            discarded_structures.append(entry)
             continue
 
         # ===================== FILTER PHOSPHATES AND RIBOSES ===================================
@@ -117,7 +126,7 @@ def main():
             filtered_data = filtered_data.drop(index)
             count_substrates += 1
             entry['violation'] = 'Contains phosphate'
-            discarded_structures = discarded_structures.append(entry, ignore_index=True)
+            discarded_structures.append(entry)
             continue
 
         # discard ligands containing riboses
@@ -126,7 +135,7 @@ def main():
             filtered_data = filtered_data.drop(index)
             count_substrates += 1
             entry['violation'] = 'Contains ribose'
-            discarded_structures = discarded_structures.append(entry, ignore_index=True)
+            discarded_structures.append(entry)
             continue
 
         # =================== FILTER MULTIPLE LIGANDS PER STRUCTURE ==============================
@@ -142,7 +151,7 @@ def main():
                 filtered_data = filtered_data.drop(index)
                 count_multi_ligands += 1
                 entry['violation'] = 'Multiple ligands present'
-                discarded_structures = discarded_structures.append(entry, ignore_index=True)
+                discarded_structures.append(entry)
                 continue
 
         # ============================ FILTER COVALENT LIGANDS ===================================
@@ -153,7 +162,7 @@ def main():
             filtered_data = filtered_data.drop(index)
             count_covalent += 1
             entry['violation'] = 'Covalent ligand'
-            discarded_structures = discarded_structures.append(entry, ignore_index=True)
+            discarded_structures.append(entry)
             continue
 
 
@@ -165,6 +174,7 @@ def main():
     folderName = Path(args.fragmentlibrary) / 'discarded_ligands'
     if not folderName.exists():
         Path.mkdir(folderName)
+    discarded_structures = pd.DataFrame(discarded_structures).reset_index(drop=True)
     discarded_structures.to_csv(folderName / 'preprocessing.csv')
 
     # output statistics

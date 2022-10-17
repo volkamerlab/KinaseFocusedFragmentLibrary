@@ -86,8 +86,12 @@ def main():
 
         file = folder / (subpocket + '.sdf')
 
-        # read molecules, keep hydrogen atoms
-        suppl = Chem.SDMolSupplier(str(file), removeHs=False)
+        try:
+            # read molecules, keep hydrogen atoms
+            suppl = Chem.SDMolSupplier(str(file), removeHs=False)
+        except OSError:
+            print(f"Subpocket {subpocket} not available.")
+            continue
         mols = [f for f in suppl][:args.n_frags]
 
         fragments = []
