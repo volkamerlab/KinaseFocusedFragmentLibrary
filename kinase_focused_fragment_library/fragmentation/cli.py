@@ -191,8 +191,8 @@ def main():
             secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
 
             # set environment types of the brics fragments
-            firstFragment.environment = env_1
-            secondFragment.environment = env_2
+            firstFragment.environment.append((beginAtom, env_1))
+            secondFragment.environment.append((endAtom, env_2))
 
             # check if subpockets differ
             if firstFragment.subpocket != secondFragment.subpocket:
