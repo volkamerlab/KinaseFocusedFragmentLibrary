@@ -2,7 +2,7 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import BRICS
 
-from .classes import Fragment
+from kinase_focused_fragment_library.fragmentation.classes import Fragment
 
 
 def find_brics_fragments(mol):

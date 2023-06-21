@@ -27,28 +27,28 @@ def read_klifs_meta_data(path_to_klifs_download, path_to_klifs_export):
     """
 
     # read overview file
-    df_overview = pd.read_csv(path_to_klifs_download)
+    df = pd.read_csv(path_to_klifs_download)
     # read export file
-    df_export = pd.read_csv(path_to_klifs_export)
+    # df_export = pd.read_csv(path_to_klifs_export)
     # rename columns
-    df_export.columns = ['kinase', 'family', 'group', 'pdb', 'chain', 'alt', 'species', 'ligand', 'pdb_id',
-                      'allosteric_name', 'allosteric_PDB', 'dfg', 'ac_helix']
+    # df_export.columns = ['kinase', 'family', 'group', 'pdb', 'chain', 'alt', 'species', 'ligand', 'pdb_id',
+                      # # 'allosteric_name', 'allosteric_PDB', 'dfg', 'ac_helix']
 
-    # sync kinase names for both data frames
-    for ix, row in df_export.iterrows():
-        alt = row.alt
-        kinase = row.kinase
-        if '(' in kinase:
-            row.kinase = kinase[kinase.find("(") + 1:kinase.find(")")]
-        if alt == '-':
-            row.alt = ' '
+    # # sync kinase names for both data frames
+    # for ix, row in df_export.iterrows():
+        # alt = row.alt
+        # kinase = row.kinase
+        # if '(' in kinase:
+            # row.kinase = kinase[kinase.find("(") + 1:kinase.find(")")]
+        # if alt == '-':
+            # row.alt = ' '
 
-    # outer merge, as information from both data frames should be kept
-    df = pd.merge(df_overview, df_export, how='outer', on=['species', 'kinase', 'pdb', 'chain', 'alt', 'allosteric_PDB'])
+    # # outer merge, as information from both data frames should be kept
+    # df = pd.merge(df_overview, df_export, how='outer', on=['species', 'kinase', 'pdb', 'chain', 'alt', 'allosteric_PDB'])
 
-    # loose irrelevant data
-    df = df[['kinase', 'family', 'group', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix',
-                           'missing_residues', 'pocket']]
+    # # loose irrelevant data
+    # df = df[['kinase', 'family', 'group', 'species', 'pdb', 'pdb_id', 'alt', 'chain', 'qualityscore', 'dfg', 'ac_helix',
+                           # 'missing_residues', 'pocket']]
 
     # add column with positions of missing residues (replacing column with number of missing residues)
     df = add_missing_residues(df)
@@ -183,12 +183,13 @@ def get_folder_name(df):
 
     """
 
-    if df.alt == ' ':
-        folder = df.species.upper()+'/'+df.kinase+'/'+df.pdb+'_chain'+df.chain
-    else:
-        folder = df.species.upper()+'/'+df.kinase+'/'+df.pdb+'_alt'+df.alt+'_chain'+df.chain
+    # if df.alt == ' ':
+        # folder = df.species.upper()+'/'+df.kinase+'/'+df.pdb+'_chain'+df.chain
+    # else:
+        # folder = df.species.upper()+'/'+df.kinase+'/'+df.pdb+'_alt'+df.alt+'_chain'+df.chain
 
-    return folder
+    # return folder
+    return str(df.ident)
 
 
 def get_file_name(df):

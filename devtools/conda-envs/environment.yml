@@ -18,3 +18,5 @@ dependencies:
   - python>=3.6.8
   - scikit-learn
   - seaborn
+  - requests
+  - tqdm

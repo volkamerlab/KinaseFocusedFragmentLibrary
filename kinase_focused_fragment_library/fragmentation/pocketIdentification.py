@@ -1,10 +1,7 @@
 import numpy as np
 import sys
 
-try:
-    from .classes import Subpocket  # if kffl is run as package
-except ModuleNotFoundError:
-    from classes import Subpocket  # if kffl is not run as package
+from kinase_focused_fragment_library.fragmentation.classes import Subpocket  # if kffl is not run as package
 
 
 def get_subpocket_from_pos(pos, subpockets):
