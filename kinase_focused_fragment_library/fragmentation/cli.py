@@ -58,14 +58,14 @@ def prepare_output_files(output_path, subpockets):
         # create this directory if it does not yet exist
         Path.mkdir(path)
 
-    return path
+    return path, output_files
 
 
 def get_pocket(klifs_structure_id, output_path):
     pocket_path = output_path / "pockets"
     pocket_path.mkdir(exist_ok=True)
     pocket_file = pocket_path / f"{klifs_structure_id}.mol2"
-    print(str(pocket_file), str(pocket_file).endswith('.mol2'))
+    # print(str(pocket_file), str(pocket_file).endswith(".mol2"))
     if not pocket_file.exists():
         resp = req.get(
             "https://klifs.net/api_v2/structure_get_pocket",
@@ -80,7 +80,7 @@ def get_pocket(klifs_structure_id, output_path):
     pocketMol2 = (
         PandasMol2()
         .read_mol2(
-            str(pocket_path),
+            str(pocket_file),
             columns={
                 0: ("atom_id", int),
                 1: ("atom_name", str),
@@ -101,25 +101,16 @@ def get_pocket(klifs_structure_id, output_path):
 
 
 def main():
-
     # ============================= INITIALIZATIONS ===============================================
 
     # define the 6 subpockets
     subpockets = [
         Subpocket("SE", residues=[51], color="0.0, 1.0, 1.0"),  # cyan
-        Subpocket(
-            "AP", residues=[46, 51, 75, 15], color="0.6, 0.1, 0.6"
-        ),  # deep purple
-        Subpocket(
-            "FP", residues=[72, 51, 10, 81], color="0.2, 0.6, 0.2"
-        ),  # forest # 4 <-> 10
-        Subpocket(
-            "GA", residues=[45, 17, 81], color="1.0, 0.5, 0.0"
-        ),  # orange  # 80 <-> 81
+        Subpocket("AP", residues=[46, 51, 75, 15], color="0.6, 0.1, 0.6"),  # deep purple
+        Subpocket("FP", residues=[72, 51, 10, 81], color="0.2, 0.6, 0.2"),  # forest # 4 <-> 10
+        Subpocket("GA", residues=[45, 17, 81], color="1.0, 0.5, 0.0"),  # orange  # 80 <-> 81
         Subpocket("B1", residues=[81, 28, 43, 38], color="0.0, 0.5, 1.0"),  # marine
-        Subpocket(
-            "B2", residues=[18, 24, 70, 83], color="0.5, 0.0, 1.0"
-        ),  # purple blue # +/- 70
+        Subpocket("B2", residues=[18, 24, 70, 83], color="0.5, 0.0, 1.0"),  # purple blue # +/- 70
     ]
     SE, AP, FP, GA, B1, B2 = subpockets
 
@@ -158,23 +149,26 @@ def main():
     args = parser.parse_args()
 
     output_path = Path(args.fragmentlibrary)
+    # file = "/Users/paulakramer/Documents/PHD/KinFragLib/KinaseFocusedFragmentLibrary/data/kinodata_docked_filtered_augmented.sdf"
+    # output_path = Path(
+    #     "/Users/paulakramer/Documents/PHD/KinFragLib/KinaseFocusedFragmentLibrary/fragment_library"
+    # )
+    # get_pocket(5323, output_path)
 
     # path_to_data = Path(args.klifsdata)
 
     # KLIFSData = pd.read_csv(path_to_data / "data.csv", index_col="ident")
-    df = PandasTools.LoadSDF(
-        args.file, idName="ident", molColName="molecule", removeHs=False
-    )
+    df = PandasTools.LoadSDF(args.file, idName="ident", molColName="molecule", removeHs=False)
     df.set_index("ident", inplace=True)
 
-    prepare_output_files(output_path, subpockets)
+    path, output_files = prepare_output_files(output_path, subpockets)
 
     df = add_missing_residues(df)
 
     bond_failures = []
     # iterate over molecules
     for index, entry in df.iterrows():
-        print(index)
+        # print(index)
 
         # ================================== READ DATA ============================================
 
@@ -184,15 +178,23 @@ def main():
 
         ligand = entry["molecule"]
         pocket, pocketMol2 = get_pocket(
-            entry["similar.klifs_structure_id"].rstrip('.0'), output_path
+            entry["similar.klifs_structure_id"].rstrip(".0"), output_path
         )
-        Draw.MolToFile(ligand, f"images/{index}_0.png")
+        # Draw.MolToFile(ligand, f"images/{index}_0.png")
 
+        # TODO: check why
+        if pocket is None:
+            print("ERROR in " + folder + ":")
+            print(
+                "Pocket is none for "
+                + str(entry["similar.klifs_structure_id"].rstrip(".0"))
+                + "\n"
+            )
+            entry["violation"] = "Pocket is none"
+            discarded_structures.append(entry)
+            continue
         # multiple ligands in one structure
-        if (
-            "." in entry["compound_structures.canonical_smiles"]
-        ):  # Chem.MolToSmiles(ligand):
-
+        if "." in entry["compound_structures.canonical_smiles"]:  # Chem.MolToSmiles(ligand):
             ligand = get_ligand_from_multi_ligands(ligand)
 
             # should not happen if preprocessing was done correctly
@@ -203,7 +205,7 @@ def main():
                 discarded_structures.append(entry)
                 continue
 
-        lenLigand = ligand.GetNumAtoms()
+        # lenLigand = ligand.GetNumAtoms()
         # convert string to list
         missing_residues = list(entry.missing_residues)
         # fix residue IDs
@@ -213,10 +215,7 @@ def main():
 
         # calculate subpocket centers
         for subpocket in subpockets:
-
-            subpocket.center = calc_subpocket_center(
-                subpocket, pocket, pocketMol2, folder
-            )
+            subpocket.center = calc_subpocket_center(subpocket, pocket, pocketMol2, folder)
             # skip structure if no center could be calculated because of missing residues
             if subpocket.center is None:
                 skipStructure = True
@@ -239,7 +238,6 @@ def main():
 
         # calculate fragment centers and get nearest subpockets
         for BRICSFragment in BRICSFragments:
-
             center = calc_geo_center(
                 BRICSFragment.mol.GetAtoms(), BRICSFragment.mol.GetConformer()
             )
@@ -276,17 +274,12 @@ def main():
         count = 0
         # iterate over BRICS bonds
         for (beginAtom, endAtom), (env_1, env_2) in BRICSBonds:
-
             # find corresponding fragments
             firstFragment = next(
-                fragment
-                for fragment in BRICSFragments
-                if beginAtom in fragment.atomNumbers
+                fragment for fragment in BRICSFragments if beginAtom in fragment.atomNumbers
             )
             secondFragment = next(
-                fragment
-                for fragment in BRICSFragments
-                if endAtom in fragment.atomNumbers
+                fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers
             )
 
             # set environment types of the brics fragments
@@ -305,8 +298,7 @@ def main():
 
         # iterate over new fragments and create Fragment objects
         fragments = []
-        for (atomNumbers, mol) in zip(fragment_atoms, fragment_mols):
-
+        for atomNumbers, mol in zip(fragment_atoms, fragment_mols):
             # get subpocket corresponding to fragment (Is there a better way?)
             subpocket = next(
                 brics_fragment.subpocket
@@ -314,9 +306,7 @@ def main():
                 if atomNumbers[0] in brics_fragment.atomNumbers
             )
             # create Fragment object
-            fragments.append(
-                Fragment(mol=mol, atomNumbers=atomNumbers, subpocket=subpocket)
-            )
+            fragments.append(Fragment(mol=mol, atomNumbers=atomNumbers, subpocket=subpocket))
 
         # skip this structure if it does not contain an AP fragment
         if AP not in [fragment.subpocket for fragment in fragments]:
@@ -326,8 +316,7 @@ def main():
             continue
 
         # check for FP-BP connections
-        for (beginAtom, endAtom) in atom_tuples:
-
+        for beginAtom, endAtom in atom_tuples:
             firstFragment = next(
                 fragment for fragment in fragments if beginAtom in fragment.atomNumbers
             )
@@ -343,7 +332,6 @@ def main():
                 "FP",
                 "B1",
             }:
-
                 fp_frag = firstFragment if sp_1.name == "FP" else secondFragment
                 bp_frag = firstFragment if sp_1.name.startswith("B") else secondFragment
                 fp_frag.center = calc_geo_center(
@@ -379,8 +367,7 @@ def main():
         # subpocket connections in this ligand
         conns = set()
         # check subpocket connections again after adaptation
-        for (beginAtom, endAtom) in atom_tuples:
-
+        for beginAtom, endAtom in atom_tuples:
             firstFragment = next(
                 fragment for fragment in fragments if beginAtom in fragment.atomNumbers
             )
@@ -395,7 +382,6 @@ def main():
 
             # unwanted subpocket connection found
             if not is_valid_subpocket_connection(sp_1, sp_2):
-
                 print(folder + ":")
                 print(
                     "Unwanted subpocket connection:",
@@ -442,7 +428,6 @@ def main():
 
         # add fragments to their respective pool
         for fragment in fragments:
-
             # store PDB where this fragment came from
             fragment.structure = str(index)  # get_file_name(entry)
 
@@ -459,9 +444,7 @@ def main():
             # fragment.mol.SetProp('alt', entry.alt)
             # fragment.mol.SetProp('chain', entry.chain)
             # fragment.mol.SetProp('ligand_UniprotID', entry.UniprotID)
-            fragment.mol.SetProp(
-                "klifs_structure_ID", str(entry["docking.klifs_structure_id"])
-            )
+            fragment.mol.SetProp("klifs_structure_ID", str(entry["similar.klifs_structure_id"]))
             fragment.mol.SetProp("activityIdent", str(index))
 
             # atom properties as fragment property
