@@ -55,8 +55,14 @@ Kinase-ligand structures, and two CSV files containing metadata are downloaded f
 <img src ="./docs/img/klifs_download.png" width = "800" align="left"> 
 
 <br clear="all" />
+<br clear="all" />
+<br clear="all" />
 
-The downloaded data should have the following folder structure:
+You will need to do two downloads at the end of the page:
+1. Download the structural data via the "DOWNLOAD STRUCTURES" botton (choose the mol2 zip file option). If you are downloading more than 50 structures, you will get an email with a download link. Unpack the downloaded folder: You now have a `KLIFS_download` folder.
+2. Download the metadata file (`KLIFS_export.csv`) via the "DOWNLOAD CSV" botton. Please place this file into the `KLIFS_download` folder from step 1.
+
+The downloaded data should now have the following folder structure:
 
     └── KLIFS_download
         ├── KLIFS_export.csv

@@ -173,8 +173,7 @@ def main():
     filtered_data.to_csv(path_to_data / 'filtered_ligands.csv')
 
     folderName = Path(args.fragmentlibrary) / 'discarded_ligands'
-    if not folderName.exists():
-        Path.mkdir(folderName)
+    Path.mkdir(folderName, parents=True, exist_ok=True)
     discarded_structures = pd.DataFrame(discarded_structures).reset_index(drop=True)
     discarded_structures.to_csv(folderName / 'preprocessing.csv')
 

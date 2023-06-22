@@ -25,7 +25,7 @@ class Fragment:
         self.center = center
         self.subpocket = subpocket
         self.structure = structure
-        self.environment = environment
+        self.environment = environment if environment else []
 
 
 class Subpocket:
