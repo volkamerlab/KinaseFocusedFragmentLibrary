@@ -48,11 +48,12 @@ pip install -e KinaseFocusedFragmentLibrary
 ```
 
 #### Input
-
 Kinase-ligand structures, and two CSV files containing metadata are downloaded from the 
-[KLIFS database](https://klifs.vu-compmedchem.nl/index.php) using the following Search options:
+[KLIFS database](https://klifs.vu-compmedchem.nl/index.php) using the following Search options (for not shown options, the defaults are chosen):
 
-<img src ="./docs/img/klifs_download.png" width = "800" align="left"> 
+<img src ="./docs/img/klifs_download_kinase_classification.png" width = "800" align="left"> 
+<img src ="./docs/img/klifs_download_structure_conformation.png" width = "800" align="left"> 
+<img src ="./docs/img/klifs_download_structure_properties.png" width = "800" align="left"> 
 
 <br clear="all" />
 <br clear="all" />
@@ -179,13 +180,13 @@ fragment IDs and the bonds (as tuples of atom IDs) between the fragments.
 
 ##### 5. Recombined molecule analysis
 
-Download file ```chembl_25_chemreps.txt``` here: https://chembl.gitbook.io/chembl-interface-documentation/downloads.
+Download file ```chembl_33_chemreps.txt.gz``` here: https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_33/ and unpack it.
 
 Standardize ChEMBL data in this file using:
  
 ```bash
 kffl-chembl 
--f chembl_25_chemreps.txt 
+-f chembl_33_chemreps.txt 
 -o chembl_standardized_inchi.txt
 ```
 
@@ -214,6 +215,5 @@ as well as binary values describing whether the molecule
   * is a true substructure of an original ligand,
   * was found in ChEMBL.
 
-* Jupyter notebooks for analyzing these objects are stored in 
-```kinase_focused_fragment_library/analysis/ligand_analysis/```, 
-including a ```quick_start.ipynb``` introducing the basic steps for working with the combinatorial library data.
+* Jupyter notebooks for analyzing the combinatorial library are stored at https://github.com/volkamerlab/KinFragLib/blob/master/notebooks/ (```4_[1-5]*.ipynb```), 
+including ```4_1_combinatorial_library_data.ipynb``` introducing the basic steps for working with the combinatorial library data.
