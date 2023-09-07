@@ -180,7 +180,6 @@ def main():
 
         # list to store the bonds where we will cleave
         atom_tuples = []
-        count = 0
         # iterate over BRICS bonds
         for (beginAtom, endAtom), (env_1, env_2) in BRICSBonds:
 
