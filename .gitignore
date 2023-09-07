@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 *.cif
-*.png
+*.png 
 *obsolete*
 
 # C extensions
@@ -114,3 +114,9 @@ venv.bak/
 # Example data output (from preprocessing and fragmentation)
 docs/data/FragmentLibrary/
 docs/data/KLIFS_download/filtered_ligands.csv
+
+# VS Code
+.vscode
+
+# Mac specific 
+**/.DS_Store
