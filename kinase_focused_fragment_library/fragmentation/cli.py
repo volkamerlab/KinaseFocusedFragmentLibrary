@@ -84,7 +84,7 @@ def main():
         Path.mkdir(path)
 
     # iterate over molecules
-    for index, entry in KLIFSData.iterrows():
+    for _, entry in KLIFSData.iterrows():
 
         # ================================== READ DATA ============================================
 
@@ -108,8 +108,6 @@ def main():
                 entry['violation'] = 'Multiple ligands present'
                 discarded_structures.append(entry)
                 continue
-
-        lenLigand = ligand.GetNumAtoms()
 
         # read atom information from binding pocket mol2 file (necessary for residue information)
         pocketMol2 = PandasMol2().read_mol2(str(path_to_data / folder / 'pocket.mol2'),

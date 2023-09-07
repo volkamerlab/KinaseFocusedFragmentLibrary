@@ -114,14 +114,6 @@ def set_atom_properties(fragments, atom_tuples, brics_fragments):
                     fragment,
                     brics_fragments
                 )
-                
-                if environment != 'na':
-
-                    if atom_number in [atom_id for atom_id, _ in environment]:
-                        environment = next(env for atom_id, env in environment if atom_id == atom_number)
-                    else: # not an atom next to a dummy => set environment randomly
-                        environment = next(iter(environment))[1]
-
                 atom.SetIntProp('atomNumber', atom_number)
                 atom.SetProp('subpocket', subpocket)
                 atom.SetProp('environment', environment)
@@ -163,13 +155,16 @@ def _get_atom_properties_regular(atom_number, fragment, brics_fragments):
     # get the atom's subpocket (= the fragment's subpocket)
     subpocket = fragment.subpocket.name
 
-    # get environment type of the brics fragment that the current atom belongs to
-    environment = next(
+    # get possible environment types of the brics fragment that the current atom belongs to
+    environments = next(
         brics_fragment.environment
         for brics_fragment
         in brics_fragments
         if atom_number in brics_fragment.atomNumbers
     )
+
+    # get environment type of the brics fragment that the current atom belongs to if the atom is next to a dummy atom, else pick a random environment
+    environment = next((env for atom_id, env in environments if atom_id == atom_number), next(iter(environments))[1])
 
     return atom_number, subpocket, environment
 
