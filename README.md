@@ -35,11 +35,27 @@ The fragments are reconnected only at the broken bonds, while preserving the ori
 
 #### Dependencies
 
-Create and activate conda environment containing all required packages:
+Create a conda environment containing all required packages:
 ```bash
 conda env create -f devtools/conda-envs/environment.yml
+# When using a MacBook with an M1 chip you may need:
+CONDA_SUBDIR=osx-64 conda env create -f devtools/conda-envs/environment.yml
+```
+
+Hint: using a MacBook with an M1 chip you may need to install **PyQt5** beforehand:
+```bash
+# with Homebrew
+brew install pyqt5
+# with pip3
+pip3 install pyqt5
+```
+
+Activate the new environment:
+```bash
 conda activate kffl
 ```
+
+
 
 Download and install `kinase_focused_fragment_library` package:
 ```bash
@@ -91,20 +107,16 @@ Hint: `/path/to/KLIFS_download` means `/path/to/folder/with/KLIFS_download/folde
 ##### 1. Preprocessing
 
 ```bash
-kffl-preprocessing 
--f /path/to/KLIFS_download 
--o put/path/to/FragmentLibrary
+kffl-preprocessing -f /path/to/KLIFS_download -o /put/path/to/FragmentLibrary
 ```
 * The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands 
 that were chosen for the fragmentation. 
-* Metadata on the discarded ligands is written to ```put/path/to/FragmentLibrary/discarded_ligands/preprocessing.csv```.
+* Metadata on the discarded ligands is written to ```/put/path/to/FragmentLibrary/discarded_ligands/preprocessing.csv```.
 
 ##### 2. Fragmentation
 
 ```bash
-kffl-fragmentation 
--f /path/to/KLIFS_download 
--o /path/to/fragment_library
+kffl-fragmentation -f /path/to/KLIFS_download -o /path/to/fragment_library
 ```
 * A picture of each fragmented ligand is drawn and stored in ```/path/to/fragment_library/fragmented_molecules/```
 * Metadata on discarded ligands is written to ```/path/to/fragment_library/discarded_ligands/fragmentation.csv```.
@@ -162,11 +174,7 @@ This notebook generates a folder called `fragment_library_reduced`
 The recombination step should be performed on a cluster:
 
 ```bash
-kffl-recombination 
--f /path/to/fragment_library_reduced
--o /path/to/combinatorial_library 
--s AP 
--d 4
+kffl-recombination -f /path/to/fragment_library_reduced -o /path/to/combinatorial_library -s AP -d 4
 ```
 * The SDF files in the ```/path/to/fragment_library``` are used as input for the recombination, while the above folder 
 structure and file names are expected.
