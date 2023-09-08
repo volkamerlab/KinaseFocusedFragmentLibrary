@@ -4,6 +4,7 @@ channels:
   - omnia
   - rdkit
   - samoturk
+  - schrodinger
 dependencies:
   - pytest
   - biopandas
@@ -14,6 +15,7 @@ dependencies:
   - rdkit
   - parmed  
   - pmw
+  - pymol-bundle 
   - pymol
   - python>=3.6.8
   - scikit-learn
