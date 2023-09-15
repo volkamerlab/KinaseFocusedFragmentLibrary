@@ -11,8 +11,8 @@ dependencies:
   - jupyter
   - matplotlib
   - numpy
-  - pandas
-  - rdkit
+  - pandas= 2.1
+  - rdkit=2021.09
   - parmed  
   - pmw
   - pymol-bundle 
