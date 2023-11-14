@@ -14,8 +14,8 @@ class Fragment:
         Subpocket in which the fragment lies
     structure: str
         PDB code + alt + chain of corresponding structure
-    environment: str
-        BRICS environment type of the fragment (based on RDKit definitions)
+    environment: list[str]
+        List of BRICS environment types of the fragment (based on RDKit definitions)
     """
 
     def __init__(self, mol=None, atomNumbers=None, subpocket=None, structure=None, center=None, environment=None):
@@ -25,7 +25,14 @@ class Fragment:
         self.center = center
         self.subpocket = subpocket
         self.structure = structure
-        self.environment = environment or []
+        if environment is None:
+            self.environment = []
+        elif isinstance(environment, str):
+            self.environment = [environment]
+        elif isinstance(environment, list):
+            self.environment = environment
+        else:
+            raise ValueError(f"Input type {type(environment)} of `environment` can only be str or list[str]")
 
 
 class Subpocket:
