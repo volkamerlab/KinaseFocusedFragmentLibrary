@@ -155,13 +155,16 @@ def _get_atom_properties_regular(atom_number, fragment, brics_fragments):
     # get the atom's subpocket (= the fragment's subpocket)
     subpocket = fragment.subpocket.name
 
-    # get environment type of the brics fragment that the current atom belongs to
-    environment = next(
+    # get possible environment types of the brics fragment that the current atom belongs to
+    environments = next(
         brics_fragment.environment
         for brics_fragment
         in brics_fragments
         if atom_number in brics_fragment.atomNumbers
     )
+
+    # get environment type of the brics fragment that the current atom belongs to if the atom is next to a dummy atom, else pick a random environment
+    environment = next((env for atom_id, env in environments if atom_id == atom_number), next(iter(environments))[1])
 
     return atom_number, subpocket, environment
 

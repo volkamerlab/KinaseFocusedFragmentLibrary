@@ -84,7 +84,7 @@ def main():
         Path.mkdir(path)
 
     # iterate over molecules
-    for index, entry in KLIFSData.iterrows():
+    for _, entry in KLIFSData.iterrows():
 
         # ================================== READ DATA ============================================
 
@@ -108,8 +108,6 @@ def main():
                 entry['violation'] = 'Multiple ligands present'
                 discarded_structures.append(entry)
                 continue
-
-        lenLigand = ligand.GetNumAtoms()
 
         # read atom information from binding pocket mol2 file (necessary for residue information)
         pocketMol2 = PandasMol2().read_mol2(str(path_to_data / folder / 'pocket.mol2'),
@@ -182,7 +180,6 @@ def main():
 
         # list to store the bonds where we will cleave
         atom_tuples = []
-        count = 0
         # iterate over BRICS bonds
         for (beginAtom, endAtom), (env_1, env_2) in BRICSBonds:
 
@@ -191,8 +188,8 @@ def main():
             secondFragment = next(fragment for fragment in BRICSFragments if endAtom in fragment.atomNumbers)
 
             # set environment types of the brics fragments
-            firstFragment.environment = env_1
-            secondFragment.environment = env_2
+            firstFragment.environment.append((beginAtom, env_1))
+            secondFragment.environment.append((endAtom, env_2))
 
             # check if subpockets differ
             if firstFragment.subpocket != secondFragment.subpocket:
