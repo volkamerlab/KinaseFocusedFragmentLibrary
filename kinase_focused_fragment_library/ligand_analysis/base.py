@@ -13,6 +13,7 @@ from pathlib import Path
 import pandas as pd
 from rdkit import Chem, DataStructs
 from rdkit.Chem import PandasTools, rdFingerprintGenerator
+import wandb 
 
 from .utils import standardize_smiles_to_inchi, standardize_mol, construct_ligand, is_drug_like
 from kinase_focused_fragment_library.recombination.pickle_loader import pickle_loader
@@ -212,8 +213,9 @@ class CombinatorialLibraryAnalyzer:
         logger.info(f'Process recombined ligands...')
 
         # iterate over pickle files
-        for path_pickle_combinatorial_library in paths_pickle_combinatorial_library:
+        for i, path_pickle_combinatorial_library in enumerate(paths_pickle_combinatorial_library):
             logger.info(f'Process {path_pickle_combinatorial_library}...')
+            wandb.log({"Started process": i})
 
             with open(str(path_pickle_combinatorial_library), 'rb') as pickle_in:
                 # process ligands in pickle file (returns list of dict)
@@ -228,6 +230,7 @@ class CombinatorialLibraryAnalyzer:
 
             with open(path_pickle_combinatorial_library.parent / f'{path_pickle_combinatorial_library.stem}.json', 'w') as f:
                 json.dump(results_tmp, f)
+            wandb.log({"Finished process": i})
 
         logger.info(f'Number of recombined ligands from all iterations: {len(results)}')
         logger.info(f'Data linked to each ligand: {list(results[0].keys())}')

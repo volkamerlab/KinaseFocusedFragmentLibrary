@@ -31,7 +31,10 @@ The fragments are reconnected only at the broken bonds, while preserving the ori
 
 ### Usage
 
-**Note**: Notebooks in this branch will at times not run out of the box due to input/output changes in the library.
+Clone `KinaseFocusedFragmentLibrary`:
+```bash
+git clone https://github.com/volkamerlab/KinaseFocusedFragmentLibrary.git
+```
 
 #### Dependencies
 
@@ -57,15 +60,15 @@ conda activate kffl
 
 
 
-Download and install `kinase_focused_fragment_library` package:
+Install `kinase_focused_fragment_library` package:
 ```bash
-git clone https://github.com/volkamerlab/KinaseFocusedFragmentLibrary.git
+cd ..
 pip install -e KinaseFocusedFragmentLibrary
 ```
 
 #### Input
 Kinase-ligand structures, and two CSV files containing metadata are downloaded from the 
-[KLIFS database](https://klifs.vu-compmedchem.nl/index.php) using the following Search options (for not shown options, the defaults are chosen):
+[KLIFS database](https://klifs.vu-compmedchem.nl/index.php) using the following search options (for not shown options, the defaults are chosen):
 
 <img src ="./docs/img/klifs_download_kinase_classification.png" width = "800" align="left"> 
 <img src ="./docs/img/klifs_download_structure_conformation.png" width = "800" align="left"> 

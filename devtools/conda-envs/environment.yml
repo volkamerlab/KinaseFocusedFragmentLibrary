@@ -9,6 +9,7 @@ dependencies:
   - pytest
   - biopandas
   - jupyter
+  - wandb
   - matplotlib
   - numpy
   - pandas= 2.1
