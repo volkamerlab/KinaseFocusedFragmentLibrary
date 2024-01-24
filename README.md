@@ -198,7 +198,7 @@ Standardize ChEMBL data in this file using:
 ```bash
 kffl-chembl 
 -f chembl_33_chemreps.txt 
--o chembl_standardized_inchi.txt
+-o chembl_standardized_inchi.csv
 ```
 
 The analysis step should be performed on a cluster:
@@ -207,12 +207,12 @@ The analysis step should be performed on a cluster:
 kffl-ligand-analysis 
 -f /path/to/fragment_library_reduced 
 -klifs /path/to/KLIFS_download 
--chembl chembl_standardized_inchi.txt 
+-chembl chembl_standardized_inchi.csv 
 -o /path/to/combinatorial_library
 ```
 
 * Only in this step, the recombined molecules are constructed as actual Molecule objects. 
-* These molecules are then compared to the molecules given in ```chembl_standardized_inchi.txt``` 
+* These molecules are then compared to the molecules given in ```chembl_standardized_inchi.csv``` 
 (which should contain one standardized InChI string per line) and 
 to the original KLIFS ligands from which the fragments were built.
 * For each molecule, an object is stored in the file ```/path/to/combinatorial_library/cominatorial_library.pickle``` 
