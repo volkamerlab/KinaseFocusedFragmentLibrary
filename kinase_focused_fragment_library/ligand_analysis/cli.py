@@ -9,7 +9,6 @@ import argparse
 import logging
 from pathlib import Path
 import time
-import wandb
 
 from .base import ChemblPreparer, CombinatorialLibraryAnalyzer, CombinatorialLibraryDeduplicator
 from .utils import read_fragment_library, read_original_ligands, read_chembl_ligands
@@ -82,12 +81,6 @@ def analyze_combinatorial_library():
             logging.StreamHandler()
         ]
     )
-
-    # set up wandb-logging
-    wandb.init(
-        name="ligand_analysis", 
-        project="KinaseFocusedFragmentLibrary"
-        )
 
     # get start time of script
     start = time.time()
