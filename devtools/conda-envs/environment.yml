@@ -9,7 +9,6 @@ dependencies:
   - pytest
   - biopandas
   - jupyter
-  - wandb
   - matplotlib
   - numpy
   - pandas= 2.1
@@ -17,7 +16,6 @@ dependencies:
   - parmed  
   - pmw
   - pymol-bundle 
-  - pymol
   - python>=3.6.8
   - scikit-learn
   - seaborn

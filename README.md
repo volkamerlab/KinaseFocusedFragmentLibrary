@@ -43,6 +43,9 @@ Create a conda environment containing all required packages:
 conda env create -f devtools/conda-envs/environment.yml
 # When using a MacBook with an M1 chip you may need:
 CONDA_SUBDIR=osx-64 conda env create -f devtools/conda-envs/environment.yml
+
+# Hint: if conda is too slow, consider using mamba instead:
+mamba env create -f devtools/conda-envs/environment.yml
 ```
 
 Hint: using a MacBook with an M1 chip you may need to install **PyQt5** beforehand:
@@ -110,11 +113,11 @@ Hint: `/path/to/KLIFS_download` means `/path/to/folder/with/KLIFS_download/folde
 ##### 1. Preprocessing
 
 ```bash
-kffl-preprocessing -f /path/to/KLIFS_download -o /put/path/to/FragmentLibrary
+kffl-preprocessing -f /path/to/KLIFS_download -o /put/path/to/fragment_library
 ```
 * The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands 
 that were chosen for the fragmentation. 
-* Metadata on the discarded ligands is written to ```/put/path/to/FragmentLibrary/discarded_ligands/preprocessing.csv```.
+* Metadata on the discarded ligands is written to ```/put/path/to/fragment_library/discarded_ligands/preprocessing.csv```.
 
 ##### 2. Fragmentation
 
