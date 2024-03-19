@@ -16,6 +16,6 @@ dependencies:
   - parmed  
   - pmw
   - pymol-bundle 
-  - python>=3.6.8
+  - python>=3.9
   - scikit-learn
   - seaborn
