@@ -212,7 +212,7 @@ class CombinatorialLibraryAnalyzer:
         logger.info(f'Process recombined ligands...')
 
         # iterate over pickle files
-        for path_pickle_combinatorial_library in paths_pickle_combinatorial_library:
+        for i, path_pickle_combinatorial_library in enumerate(paths_pickle_combinatorial_library):
             logger.info(f'Process {path_pickle_combinatorial_library}...')
 
             with open(str(path_pickle_combinatorial_library), 'rb') as pickle_in:

@@ -61,7 +61,7 @@ def main():
 
     path_to_data = Path(args.klifsdata) / 'KLIFS_download'
 
-    KLIFSData = pd.read_csv(path_to_data / 'filtered_ligands.csv')
+    KLIFSData = pd.read_csv(path_to_library / 'filtered_ligands.csv')
 
     # clear output files and create output folders
     output_files = {}

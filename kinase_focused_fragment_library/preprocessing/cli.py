@@ -169,9 +169,11 @@ def main():
     # ============================= OUTPUT ===============================================
 
     # write to output files
-    filtered_data.to_csv(path_to_data / 'filtered_ligands.csv')
+    path_to_fragment_library = Path(args.fragmentlibrary)
 
-    folderName = Path(args.fragmentlibrary) / 'discarded_ligands'
+    filtered_data.to_csv(path_to_fragment_library / 'filtered_ligands.csv')
+
+    folderName = path_to_fragment_library / 'discarded_ligands'
     Path.mkdir(folderName, parents=True, exist_ok=True)
     discarded_structures = pd.DataFrame(discarded_structures).reset_index(drop=True)
     discarded_structures.to_csv(folderName / 'preprocessing.csv')

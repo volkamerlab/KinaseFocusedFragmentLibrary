@@ -31,28 +31,51 @@ The fragments are reconnected only at the broken bonds, while preserving the ori
 
 ### Usage
 
-**Note**: Notebooks in this branch will at times not run out of the box due to input/output changes in the library.
+Clone `KinaseFocusedFragmentLibrary`:
+```bash
+git clone https://github.com/volkamerlab/KinaseFocusedFragmentLibrary.git
+```
 
 #### Dependencies
 
-Create and activate conda environment containing all required packages:
+Create a conda environment containing all required packages:
 ```bash
 conda env create -f devtools/conda-envs/environment.yml
+# When using a MacBook with an M1 chip you may need:
+CONDA_SUBDIR=osx-64 conda env create -f devtools/conda-envs/environment.yml
+
+# Hint: if conda is too slow, consider using mamba instead:
+mamba env create -f devtools/conda-envs/environment.yml
+```
+
+Hint: using a MacBook with an M1 chip you may need to install **PyQt5** beforehand:
+```bash
+# with Homebrew
+brew install pyqt5
+# with pip3
+pip3 install pyqt5
+```
+
+Activate the new environment:
+```bash
 conda activate kffl
 ```
 
-Download and install `kinase_focused_fragment_library` package:
+
+
+Install `kinase_focused_fragment_library` package:
 ```bash
-git clone https://github.com/volkamerlab/KinaseFocusedFragmentLibrary.git
+cd ..
 pip install -e KinaseFocusedFragmentLibrary
 ```
 
 #### Input
-
 Kinase-ligand structures, and two CSV files containing metadata are downloaded from the 
-[KLIFS database](https://klifs.vu-compmedchem.nl/index.php) using the following Search options:
+[KLIFS database](https://klifs.vu-compmedchem.nl/index.php) using the following search options (for not shown options, the defaults are chosen):
 
-<img src ="./docs/img/klifs_download.png" width = "800" align="left"> 
+<img src ="./docs/img/klifs_download_kinase_classification.png" width = "800" align="left"> 
+<img src ="./docs/img/klifs_download_structure_conformation.png" width = "800" align="left"> 
+<img src ="./docs/img/klifs_download_structure_properties.png" width = "800" align="left"> 
 
 <br clear="all" />
 <br clear="all" />
@@ -90,20 +113,16 @@ Hint: `/path/to/KLIFS_download` means `/path/to/folder/with/KLIFS_download/folde
 ##### 1. Preprocessing
 
 ```bash
-kffl-preprocessing 
--f /path/to/KLIFS_download 
--o put/path/to/FragmentLibrary
+kffl-preprocessing -f /path/to/KLIFS_download -o /put/path/to/fragment_library
 ```
 * The output file ```/path/to/KLIFS/data/KLIFS_download/filtered_ligands.csv``` contains metadata on all ligands 
 that were chosen for the fragmentation. 
-* Metadata on the discarded ligands is written to ```put/path/to/FragmentLibrary/discarded_ligands/preprocessing.csv```.
+* Metadata on the discarded ligands is written to ```/put/path/to/fragment_library/discarded_ligands/preprocessing.csv```.
 
 ##### 2. Fragmentation
 
 ```bash
-kffl-fragmentation 
--f /path/to/KLIFS_download 
--o /path/to/fragment_library
+kffl-fragmentation -f /path/to/KLIFS_download -o /path/to/fragment_library
 ```
 * A picture of each fragmented ligand is drawn and stored in ```/path/to/fragment_library/fragmented_molecules/```
 * Metadata on discarded ligands is written to ```/path/to/fragment_library/discarded_ligands/fragmentation.csv```.
@@ -161,11 +180,7 @@ This notebook generates a folder called `fragment_library_reduced`
 The recombination step should be performed on a cluster:
 
 ```bash
-kffl-recombination 
--f /path/to/fragment_library_reduced
--o /path/to/combinatorial_library 
--s AP 
--d 4
+kffl-recombination -f /path/to/fragment_library_reduced -o /path/to/combinatorial_library -s AP -d 4
 ```
 * The SDF files in the ```/path/to/fragment_library``` are used as input for the recombination, while the above folder 
 structure and file names are expected.
@@ -179,14 +194,14 @@ fragment IDs and the bonds (as tuples of atom IDs) between the fragments.
 
 ##### 5. Recombined molecule analysis
 
-Download file ```chembl_25_chemreps.txt``` here: https://chembl.gitbook.io/chembl-interface-documentation/downloads.
+Download file ```chembl_33_chemreps.txt.gz``` here: https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_33/ and unpack it.
 
 Standardize ChEMBL data in this file using:
  
 ```bash
 kffl-chembl 
--f chembl_25_chemreps.txt 
--o chembl_standardized_inchi.txt
+-f chembl_33_chemreps.txt 
+-o chembl_standardized_inchi.csv
 ```
 
 The analysis step should be performed on a cluster:
@@ -195,12 +210,12 @@ The analysis step should be performed on a cluster:
 kffl-ligand-analysis 
 -f /path/to/fragment_library_reduced 
 -klifs /path/to/KLIFS_download 
--chembl chembl_standardized_inchi.txt 
+-chembl chembl_standardized_inchi.csv 
 -o /path/to/combinatorial_library
 ```
 
 * Only in this step, the recombined molecules are constructed as actual Molecule objects. 
-* These molecules are then compared to the molecules given in ```chembl_standardized_inchi.txt``` 
+* These molecules are then compared to the molecules given in ```chembl_standardized_inchi.csv``` 
 (which should contain one standardized InChI string per line) and 
 to the original KLIFS ligands from which the fragments were built.
 * For each molecule, an object is stored in the file ```/path/to/combinatorial_library/cominatorial_library.pickle``` 
@@ -214,6 +229,5 @@ as well as binary values describing whether the molecule
   * is a true substructure of an original ligand,
   * was found in ChEMBL.
 
-* Jupyter notebooks for analyzing these objects are stored in 
-```kinase_focused_fragment_library/analysis/ligand_analysis/```, 
-including a ```quick_start.ipynb``` introducing the basic steps for working with the combinatorial library data.
+* Jupyter notebooks for analyzing the combinatorial library are stored at https://github.com/volkamerlab/KinFragLib/blob/master/notebooks/ (```4_[1-5]*.ipynb```), 
+including ```4_1_combinatorial_library_data.ipynb``` introducing the basic steps for working with the combinatorial library data.
