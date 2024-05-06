@@ -159,7 +159,7 @@ the files include the following associated data for each fragment:
 Necessary step to proceed with recombination step (otherwise computational too expensive): 
 To reduce the number of fragments in the fragment library using Butina Clustering, run the notebook
 
-https://github.com/volkamerlab/KinFragLib/blob/master/notebooks/3_1_fragment_library_reduced.ipynb
+https://github.com/volkamerlab/KinFragLib/blob/master/notebooks/kinfraglib/3_1_fragment_library_reduced.ipynb
 
 This notebook generates a folder called `fragment_library_reduced`
 
@@ -229,5 +229,5 @@ as well as binary values describing whether the molecule
   * is a true substructure of an original ligand,
   * was found in ChEMBL.
 
-* Jupyter notebooks for analyzing the combinatorial library are stored at https://github.com/volkamerlab/KinFragLib/blob/master/notebooks/ (```4_[1-5]*.ipynb```), 
+* Jupyter notebooks for analyzing the combinatorial library are stored at https://github.com/volkamerlab/KinFragLib/blob/master/notebooks/kinfraglib/ (```4_[1-5]*.ipynb```), 
 including ```4_1_combinatorial_library_data.ipynb``` introducing the basic steps for working with the combinatorial library data.
